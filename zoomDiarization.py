@@ -7,6 +7,8 @@ from moviepy import VideoFileClip
 import re
 import time
 import easyocr
+from paddleocr import PaddleOCR
+import matplotlib.pyplot as plt
 
 os.environ["PATH"] = "/work/users/s/m/smerrill/ffmpeg-7.0.2-amd64-static:" + os.environ["PATH"]
 
@@ -19,10 +21,15 @@ class ZoomSpeakerDiarization:
         self.fps = self.capture.get(cv2.CAP_PROP_FPS)
         self.total_frames = int(self.capture.get(cv2.CAP_PROP_FRAME_COUNT))
         self.speaker_changes = []
-        self.reader = easyocr.Reader(['en'], gpu=True)
-        self.whisper_model = whisper.load_model("large-v2", 
-                                                 device="cuda",
-                                                 download_root='/work/users/s/m/smerrill/models')
+        
+        #self.reader = easyocr.Reader(['en'], gpu=True)
+        self.reader = ocr = PaddleOCR(
+                    use_angle_cls=True,
+                    lang='en')
+        self.whisper_model = whisper.load_model("large-v2")
+        self.sr = cv2.dnn_superres.DnnSuperResImpl_create()
+        self.sr.readModel('/work/users/s/m/smerrill/models/EDSR_Tensorflow/models/EDSR_x4.pb')
+        self.sr.setModel("edsr", 4)
 
 
     def ocr_name_from_box(self, box_img, debug=True, paragraph=True):
@@ -30,24 +37,61 @@ class ZoomSpeakerDiarization:
         Uses EasyOCR to extract text from a cropped participant name box.
         Returns the best detected text string.
         """
-        # Run OCR
-        results = self.reader.readtext(box_img, detail=0, paragraph=paragraph)  # detail=0 returns just text[2][3]
+        
+        # Super-resolution model
+        upscaled = self.sr.upsample(box_img)
 
+        # OCR
+        text=''
+        ocr_results = self.reader.ocr(upscaled, cls=True)
+        print(ocr_results)
+        # Extract and print detected text
+        for line in ocr_results[0]:
+            text = line[1][0]       # Detected text
+            confidence = line[1][1] # Confidence score
+            #print(f"{text} (conf: {confidence:.2f})")
+        
+        #results = self.reader.readtext(box_img, detail=0, paragraph=paragraph)  # detail=0 returns just text[2][3]
         # Combine results into one string
-        if isinstance(results, list):
-            text = ' '.join(results).strip()
-        else:
-            text = str(results).strip()
+        #if isinstance(results, list):
+        #    text = ' '.join(results).strip()
+        #else:
+        #    text = str(results).strip()
 
         if debug:
-            print("EasyOCR Output:", repr(text))
+            print("OCR Output:", repr(text))
             plt.figure(figsize=(6,2))
-            plt.imshow(box_img)
-            plt.title(f"OCR: {text}")
+            plt.imshow(upscaled)
+            plt.title(f"Upscaled and OCR: {text}")
             plt.axis('off')
             plt.show()
 
         return text if text else "No Speaker"
+
+    def crop_black_border(self, frame, threshold=10):
+        """
+        Crops black borders from an image (NumPy array).
+        Args:
+            frame: np.ndarray, input image (BGR or RGB)
+            threshold: int, pixel values <= threshold are considered black
+        Returns:
+            Cropped image as np.ndarray
+        """
+        if len(frame.shape) == 3:
+            # For color images
+            mask = np.any(frame > threshold, axis=2)
+        else:
+            # For grayscale images
+            mask = frame > threshold
+
+        coords = np.argwhere(mask)
+        if coords.size == 0:
+            raise ValueError("No non-black content found in frame.")
+
+        y0, x0 = coords.min(axis=0)
+        y1, x1 = coords.max(axis=0) + 1  # slices are exclusive at the top
+
+        return frame[y0:y1, x0:x1]
 
     def find_speaker(self, frame, overlay=True, debug=True):
         """
@@ -59,6 +103,7 @@ class ZoomSpeakerDiarization:
         Returns:
           frame_with_box, (x, y, w, h) of detected box, cropped box image
         """
+        frame = self.crop_black_border(frame)
         frame_disp = frame.copy()
         h, w = frame.shape[:2]
         detected_box = None
@@ -210,13 +255,14 @@ class ZoomSpeakerDiarization:
         return diarized_transcript
     
     
-    def crop_name_only(self, box_img, height_ratio=0.22, width_ratio=0.6, bottom_padding=4):
+    def crop_name_only(self, box_img, height_ratio=0.22, width_ratio=0.5, bottom_padding=2):
         h, w = box_img.shape[:2]
         name_h = int(h * height_ratio)
         name_w = int(w * width_ratio)
         # Remove bottom padding to avoid colored lines
         name_region = box_img[h - name_h:h - bottom_padding, 0:name_w]
         return name_region
+    
     def clean_crop_above_border(self, img, border_px=5):
         """Crop a few pixels above the bottom to remove colored border."""
         h, w = img.shape[:2]
