@@ -13,14 +13,14 @@ def main():
     args = parser.parse_args()
     
 
-    video_files = os.listdir(args['video_dir'])
+    video_files = os.listdir(args.video_dir)
 
     for video_file in video_files:
         try:
-            save_name = os.path.join(args['save_dir'], video_file.split('.')[0] + '.txt')
-            video_path = os.path.join(args['video_dir'], video_file)
+            save_name = os.path.join(args.save_dir, video_file.split('.')[0] + '.txt')
+            video_path = os.path.join(args.video_dir, video_file)
             diarizer = ZoomSpeakerDiarization(video_path)
-            diarized_transcript = diarizer.process_video(sampling_rate=args['sampling_rate'])
+            diarized_transcript = diarizer.process_video(sampling_rate=args.sampling_rate)
             diarizer.save_transcript(diarized_transcript, save_name)
         except Exception as e:
             print(e)
