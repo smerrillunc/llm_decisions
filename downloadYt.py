@@ -139,62 +139,76 @@ def is_youtube_accessible(proxy):
         return False
 
 
-def download_youtube_audio(video_id: str, proxy: str, output_dir: str = ".") -> str:
+def download_full_youtube_video(video_id: str, proxy: str,  output_dir: str = ".") -> str:
     """
-    Downloads and converts the best available audio stream from a YouTube video to MP3 format.
-    Saves the output as {video_id}.mp3.
-    Requires yt-dlp and ffmpeg.
+    Downloads the full YouTube video and saves it as MP4.
+
+    Requires: yt-dlp and ffmpeg (for merging video/audio)
+    Returns: Full path to downloaded .mp4 file
     """
     url = f"https://www.youtube.com/watch?v={video_id}"
-    output_path = os.path.join(output_dir, f"{video_id}.mp3")
+    output_path = os.path.join(output_dir, f"{video_id}.mp4")
 
-    command = [
+    download_command = [
         "yt-dlp",
         "--proxy", proxy,
-        "--user-agent", "Mozilla/5.0",
-        "--limit-rate", "950K",
-        "--no-check-certificate",
-        "-f", "bestaudio",
-        "--extract-audio",
-        "--audio-format", "mp3",
-        '--retries', '3',
+        "-f", "bestvideo+bestaudio/best",
         "-o", output_path,
+        "--merge-output-format", "mp4",
         url
     ]
 
-    print(f"⬇️ Downloading and converting to MP3 from {url}...")
-    subprocess.run(command, check=True)
-    print(f"✅ MP3 saved to: {output_path}")
+    print(f"⬇️ Downloading full video from {url}...")
+    subprocess.run(download_command, check=True)
+    print(f"✅ Video saved to: {output_path}")
 
     return output_path
+
+
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(description='Read file content.')
 
-  parser.add_argument("-s", "--start_index", type=int, default=0, help='YoutubeID Index to start on in YoutubeID File')
-  parser.add_argument("-e", "--end_index", type=int, default=100, help='YoutubeID Index to end on in YoutubeID File')
-  parser.add_argument("-sp", "--save_path", type=str, default='/work/users/s/m/smerrill/LocalView', help='Path to YoutubeID file.  This will also be where output featuers are saved')
-  parser.add_argument("-vp", "--vid_path", type=str, default='/work/users/s/m/smerrill/LocalView/vids.npy', help='Path to YoutubeID file.  This will also be where output featuers are saved')
+  #parser.add_argument("-s", "--start_index", type=int, default=0, help='YoutubeID Index to start on in YoutubeID File')
+  #parser.add_argument("-e", "--end_index", type=int, default=100, help='YoutubeID Index to end on in YoutubeID File')
+  parser.add_argument("-sp", "--save_path", type=str, default='/work/users/s/m/smerrill/Albemarle', help='Path to Save YT vids to')
+  #parser.add_argument("-vp", "--vid_path", type=str, default='/work/users/s/m/smerrill/LocalView/vids.npy', help='Path to YoutubeID file.  This will also be where output featuers are saved')
   args = vars(parser.parse_args())
 
  
-  os.makedirs(args['save_path'] + '/audio', exist_ok=True)
+  #os.makedirs(args['save_path'] + '/audio', exist_ok=True)
 
   # get downloaded vids
-  downloaded_vids = os.listdir(args['save_path'] + '/audio')
-  downloaded_vids = [x.split('.')[0] for x in downloaded_vids]
+  #downloaded_vids = os.listdir(args['save_path'] + '/audio')
+  #downloaded_vids = [x.split('.')[0] for x in downloaded_vids]
 
   # Here are the youtube ids used by original VM-NET
-  vid_ids = np.load(args['vid_path'], allow_pickle=True)
+  #vid_ids = np.load(args['vid_path'], allow_pickle=True)
 
-  vid_ids = vid_ids[args['start_index']:args['end_index']]
+  #vid_ids = vid_ids[args['start_index']:args['end_index']]
+  vid_ids = ["_91XXbXeQD4",
+    "xfVck0_Q84w",
+    "o3f7y_9mHcE",
+    "3BtZN2Tye08",
+    "Bcl4e29n7m4",
+    "cF4uYrMPQ24",
+    "5YMkxWBgdtY",
+    "8TdTe--0CUs",
+    "wyl3i48JFkA",
+    "82YE6lBeZA8",
+    "GarPnbypXRk",
+    "BQYLZNhIEDE",
+    "LUO7q6gjpvk",
+    "5GglIIs8-B8",
+    "wbgxA2KNbiw",
+    "xJvnLptI_SU"]
 
   all_proxies = []
   i = 0
   for vid in tqdm.tqdm(vid_ids):
       # video id      
-      if vid in downloaded_vids:
-        print(f"VID: {vid} alread processed, skipping")
-        continue
+      #if vid in downloaded_vids:
+      #  print(f"VID: {vid} alread processed, skipping")
+      #  continue
 
 
       print(f"processing VID: {vid}")
@@ -213,7 +227,7 @@ if __name__ == '__main__':
 
         if is_youtube_accessible(proxy):
             print("Attempting Downlaod")
-            success = download_youtube_audio(vid, proxy, output_dir=args['save_path'] + '/audio')
+            success = download_full_youtube_video(vid, proxy, output_dir=args['save_path'])
             if success:
                 print("✅ SUCCESS — Video downloaded.")
                 break
