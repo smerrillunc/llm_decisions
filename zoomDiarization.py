@@ -25,7 +25,8 @@ class ZoomSpeakerDiarization:
         #self.reader = easyocr.Reader(['en'], gpu=True)
         self.reader = ocr = PaddleOCR(
                     use_angle_cls=True,
-                    lang='en')
+                    lang='en',
+                    gpu=True )
         self.whisper_model = whisper.load_model("large-v2")
         self.sr = cv2.dnn_superres.DnnSuperResImpl_create()
         self.sr.readModel('/work/users/s/m/smerrill/models/EDSR_Tensorflow/models/EDSR_x4.pb')
@@ -34,39 +35,60 @@ class ZoomSpeakerDiarization:
 
     def ocr_name_from_box(self, box_img, debug=True, paragraph=True):
         """
-        Uses EasyOCR to extract text from a cropped participant name box.
-        Returns the best detected text string.
+        Attempts OCR on the input box image. Only applies super-resolution
+        if OCR confidence is below threshold.
         """
-        
-        # Super-resolution model
-        upscaled = self.sr.upsample(box_img)
+        def run_ocr(image, label=""):
+            print(f"Running OCR {label}...")
+            start = time.perf_counter()
+            ocr_results = self.reader.ocr(image, cls=True)
+            end = time.perf_counter()
+            print(f"OCR {label} took {end - start:.4f} seconds")
+            return ocr_results
 
-        # OCR
-        text=''
-        ocr_results = self.reader.ocr(upscaled, cls=True)
-        print(ocr_results)
-        # Extract and print detected text
-        for line in ocr_results[0]:
-            text = line[1][0]       # Detected text
-            confidence = line[1][1] # Confidence score
-            #print(f"{text} (conf: {confidence:.2f})")
-        
-        #results = self.reader.readtext(box_img, detail=0, paragraph=paragraph)  # detail=0 returns just text[2][3]
-        # Combine results into one string
-        #if isinstance(results, list):
-        #    text = ' '.join(results).strip()
-        #else:
-        #    text = str(results).strip()
+        # First try OCR on original image
+        ocr_results = run_ocr(box_img, label="(original)")
 
-        if debug:
-            print("OCR Output:", repr(text))
-            plt.figure(figsize=(6,2))
-            plt.imshow(upscaled)
-            plt.title(f"Upscaled and OCR: {text}")
-            plt.axis('off')
-            plt.show()
+        # Extract best text and confidence
+        text = ""
+        confidence = 0.0
+        if ocr_results and ocr_results[0]:
+            text = ocr_results[0][0][1][0]
+            confidence = ocr_results[0][0][1][1]
+        print(f"OCR confidence (original): {confidence:.2f}")
+
+        # If confidence is low, apply super-resolution and try again
+        if confidence < 0.8:
+            print("Confidence < 0.8, trying super-resolution...")
+            start = time.perf_counter()
+            upscaled = self.sr.upsample(box_img)
+            end = time.perf_counter()
+            print(f"Super-resolution took {end - start:.4f} seconds")
+
+            ocr_results = run_ocr(upscaled, label="(upscaled)")
+
+            # Extract new best result
+            if ocr_results and ocr_results[0]:
+                text = ocr_results[0][0][1][0]
+                confidence = ocr_results[0][0][1][1]
+            print(f"OCR confidence (upscaled): {confidence:.2f}")
+
+            if debug:
+                plt.figure(figsize=(6,2))
+                plt.imshow(upscaled)
+                plt.title(f"OCR (upscaled): {text}")
+                plt.axis('off')
+                plt.show()
+        else:
+            if debug:
+                plt.figure(figsize=(6,2))
+                plt.imshow(box_img)
+                plt.title(f"OCR (original): {text}")
+                plt.axis('off')
+                plt.show()
 
         return text if text else "No Speaker"
+
 
     def crop_black_border(self, frame, threshold=10):
         """
@@ -207,8 +229,13 @@ class ZoomSpeakerDiarization:
                 break
                 
             timestamp = current_frame / self.fps
-            active_speaker = self.determine_active_speaker(frame)
-            
+
+            try:
+                active_speaker = self.determine_active_speaker(frame)
+            except:
+                current_frame += frame_interval
+                continue
+                          
             # Record speaker change
             if active_speaker != last_speaker:
                 self.speaker_changes.append((timestamp, active_speaker))
