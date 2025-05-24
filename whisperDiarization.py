@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import os
+import sys
 from moviepy import VideoFileClip
 
 import whisperx
@@ -9,6 +10,10 @@ from pyannote.core import Segment
 import argparse
 
 os.environ["PATH"] = "/work/users/s/m/smerrill/ffmpeg-7.0.2-amd64-static:" + os.environ["PATH"]
+
+cudnn_path = "/work/users/s/m/smerrill/.conda/envs/llm/lib/python3.7/site-packages/nvidia/cudnn/lib"
+os.environ["LD_LIBRARY_PATH"] = f"{cudnn_path}:{os.environ.get('LD_LIBRARY_PATH', '')}"
+os.execv(sys.executable, [sys.executable] + sys.argv)
 
 def main():
     """Main function to run the diarization"""   
