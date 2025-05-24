@@ -1,7 +1,14 @@
-import cv2
-import numpy as np
 import os
 import sys
+
+cudnn_path = "/work/users/s/m/smerrill/.conda/envs/llm/lib/python3.7/site-packages/nvidia/cudnn/lib"
+os.environ["LD_LIBRARY_PATH"] = f"{cudnn_path}:{os.environ.get('LD_LIBRARY_PATH', '')}"
+os.execv(sys.executable, [sys.executable] + sys.argv)
+
+os.environ["PATH"] = "/work/users/s/m/smerrill/ffmpeg-7.0.2-amd64-static:" + os.environ["PATH"]
+
+import numpy as np
+import cv2
 from moviepy import VideoFileClip
 
 import whisperx
@@ -9,11 +16,6 @@ from pyannote.audio import Pipeline
 from pyannote.core import Segment
 import argparse
 
-os.environ["PATH"] = "/work/users/s/m/smerrill/ffmpeg-7.0.2-amd64-static:" + os.environ["PATH"]
-
-cudnn_path = "/work/users/s/m/smerrill/.conda/envs/llm/lib/python3.7/site-packages/nvidia/cudnn/lib"
-os.environ["LD_LIBRARY_PATH"] = f"{cudnn_path}:{os.environ.get('LD_LIBRARY_PATH', '')}"
-os.execv(sys.executable, [sys.executable] + sys.argv)
 
 def main():
     """Main function to run the diarization"""   
@@ -29,8 +31,8 @@ def main():
     print(f"Attempting to Diarize {video_file_name}")
 
     print(f"Creating Audio File {audio_file_name}")
-    video_clip = VideoFileClip(video_file_name)
-    video_clip.audio.write_audiofile(audio_file_name)
+    #video_clip = VideoFileClip(video_file_name)
+    #video_clip.audio.write_audiofile(audio_file_name)
 
 
     model = whisperx.load_model("large-v2", device="cuda", download_root='/work/users/s/m/smerrill/LocalView')

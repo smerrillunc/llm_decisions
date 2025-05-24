@@ -1,6 +1,7 @@
 import argparse
 from zoomDiarization import ZoomSpeakerDiarization
 import os
+import numpy as np
 
 def main():
     """Main function to run the diarization"""   
