@@ -39,7 +39,7 @@ def main():
     model_a, metadata = whisperx.load_align_model(language_code=result["language"], device="cuda")
     result_aligned = whisperx.align(result["segments"], model_a, metadata, audio_file_name, "cuda")
 
-    pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization", use_auth_token="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")
+    pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization", use_auth_token="removed")
     diarization = pipeline(audio_file_name, min_speakers=None, max_speakers=None)
 
     # Add speaker labels to WhisperX segments
