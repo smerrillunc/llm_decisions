@@ -3,8 +3,6 @@ import sys
 
 cudnn_path = "/work/users/s/m/smerrill/.conda/envs/llm/lib/python3.7/site-packages/nvidia/cudnn/lib"
 os.environ["LD_LIBRARY_PATH"] = f"{cudnn_path}:{os.environ.get('LD_LIBRARY_PATH', '')}"
-os.execv(sys.executable, [sys.executable] + sys.argv)
-
 os.environ["PATH"] = "/work/users/s/m/smerrill/ffmpeg-7.0.2-amd64-static:" + os.environ["PATH"]
 
 import numpy as np
@@ -41,7 +39,7 @@ def main():
     model_a, metadata = whisperx.load_align_model(language_code=result["language"], device="cuda")
     result_aligned = whisperx.align(result["segments"], model_a, metadata, audio_file_name, "cuda")
 
-    pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization", use_auth_token="removed")
+    pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization", use_auth_token="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")
     diarization = pipeline(audio_file_name, min_speakers=None, max_speakers=None)
 
     # Add speaker labels to WhisperX segments
@@ -59,7 +57,7 @@ def main():
             else:
                 segment["speaker"] = "unknown"
 
-        np.save(os.path.join(args.save_dir, f'{vid_id}.npy', result_segments))
+    np.save(os.path.join(args.save_dir, f'{vid_id}.npy'), result_segments)
 
 
 if __name__ == "__main__":
