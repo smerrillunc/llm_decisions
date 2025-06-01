@@ -262,7 +262,7 @@ def main():
     load_in_4bit = True
 
     model, tokenizer = FastLanguageModel.from_pretrained(
-        model_name="unsloth/Llama-3.2-3B-Instruct",
+        model_name="unsloth/Llama-3.3-70B-Instruct",
         max_seq_length=args.max_seq_length,
         dtype=dtype,
         load_in_4bit=load_in_4bit,
@@ -291,7 +291,7 @@ def main():
 
 
     agent_name = args.agent_name.replace(' ', '').lower()
-    output_dir = os.path.join(args.output_dir , agent_name)
+    output_dir = os.path.join(args.output_dir , args.wandb_run_name)
     message = f"""You are {args.agent_name}. Fill in the next response to the conversation by continuing the dialogue naturally. Only write what {agent_name} would say next — do not write for other speakers.
 
 Example:
@@ -348,7 +348,7 @@ assistant:
             lr_scheduler_type = "linear",
             seed = 3407,
             output_dir = output_dir,
-            report_to = "none", # Use this for WandB etc
+            report_to = "wandb", # Use this for WandB etc
         ),
     )
 
@@ -361,6 +361,7 @@ assistant:
     trainer_stats = trainer.train()
 
     print("Training finished!")
+    model.save_pretrained(output_dir)  # Local saving
     print(f"Model saved to {output_dir}")
 
     # Finish wandb run
