@@ -22,11 +22,15 @@ from transformers import (
 
 from unsloth import FastLanguageModel, is_bfloat16_supported
 from unsloth.chat_templates import train_on_responses_only
+from peft import PeftModel
+
 from trl import SFTTrainer
 import wandb
 from collections import Counter
 import re
 import torch
+from tqdm import tqdm
+import numpy as np
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -200,10 +204,10 @@ def generate_texts(model, tokenizer, dataset, max_new_tokens=128, temperature=1.
 def parse_args():
     parser = argparse.ArgumentParser(description="Train an agent language model.")
     parser.add_argument(
-        "--agent_name",
+        "--dataset_name",
         type=str,
         required=True,
-        help="Name of the agent to train (e.g., paige, acuff, etc.)",
+        help="Name of the dataset to test (e.g., paige, acuff, etc.)",
     )
     parser.add_argument(
         "--model_path",
@@ -241,7 +245,7 @@ def main():
         wandb.init(project=args.wandb_project, name=args.wandb_run_name)
 
     model_name = "unsloth/Llama-3.3-70B-Instruct-bnb-4bit"
-    agent_name = args.agent_name.replace(' ', '').lower()
+    agent_name = args.dataset_name.replace(' ', '').lower()
 
     # Dataset preparation
     train_data, test_data = train_test_split(agent_name, data_path=args.data_path)
@@ -263,21 +267,33 @@ def main():
     print("--------------------")
 
     max_seq_length = 1000
-    model, tokenizer = FastLanguageModel.from_pretrained(
-        model_name = args.model_path, # YOUR MODEL YOU USED FOR TRAINING
+    # Load tokenizer from training path (with added tokens)
+    tokenizer = AutoTokenizer.from_pretrained(args.model_path, trust_remote_code=True)
+
+    # Load base model (not merged)
+    model, _ = FastLanguageModel.from_pretrained(
+        model_name = model_name,  # or whatever your original base was
         max_seq_length = max_seq_length,
         dtype = None,
         load_in_4bit = True,
     )
+
+    # Resize base model to match tokenizer
+    model.resize_token_embeddings(len(tokenizer), mean_resizing=False)
+
+    # Now load the adapter
+    model = PeftModel.from_pretrained(model, args.model_path)
+
+
     FastLanguageModel.for_inference(model) # Enable native 2x faster inference
 
     print("--------------------")
     print("Getting Train Generations")
     print("--------------------")
-    train_generations, train_references = generate_texts(model, tokenizer, dataset, max_new_tokens=128, temperature=1.5, top_p=0.9)
+    train_generations, train_references = generate_texts(model, tokenizer, train_data, max_new_tokens=128, temperature=1.5, top_p=0.9)
 
     print("--------------------")
-    save_path = os.path.join(args.model_path, 'train_generations.npy')
+    save_path = os.path.join(args.model_path, f'{agent_name}_train_generations.npy')
     print(f"Saving Train Generations to {save_path}")
     print("--------------------")
     np.save(save_path, train_generations)
@@ -285,10 +301,10 @@ def main():
     print("--------------------")
     print("Getting Test Generations")
     print("--------------------")
-    test_generations, test_references = generate_texts(model, tokenizer, dataset, max_new_tokens=128, temperature=1.5, top_p=0.9)
+    test_generations, test_references = generate_texts(model, tokenizer, test_data, max_new_tokens=128, temperature=1.5, top_p=0.9)
         
     print("--------------------")
-    save_path = os.path.join(args.model_path, 'test_generations.npy')
+    save_path = os.path.join(args.model_path, f'{agent_name}_test_generations.npy')
     print(f"Saving Test Generations to {save_path}")
     print("--------------------")
 
