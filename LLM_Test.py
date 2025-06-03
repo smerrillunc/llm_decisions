@@ -160,7 +160,41 @@ def create_formatted_dataset(train_data, target_speaker):
 
     formatted_dataset = Dataset.from_list(dataset_input)
     return formatted_dataset
-    
+
+
+def generate_texts(model, tokenizer, dataset, max_new_tokens=128, temperature=1.5, top_p=0.9):
+    generated_texts = []
+    reference_texts = []
+
+    for example in tqdm(dataset):
+        input_text = example['prompt']
+
+        inputs = tokenizer(
+            input_text,
+            return_tensors="pt"
+        ).to(model.device)
+
+        input_length = inputs.input_ids.shape[1]
+
+        outputs = model.generate(
+            **inputs,
+            max_new_tokens=max_new_tokens,
+            use_cache=True,
+            temperature=temperature,
+            top_p=top_p
+        )
+
+        generated_tokens = outputs[0]
+        new_tokens = generated_tokens[input_length:]
+
+        decoded_generation = tokenizer.decode(new_tokens, skip_special_tokens=True)
+
+        print(decoded_generation)
+        generated_texts.append(decoded_generation.strip())
+        reference_texts.append(example['response'].strip())
+
+    return generated_texts, reference_texts
+
 
 
 def parse_args():
@@ -172,37 +206,9 @@ def parse_args():
         help="Name of the agent to train (e.g., paige, acuff, etc.)",
     )
     parser.add_argument(
-        "--epochs",
-        type=int,
-        default=5,
-        help="Number of epochs to train for",
-    )
-
-    parser.add_argument(
-        "--factors",
-        type=int,
-        default=4,
-        help="LORA Factors",
-    )
-    
-    parser.add_argument(
-        "--max_seq_length",
-        type=int,
-        default=2048,
-        help="LLM Max Sequence length",
-    )
-    parser.add_argument(
-        "--weight_decay",
-        type=int,
-        default=0.2,
-        help="weight_decay",
-    )
-
-    parser.add_argument(
-        "--learning_rate",
-        type=int,
-        default=1e-5,
-        help="learning_rate",
+        "--model_path",
+        type=str,
+        help="Path to saved model and tokenizer",
     )
 
     parser.add_argument(
@@ -211,12 +217,7 @@ def parse_args():
         default="/work/users/s/m/smerrill/Albemarle/dataset",
         help="Base path for datasets",
     )
-    parser.add_argument(
-        "--output_dir",
-        type=str,
-        default="/work/users/s/m/smerrill/Albemarle/trained_models",
-        help="Directory to save the trained model and checkpoints",
-    )
+
     parser.add_argument(
         "--wandb_project",
         type=str,
@@ -231,9 +232,6 @@ def parse_args():
     )
     return parser.parse_args()
 
-def extract_speakers(text):
-    return re.findall(r"^(?:speaker \d+|[a-zA-Z0-9_]+):", text, flags=re.MULTILINE)
-
 
 def main():
     args = parse_args()
@@ -241,13 +239,14 @@ def main():
     # Initialize wandb if project specified
     if args.wandb_project:
         wandb.init(project=args.wandb_project, name=args.wandb_run_name)
+
     model_name = "unsloth/Llama-3.3-70B-Instruct-bnb-4bit"
     agent_name = args.agent_name.replace(' ', '').lower()
-    output_dir = os.path.join(args.output_dir , args.wandb_run_name)
 
     # Dataset preparation
-    train_data, _ = train_test_split(agent_name, data_path=args.data_path)
+    train_data, test_data = train_test_split(agent_name, data_path=args.data_path)
     train_data = create_formatted_dataset(train_data, agent_name)
+    test_data = create_formatted_dataset(test_data, agent_name)
 
     print("--------------------")
     print("Train Format")
@@ -255,107 +254,47 @@ def main():
     print("--------------------")
 
     print("--------------------")
-    print("Adding Special Tokens to Tokenizer")
-    speaker_counter = Counter()
-    for sample in train_data:
-        speakers = extract_speakers(sample["text"])
-        speaker_counter.update(speakers)
-
-    speaker_tokens = list(speaker_counter.keys())
-
-    # Add special tokens
-    special_tokens = {
-        "additional_special_tokens": speaker_tokens + [
-            "<|start_header_id|>", "<|end_header_id|>", "<|eot_id|>"
-        ]
-    }
+    print("Test Format")
+    print(test_data['text'][0])
     print("--------------------")
 
-
     print("--------------------")
-    print("Loading Model")
-    # Model Loding
+    print("Loading Model from: ", args.model_path)
+    print("--------------------")
+
+    max_seq_length = 1000
     model, tokenizer = FastLanguageModel.from_pretrained(
-        model_name=model_name,
-        max_seq_length=args.max_seq_length,
-        dtype=None,
-        device_map=None, 
-        load_in_4bit=True,
+        model_name = args.model_path, # YOUR MODEL YOU USED FOR TRAINING
+        max_seq_length = max_seq_length,
+        dtype = None,
+        load_in_4bit = True,
     )
-
-    tokenizer.add_special_tokens(special_tokens)
-    model.resize_token_embeddings(len(tokenizer), mean_resizing=False)
-
-    model = FastLanguageModel.get_peft_model(
-        model,
-        r=args.factors,
-        target_modules=[
-            "q_proj",
-            "k_proj",
-            "v_proj",
-            "o_proj",
-            "gate_proj",
-            "up_proj",
-            "down_proj",
-        ],
-        lora_alpha=16,
-        lora_dropout=0,
-        bias="none",
-        use_gradient_checkpointing="unsloth",
-        random_state=3407,
-        use_rslora=False,
-        loftq_config=None,
-    )
-
-
-    torch.cuda.empty_cache()
-
-    trainer = SFTTrainer(
-        model = model,
-        tokenizer = tokenizer,
-        train_dataset = train_data,
-        dataset_text_field = "text",
-        max_seq_length = args.max_seq_length,
-        data_collator = DataCollatorForSeq2Seq(tokenizer = tokenizer),
-        dataset_num_proc = 2,
-        packing = False, # Can make training 5x faster for short sequences.
-        args = TrainingArguments(
-            per_device_train_batch_size = 1,
-            gradient_accumulation_steps = 4,
-            warmup_steps = 5,
-            # num_train_epochs = 1, # Set this for 1 full training run.
-            num_train_epochs = args.epochs,
-            learning_rate = args.learning_rate,
-            fp16 = not is_bfloat16_supported(),
-            bf16 = is_bfloat16_supported(),
-            logging_steps = 1,
-            optim = "adamw_8bit",
-            weight_decay = args.weight_decay,
-            lr_scheduler_type = "linear",
-            seed = 3407,
-            output_dir = output_dir,
-            report_to = "wandb", # Use this for WandB etc
-        ),
-    )
-
-    trainer = train_on_responses_only(
-        trainer,
-        instruction_part="<|start_header_id|>user<|end_header_id|>\n\n",
-        response_part="<|start_header_id|>assistant<|end_header_id|>\n\n",
-    )
-    print("--------------------")
-    print("Training Start")
-    trainer_stats = trainer.train()
+    FastLanguageModel.for_inference(model) # Enable native 2x faster inference
 
     print("--------------------")
-    print("Training finished!")
+    print("Getting Train Generations")
     print("--------------------")
-    
-    model.save_pretrained(output_dir)  # Local saving
-    print(f"Model saved to {output_dir}")
-    
-    tokenizer.save_pretrained(output_dir)
-    print(f"Tokenizer saved to {output_dir}")
+    train_generations, train_references = generate_texts(model, tokenizer, dataset, max_new_tokens=128, temperature=1.5, top_p=0.9)
+
+    print("--------------------")
+    save_path = os.path.join(args.model_path, 'train_generations.npy')
+    print(f"Saving Train Generations to {save_path}")
+    print("--------------------")
+    np.save(save_path, train_generations)
+
+    print("--------------------")
+    print("Getting Test Generations")
+    print("--------------------")
+    test_generations, test_references = generate_texts(model, tokenizer, dataset, max_new_tokens=128, temperature=1.5, top_p=0.9)
+        
+    print("--------------------")
+    save_path = os.path.join(args.model_path, 'test_generations.npy')
+    print(f"Saving Test Generations to {save_path}")
+    print("--------------------")
+
+    np.save(save_path, test_generations)
+
+    print("Script Complete")
 
     # Finish wandb run
     if args.wandb_project:
