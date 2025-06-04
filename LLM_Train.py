@@ -105,7 +105,7 @@ def train_test_split(
     return train_data, test_data
 
 
-def create_formatted_dataset(train_data, target_speaker):
+def create_formatted_dataset(train_data, target_speaker, system_message=None):
     def format_chat(prompt_text, target_speaker):
         lines = prompt_text.split('\n')
         text = ''
@@ -138,12 +138,18 @@ def create_formatted_dataset(train_data, target_speaker):
         flush_block()
         return text
 
-    def format_chat_with_response(data_item, target_speaker):
+    def format_chat_with_response(data_item, target_speaker, system_message):
         prompt_text = data_item['prompt']
         response_text = data_item['response']
-
+                
         formatted_prompt = format_chat(prompt_text, target_speaker)
-        prompt_only = formatted_prompt + "<|start_header_id|>assistant<|end_header_id|>\n\n"
+        
+        if system_message:
+            system_message = "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n" + system_message + '<|eot_id|>\n\n'
+            prompt_only = system_message + formatted_prompt + "<|start_header_id|>assistant<|end_header_id|>\n\n"
+        else:
+            prompt_only = "<|begin_of_text|>" + formatted_prompt + "<|start_header_id|>assistant<|end_header_id|>\n\n"
+            
         response_only = f"{response_text}<|eot_id|>"
         prompt_response = prompt_only + response_only
 
@@ -151,7 +157,7 @@ def create_formatted_dataset(train_data, target_speaker):
 
     dataset_input = []
     for item in train_data:
-        prompt_only, response_only, prompt_response = format_chat_with_response(item, target_speaker)
+        prompt_only, response_only, prompt_response = format_chat_with_response(item, target_speaker, system_message)
         dataset_input.append({
             "prompt": prompt_only,
             "response": response_only,
