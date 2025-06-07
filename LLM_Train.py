@@ -36,7 +36,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def train_test_split(member: str, test_size: float = 0.2, seed: int = 42, data_path: str = '/work/users/s/m/smerrill/Albemarle/dataset') -> Tuple[List[dict], List[dict]]:
+def train_test_split(member: str, test_size: float = 0.2, seed: int = 42, data_path: str = '/playpen-ssd/smerrill/dataset') -> Tuple[List[dict], List[dict]]:
     """
     Splits the dataset into training and test sets. Synthetic data is always added to the training set.
 
@@ -101,6 +101,66 @@ def train_test_split(member: str, test_size: float = 0.2, seed: int = 42, data_p
     return train_data, test_data, train_completion_data
     
 
+def add_new_tokens(model, tokenizer, new_tokens=[], method="mean", interpolation=0.5):
+    # https://github.com/unslothai/unsloth/issues/1483
+    assert isinstance(new_tokens, (list, tuple))
+    assert len(new_tokens) > 0
+    assert method in ["mean", "interpolation"]
+    assert 0 <= interpolation <= 1
+
+    overlapping_tokens = set(new_tokens) & set(tokenizer.vocab.keys())
+    if overlapping_tokens:
+        print(f"Unsloth: Skipping overlapping tokens: {list(overlapping_tokens)}")
+        new_tokens = [x for x in new_tokens if x not in overlapping_tokens]
+
+    # Add new tokens to tokenizer
+    old_length = len(tokenizer)
+    tokenizer.add_tokens(new_tokens)
+
+    # Fix — resize before accessing embedding matrix
+    model.resize_token_embeddings(len(tokenizer))
+
+    # Get mean embedding
+    embedding_matrix = model.get_input_embeddings().weight.clone()
+    lm_head_matrix = model.get_output_embeddings().weight.clone()
+    eps = 1e-16
+    indicator_untrained = torch.amax(embedding_matrix, axis=1) <= eps
+    where_untrained = torch.where(indicator_untrained)[0]
+    n_untrained = where_untrained.shape[0]
+    n_trained = embedding_matrix.shape[0] - n_untrained
+    sum_embedding = embedding_matrix.sum(dim=0) - embedding_matrix[where_untrained].sum(dim=0)
+    sum_lm_head = lm_head_matrix.sum(dim=0) - lm_head_matrix[where_untrained].sum(dim=0)
+    mean_embedding = (sum_embedding / n_trained).to(torch.float32)
+    mean_lm_head = (sum_lm_head / n_trained).to(torch.float32)
+
+    embedding_matrix = model.get_input_embeddings().weight
+    lm_head_matrix = model.get_output_embeddings().weight
+
+    if method == "interpolation":
+        print("Using interpolation for initializing new tokens.")
+        for j, token in enumerate(new_tokens):
+            input_ids = tokenizer(token, add_special_tokens=False).input_ids
+            token_mean_emb = embedding_matrix[input_ids].mean(dim=0)
+            token_mean_head = lm_head_matrix[input_ids].mean(dim=0)
+
+            emb = mean_embedding * (1 - interpolation) + token_mean_emb * interpolation
+            head = mean_lm_head * (1 - interpolation) + token_mean_head * interpolation
+
+            embedding_matrix[old_length + j] = emb
+            lm_head_matrix[old_length + j] = head
+    else:
+        embedding_matrix.data[old_length:] = mean_embedding
+        lm_head_matrix.data[old_length:] = mean_lm_head
+
+    model.config.vocab_size = len(tokenizer)
+    if hasattr(model, "tie_weights"):
+        model.tie_weights()
+
+    for _ in range(3):
+        gc.collect()
+        torch.cuda.empty_cache()
+    print(f"✅ Added {len(new_tokens)} new tokens to the tokenizer and model.")
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Train an agent language model.")
@@ -127,7 +187,7 @@ def parse_args():
     parser.add_argument(
         "--max_seq_length",
         type=int,
-        default=2048,
+        default=850,
         help="LLM Max Sequence length",
     )
     parser.add_argument(
@@ -147,13 +207,13 @@ def parse_args():
     parser.add_argument(
         "--data_path",
         type=str,
-        default="/work/users/s/m/smerrill/Albemarle/dataset",
+        default="/playpen-ssd/smerrill/dataset",
         help="Base path for datasets",
     )
     parser.add_argument(
         "--output_dir",
         type=str,
-        default="/work/users/s/m/smerrill/Albemarle/trained_models",
+        default="/playpen-ssd/smerrill/trained_models",
         help="Directory to save the trained model and checkpoints",
     )
     parser.add_argument(
@@ -176,31 +236,27 @@ def extract_speakers(text):
 
 def main():
     args = parse_args()
-
     accelerator = Accelerator()
 
     # Initialize wandb if project specified
-    if args.wandb_project:
-        if accelerator.is_main_process:
-            wandb.init(project=args.wandb_project, name=args.wandb_run_name)
-            
+    if args.wandb_project and accelerator.is_main_process:
+        wandb.init(project=args.wandb_project, name=args.wandb_run_name)
+
     model_name = "unsloth/Llama-3.3-70B-Instruct"
     agent_name = args.agent_name.replace(' ', '').lower()
-    output_dir = os.path.join(args.output_dir , args.wandb_run_name)
+    output_dir = os.path.join(args.output_dir, args.wandb_run_name)
 
     # Dataset preparation
     train_data, test_data, train_completion_data = train_test_split('judyle')
+    train_data = Dataset.from_list([{"text": text} for text in train_data])
 
-    tmp = [{"text": text} for text in train_data]
-    train_data = Dataset.from_list(tmp)
-    
     print("--------------------")
     print("Train Format")
     print(train_data['text'][0])
     print("--------------------")
 
     print("--------------------")
-    print("Adding Special Tokens to Tokenizer")
+    print("Extracting Speakers and Adding Special Tokens")
     speaker_counter = Counter()
     for sample in train_data:
         speakers = extract_speakers(sample["text"])
@@ -208,40 +264,39 @@ def main():
 
     speaker_tokens = list(speaker_counter.keys())
 
-    # Add special tokens
+    print("--------------------")
+    print('adding special tokens')
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
     special_tokens = {
         "additional_special_tokens": speaker_tokens + [
             "<|start_header_id|>", "<|end_header_id|>", "<|eot_id|>"
         ]
     }
+    tokenizer.add_special_tokens(special_tokens)
+    tokenizer = accelerator.prepare(tokenizer) 
+    accelerator.wait_for_everyone()
+    
     print("--------------------")
-
-
-    print("--------------------")
-    print("Loading Model")
-    # Model Loding
-    model, tokenizer = FastLanguageModel.from_pretrained(
+    print('loading model')
+    model, _ = FastLanguageModel.from_pretrained(
         model_name=model_name,
         max_seq_length=args.max_seq_length,
         dtype=torch.bfloat16 if is_bfloat16_supported() else torch.float16,
-        device_map='auto', 
+        device_map=None,
         load_in_4bit=False,
     )
 
-    tokenizer.add_special_tokens(special_tokens)
+    print("resizing model embeddings")
     model.resize_token_embeddings(len(tokenizer), mean_resizing=False)
 
+    print("--------------------")
+    print("Patching Model with PEFT")
     model = FastLanguageModel.get_peft_model(
         model,
         r=args.factors,
         target_modules=[
-            "q_proj",
-            "k_proj",
-            "v_proj",
-            "o_proj",
-            "gate_proj",
-            "up_proj",
-            "down_proj",
+            "q_proj", "k_proj", "v_proj", "o_proj",
+            "gate_proj", "up_proj", "down_proj"
         ],
         lora_alpha=16,
         lora_dropout=0,
@@ -252,42 +307,37 @@ def main():
         loftq_config=None,
     )
 
-
     torch.cuda.empty_cache()
 
-    # Instantiate the data collator first
     data_collator = DataCollatorForSeq2Seq(tokenizer=tokenizer)
-
-    # Prepare model, dataset, and collator all together
+    model.gradient_checkpointing_enable()
     model, train_data, data_collator = accelerator.prepare(model, train_data, data_collator)
 
-
     trainer = SFTTrainer(
-        model = model,
-        tokenizer = tokenizer,
-        train_dataset = train_data,
-        dataset_text_field = "text",
-        max_seq_length = args.max_seq_length,
-        data_collator = data_collator,  # Use prepared collator here!
-        dataset_num_proc = 2,
-        packing = False, # Can make training 5x faster for short sequences.
-        args = TrainingArguments(
-            per_device_train_batch_size = 1,
-            gradient_accumulation_steps = 4,
-            warmup_steps = 5,
-            #deepspeed="/work/users/s/m/smerrill/LLM/ds_config.json",
-            # num_train_epochs = 1, # Set this for 1 full training run.
-            num_train_epochs = args.epochs,
-            learning_rate = args.learning_rate,
-            fp16 = not is_bfloat16_supported(),
-            bf16 = is_bfloat16_supported(),
-            logging_steps = 1,
-            optim = "adamw_8bit",
-            weight_decay = args.weight_decay,
-            lr_scheduler_type = "linear",
-            seed = 3407,
-            output_dir = output_dir,
-            report_to = "wandb", # Use this for WandB etc
+        model=model,
+        tokenizer=tokenizer,
+        train_dataset=train_data,
+        dataset_text_field="text",
+        max_seq_length=args.max_seq_length,
+        data_collator=data_collator,
+        dataset_num_proc=1,
+        packing=False, 
+        args=TrainingArguments(
+            #per_device_train_batch_size=1, # managed by deepspeed
+            #gradient_accumulation_steps=4,
+            warmup_steps=5,
+            deepspeed="/playpen-ssd/smerrill/config/ds_config.json",
+            num_train_epochs=args.epochs,
+            learning_rate=args.learning_rate,
+            fp16=not is_bfloat16_supported(),
+            bf16=is_bfloat16_supported(),
+            logging_steps=1,
+            optim="adamw_8bit",
+            weight_decay=args.weight_decay,
+            lr_scheduler_type="linear",
+            seed=3407,
+            output_dir=output_dir,
+            report_to="wandb",
         ),
     )
 
@@ -296,21 +346,20 @@ def main():
         instruction_part="<|start_header_id|>user<|end_header_id|>\n\n",
         response_part="<|start_header_id|>assistant<|end_header_id|>\n\n",
     )
+
     print("--------------------")
     print("Training Start")
+    torch.cuda.empty_cache()
+    accelerator.free_memory()
     trainer_stats = trainer.train()
-
     print("--------------------")
     print("Training finished!")
     print("--------------------")
-    
-    model.save_pretrained(output_dir)  # Local saving
-    print(f"Model saved to {output_dir}")
-    
-    tokenizer.save_pretrained(output_dir)
-    print(f"Tokenizer saved to {output_dir}")
 
-    # Finish wandb run
+    model.save_pretrained(output_dir)
+    tokenizer.save_pretrained(output_dir)
+    print(f"Model and tokenizer saved to {output_dir}")
+
     if args.wandb_project:
         wandb.finish()
 
