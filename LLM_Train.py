@@ -1,368 +1,269 @@
-#!/usr/bin/env python
-# coding: utf-8
-from unsloth import FastLanguageModel, is_bfloat16_supported
-from unsloth.chat_templates import train_on_responses_only
-
-import argparse
-import json
-import logging
 import os
-
-os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
-os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:128,garbage_collection_threshold:0.6"
-os.environ["PT_DISABLE_DTORCH"] = "1"
-
-import random
-from typing import List, Tuple
-
-from datasets import Dataset
+from dataclasses import dataclass, field
+from datasets import (Dataset, IterableDataset,)
+import torch
+from transformers import AutoTokenizer, TrainingArguments
+from trl.commands.cli_utils import  TrlParser
 from transformers import (
+    AutoModelForCausalLM,
     AutoTokenizer,
-    DataCollatorForSeq2Seq,
-    TrainingArguments,
-    Trainer,
+    BitsAndBytesConfig,
+        set_seed,
+
+)
+from trl import setup_chat_format
+from peft import LoraConfig
+import numpy as np
+import pandas as pd
+from trl import (
+   SFTTrainer)
+
+import wandb
+from utils import train_test_split, compute_perplexity, compute_metrics, train_on_responses_only
+import evaluate
+
+# Comment in if you want to use the Llama 3 instruct template but make sure to add modules_to_save
+# LLAMA_3_CHAT_TEMPLATE="{% set loop_messages = messages %}{% for message in loop_messages %}{% set content = '<|start_header_id|>' + message['role'] + '<|end_header_id|>\n\n'+ message['content'] | trim + '<|eot_id|>' %}{% if loop.index0 == 0 %}{% set content = bos_token + content %}{% endif %}{{ content }}{% endfor %}{% if add_generation_prompt %}{{ '<|start_header_id|>assistant<|end_header_id|>\n\n' }}{% endif %}"
+
+# Anthropic/Vicuna like template without the need for special tokens
+LLAMA_3_CHAT_TEMPLATE = (
+    "{% for message in messages %}"
+        "{% if message['role'] == 'system' %}"
+            "{{ message['content'] }}"
+        "{% elif message['role'] == 'user' %}"
+            "{{ '\n\nHuman: ' + message['content'] +  eos_token }}"
+        "{% elif message['role'] == 'assistant' %}"
+            "{{ '\n\nAssistant: '  + message['content'] +  eos_token  }}"
+        "{% endif %}"
+    "{% endfor %}"
+    "{% if add_generation_prompt %}"
+    "{{ '\n\nAssistant: ' }}"
+    "{% endif %}"
 )
 
-from trl import SFTTrainer
-import wandb
-from collections import Counter
-import re
-import torch
-import numpy as np
-from accelerate import Accelerator
-from transformers import DataCollatorForSeq2Seq
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 
-def train_test_split(member: str, test_size: float = 0.2, seed: int = 42, data_path: str = '/playpen-ssd/smerrill/dataset') -> Tuple[List[dict], List[dict]]:
-    """
-    Splits the dataset into training and test sets. Synthetic data is always added to the training set.
+# ACCELERATE_USE_FSDP=1 FSDP_CPU_RAM_EFFICIENT_LOADING=1 torchrun --nproc_per_node=4 ./scripts/run_fsdp_qlora.py --config llama_3_70b_fsdp_qlora.yaml
 
-    Parameters:
-    - member: The name identifier for the board member.
-    - test_size: Proportion of the real (non-synthetic) data to include in the test split.
-    - seed: Random seed for reproducibility.
-    - data_path: Base directory for the dataset files.
-
-    Returns:
-    - A tuple (train_data, test_data)
-    """
-    real_data, synth_data = [], []
-
-    if member == 'kateacuff':
-        real_data = np.load(os.path.join(data_path, 'kateacuff_train.npy'))
-        synth_data = np.load(os.path.join(data_path, 'synth_kateacuff.npy'))
-        test_data = np.load(os.path.join(data_path, 'kateacuff_test.npy'), allow_pickle=True)
-        train_completion_data = np.load(os.path.join(data_path, 'kateacuff_train_completion.npy'), allow_pickle=True)
-
-        
-    elif member == 'ellenosborne':
-        real_data = np.load(os.path.join(data_path, 'ellenosborne_train.npy'))
-        synth_data = np.load(os.path.join(data_path, 'synth_ellenosborne.npy'))
-        test_data = np.load(os.path.join(data_path, 'ellenosborne_test.npy'), allow_pickle=True)
-        train_completion_data = np.load(os.path.join(data_path, 'ellenosborne_train_completion.npy'), allow_pickle=True)
-        
-    elif member == 'grahampaige':
-        real_data = np.load(os.path.join(data_path, 'grahampaige_train.npy'))
-        synth_data = np.load(os.path.join(data_path, 'synth_grahampaige.npy'))
-        test_data = np.load(os.path.join(data_path, 'grahampaige_test.npy'), allow_pickle=True)
-        train_completion_data = np.load(os.path.join(data_path, 'grahampaige_train_completion.npy'), allow_pickle=True)                             
-        
-    elif member == 'judyle':
-        real_data = np.load(os.path.join(data_path, 'judyle_train.npy'))
-        synth_data = np.load(os.path.join(data_path, 'synth_judyle.npy'))
-        test_data = np.load(os.path.join(data_path, 'judyle_test.npy'), allow_pickle=True)
-        train_completion_data = np.load(os.path.join(data_path, 'judyle_train_completion.npy'), allow_pickle=True)
-        
-    elif member == 'katrinacallsen':
-        real_data = np.load(os.path.join(data_path, 'katrinacallsen_train.npy'))
-        test_data = np.load(os.path.join(data_path, 'katrinacallsen_test.npy'), allow_pickle=True)
-        train_completion_data = np.load(os.path.join(data_path, 'katrinacallsen_train_completion.npy'), allow_pickle=True)
-        
-    elif member == 'davidoberg':
-        real_data = np.load(os.path.join(data_path, 'davidoberg_train.npy'))
-        test_data = np.load(os.path.join(data_path, 'davidoberg_test.npy'), allow_pickle=True)
-        train_completion_data = np.load(os.path.join(data_path, 'davidoberg_train_completion.npy'), allow_pickle=True)
-        
-    elif member == 'jonnoalcaro':
-        real_data = np.load(os.path.join(data_path, 'jonnoalcaro_train.npy'))
-        test_data = np.load(os.path.join(data_path, 'jonnoalcaro_test.npy'), allow_pickle=True)
-        train_completion_data = np.load(os.path.join(data_path, 'jonnoalcaro_train_completion.npy'), allow_pickle=True)
-        
-    else:
-        raise ValueError(f"Unknown member: {member}")
-
-    if not 0 < test_size < 1:
-        raise ValueError("test_size must be a float between 0 and 1.")
-
-    train_data = list(real_data) + list(synth_data)
-    return train_data, test_data, train_completion_data
-    
-
-def add_new_tokens(model, tokenizer, new_tokens=[], method="mean", interpolation=0.5):
-    # https://github.com/unslothai/unsloth/issues/1483
-    assert isinstance(new_tokens, (list, tuple))
-    assert len(new_tokens) > 0
-    assert method in ["mean", "interpolation"]
-    assert 0 <= interpolation <= 1
-
-    overlapping_tokens = set(new_tokens) & set(tokenizer.vocab.keys())
-    if overlapping_tokens:
-        print(f"Unsloth: Skipping overlapping tokens: {list(overlapping_tokens)}")
-        new_tokens = [x for x in new_tokens if x not in overlapping_tokens]
-
-    # Add new tokens to tokenizer
-    old_length = len(tokenizer)
-    tokenizer.add_tokens(new_tokens)
-
-    # Fix — resize before accessing embedding matrix
-    model.resize_token_embeddings(len(tokenizer))
-
-    # Get mean embedding
-    embedding_matrix = model.get_input_embeddings().weight.clone()
-    lm_head_matrix = model.get_output_embeddings().weight.clone()
-    eps = 1e-16
-    indicator_untrained = torch.amax(embedding_matrix, axis=1) <= eps
-    where_untrained = torch.where(indicator_untrained)[0]
-    n_untrained = where_untrained.shape[0]
-    n_trained = embedding_matrix.shape[0] - n_untrained
-    sum_embedding = embedding_matrix.sum(dim=0) - embedding_matrix[where_untrained].sum(dim=0)
-    sum_lm_head = lm_head_matrix.sum(dim=0) - lm_head_matrix[where_untrained].sum(dim=0)
-    mean_embedding = (sum_embedding / n_trained).to(torch.float32)
-    mean_lm_head = (sum_lm_head / n_trained).to(torch.float32)
-
-    embedding_matrix = model.get_input_embeddings().weight
-    lm_head_matrix = model.get_output_embeddings().weight
-
-    if method == "interpolation":
-        print("Using interpolation for initializing new tokens.")
-        for j, token in enumerate(new_tokens):
-            input_ids = tokenizer(token, add_special_tokens=False).input_ids
-            token_mean_emb = embedding_matrix[input_ids].mean(dim=0)
-            token_mean_head = lm_head_matrix[input_ids].mean(dim=0)
-
-            emb = mean_embedding * (1 - interpolation) + token_mean_emb * interpolation
-            head = mean_lm_head * (1 - interpolation) + token_mean_head * interpolation
-
-            embedding_matrix[old_length + j] = emb
-            lm_head_matrix[old_length + j] = head
-    else:
-        embedding_matrix.data[old_length:] = mean_embedding
-        lm_head_matrix.data[old_length:] = mean_lm_head
-
-    model.config.vocab_size = len(tokenizer)
-    if hasattr(model, "tie_weights"):
-        model.tie_weights()
-
-    for _ in range(3):
-        gc.collect()
-        torch.cuda.empty_cache()
-    print(f"✅ Added {len(new_tokens)} new tokens to the tokenizer and model.")
-
-
-def parse_args():
-    parser = argparse.ArgumentParser(description="Train an agent language model.")
-    parser.add_argument(
-        "--agent_name",
-        type=str,
-        required=True,
-        help="Name of the agent to train (e.g., paige, acuff, etc.)",
-    )
-    parser.add_argument(
-        "--epochs",
-        type=int,
-        default=5,
-        help="Number of epochs to train for",
+@dataclass
+class ScriptArguments:
+   
+    model_name: str = field(
+        default="meta-llama/Meta-Llama-3-70B-Instruct", metadata={"help": "Model Name"}
     )
 
-    parser.add_argument(
-        "--factors",
-        type=int,
-        default=4,
-        help="LORA Factors",
+    max_seq_length: int = field(
+        default=850, metadata={"help": "The maximum sequence length for SFT Trainer"}
+    )
+
+    factors: int = field(
+        default=16, metadata={"help": "Lora factors"}
+    )
+
+    agent_name: str = field(
+        default='judyle', metadata={"help": "Name of agent to train"}
     )
     
-    parser.add_argument(
-        "--max_seq_length",
-        type=int,
-        default=850,
-        help="LLM Max Sequence length",
+    dataset_path: str = field(
+        default='/playpen-ssd/smerrill/dataset', metadata={"help": "Dataset path"}
     )
-    parser.add_argument(
-        "--weight_decay",
-        type=int,
-        default=0.2,
-        help="weight_decay",
+    save_dir: str = field(
+        default='/playpen-ssd/smerrill/trained_models', metadata={"help": "Trained model save path"}
+    )
+    
+    wandb_project: str = field(
+        default='LLM_Decisions', metadata={"help": "Wandb project name"}
     )
 
-    parser.add_argument(
-        "--learning_rate",
-        type=int,
-        default=1e-5,
-        help="learning_rate",
+    wandb_run_name: str = field(
+        default='test', metadata={"help": "Wandb run name"}
     )
 
-    parser.add_argument(
-        "--data_path",
-        type=str,
-        default="/playpen-ssd/smerrill/dataset",
-        help="Base path for datasets",
-    )
-    parser.add_argument(
-        "--output_dir",
-        type=str,
-        default="/playpen-ssd/smerrill/trained_models",
-        help="Directory to save the trained model and checkpoints",
-    )
-    parser.add_argument(
-        "--wandb_project",
-        type=str,
-        default="LLM_Decisions",
-        help="Wandb project name for logging (optional)",
-    )
-    parser.add_argument(
-        "--wandb_run_name",
-        type=str,
-        default=None,
-        help="Wandb run name (optional)",
-    )
-    return parser.parse_args()
 
-def extract_speakers(text):
-    return re.findall(r"^(?:speaker \d+|[a-zA-Z0-9_]+):", text, flags=re.MULTILINE)
+def training_function(script_args, training_args):
+    output_name = f"{script_args.agent_name}_{script_args.factors}"
+    output_dir = os.path.join(script_args.save_dir, script_args.model_name, output_name)
+    training_args.output_dir = output_dir  # if it's a class like TrainingArguments
 
-
-def main():
-    args = parse_args()
-    accelerator = Accelerator()
-
-    # Initialize wandb if project specified
-    if args.wandb_project and accelerator.is_main_process:
-        wandb.init(project=args.wandb_project, name=args.wandb_run_name)
-
-    model_name = "unsloth/Llama-3.3-70B-Instruct"
-    agent_name = args.agent_name.replace(' ', '').lower()
-    output_dir = os.path.join(args.output_dir, args.wandb_run_name)
-
-    # Dataset preparation
-    train_data, test_data, train_completion_data = train_test_split('judyle')
+    ################
+    # Dataset
+    ################
+    train_data, test_data, train_completion_data = train_test_split(script_args.agent_name, data_path=script_args.dataset_path)
     train_data = Dataset.from_list([{"text": text} for text in train_data])
 
-    print("--------------------")
-    print("Train Format")
-    print(train_data['text'][0])
-    print("--------------------")
+    ################
+    # Model & Tokenizer
+    ################
 
-    print("--------------------")
-    print("Extracting Speakers and Adding Special Tokens")
-    speaker_counter = Counter()
-    for sample in train_data:
-        speakers = extract_speakers(sample["text"])
-        speaker_counter.update(speakers)
-
-    speaker_tokens = list(speaker_counter.keys())
-
-    print("--------------------")
-    print('adding special tokens')
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    special_tokens = {
-        "additional_special_tokens": speaker_tokens + [
-            "<|start_header_id|>", "<|end_header_id|>", "<|eot_id|>"
-        ]
-    }
-    tokenizer.add_special_tokens(special_tokens)
-    tokenizer = accelerator.prepare(tokenizer) 
-    accelerator.wait_for_everyone()
+    # Tokenizer        
+    tokenizer = AutoTokenizer.from_pretrained(script_args.model_name, use_fast=True)
+    tokenizer.pad_token = tokenizer.eos_token
+    tokenizer.chat_template = LLAMA_3_CHAT_TEMPLATE
     
-    print("--------------------")
-    print('loading model')
-    model, _ = FastLanguageModel.from_pretrained(
-        model_name=model_name,
-        max_seq_length=args.max_seq_length,
-        dtype=torch.bfloat16 if is_bfloat16_supported() else torch.float16,
-        device_map=None,
-        load_in_4bit=False,
+    # Model    
+    torch_dtype = torch.bfloat16
+    quant_storage_dtype = torch.bfloat16
+
+    quantization_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_use_double_quant=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_compute_dtype=torch_dtype,
+            bnb_4bit_quant_storage=quant_storage_dtype,
+        )
+
+    model = AutoModelForCausalLM.from_pretrained(
+        script_args.model_name,
+        quantization_config=quantization_config,
+        attn_implementation="sdpa", # use sdpa, alternatively use "flash_attention_2"
+        torch_dtype=quant_storage_dtype,
+        use_cache=False if training_args.gradient_checkpointing else True,  # this is needed for gradient checkpointing
     )
+    
+    if training_args.gradient_checkpointing:
+        model.gradient_checkpointing_enable()
 
-    print("resizing model embeddings")
-    model.resize_token_embeddings(len(tokenizer), mean_resizing=False)
+    ################
+    # PEFT
+    ################
 
-    print("--------------------")
-    print("Patching Model with PEFT")
-    model = FastLanguageModel.get_peft_model(
-        model,
-        r=args.factors,
-        target_modules=[
-            "q_proj", "k_proj", "v_proj", "o_proj",
-            "gate_proj", "up_proj", "down_proj"
-        ],
+    # LoRA config based on QLoRA paper & Sebastian Raschka experiment
+    peft_config = LoraConfig(
         lora_alpha=16,
-        lora_dropout=0,
+        lora_dropout=0.05,
+        r=script_args.factors,
         bias="none",
-        use_gradient_checkpointing="unsloth",
-        random_state=3407,
-        use_rslora=False,
-        loftq_config=None,
+        target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
+        task_type="CAUSAL_LM",
+        # modules_to_save = ["lm_head", "embed_tokens"] # add if you want to use the Llama 3 instruct template
     )
 
-    torch.cuda.empty_cache()
-
-    data_collator = DataCollatorForSeq2Seq(tokenizer=tokenizer)
-    model.gradient_checkpointing_enable()
-    model, train_data, data_collator = accelerator.prepare(model, train_data, data_collator)
-
+    ################
+    # Training
+    ################
     trainer = SFTTrainer(
         model=model,
-        tokenizer=tokenizer,
+        args=training_args,
         train_dataset=train_data,
         dataset_text_field="text",
-        max_seq_length=args.max_seq_length,
-        data_collator=data_collator,
-        dataset_num_proc=1,
-        packing=False, 
-        args=TrainingArguments(
-            #per_device_train_batch_size=1, # managed by deepspeed
-            #gradient_accumulation_steps=4,
-            warmup_steps=5,
-            deepspeed="/playpen-ssd/smerrill/config/ds_config.json",
-            num_train_epochs=args.epochs,
-            learning_rate=args.learning_rate,
-            fp16=not is_bfloat16_supported(),
-            bf16=is_bfloat16_supported(),
-            logging_steps=1,
-            optim="adamw_8bit",
-            weight_decay=args.weight_decay,
-            lr_scheduler_type="linear",
-            seed=3407,
-            output_dir=output_dir,
-            report_to="wandb",
-        ),
+        peft_config=peft_config,
+        max_seq_length=script_args.max_seq_length,
+        tokenizer=tokenizer,
+        packing=False,
+        dataset_kwargs={
+            "add_special_tokens": False,  # We template with special tokens
+            "append_concat_token": False,  # No need to add additional separator token
+        },
     )
-
+    
     trainer = train_on_responses_only(
         trainer,
         instruction_part="<|start_header_id|>user<|end_header_id|>\n\n",
         response_part="<|start_header_id|>assistant<|end_header_id|>\n\n",
     )
 
-    print("--------------------")
-    print("Training Start")
-    torch.cuda.empty_cache()
-    accelerator.free_memory()
-    trainer_stats = trainer.train()
-    print("--------------------")
-    print("Training finished!")
-    print("--------------------")
+    if trainer.accelerator.is_main_process:
+        trainer.model.print_trainable_parameters()
 
-    model.save_pretrained(output_dir)
-    tokenizer.save_pretrained(output_dir)
-    print(f"Model and tokenizer saved to {output_dir}")
+    ##########################
+    # Train model
+    ##########################
+    checkpoint = None
+    if training_args.resume_from_checkpoint is not None:
+        checkpoint = training_args.resume_from_checkpoint
+    trainer.train(resume_from_checkpoint=checkpoint)
 
-    if args.wandb_project:
-        wandb.finish()
+    ##########################
+    # SAVE MODEL FOR SAGEMAKER
+    ##########################
+    if trainer.is_fsdp_enabled:
+        trainer.accelerator.state.fsdp_plugin.set_state_dict_type("FULL_STATE_DICT")
+    trainer.save_model()
+    
 
-
+    merged_model = model.merge_and_unload()
+    merged_model.save_pretrained(training_args.output_dir,safe_serialization=True, max_shard_size="2GB")
+    return model, tokenizer
+    
 if __name__ == "__main__":
-    main()
+    parser = TrlParser((ScriptArguments, TrainingArguments))
+    script_args, training_args = parser.parse_args_and_config()    
+    
+    wandb.init(project=script_args.wandb_project, name=script_args.wandb_run_name)
+
+    # set use reentrant to False
+    if training_args.gradient_checkpointing:
+        training_args.gradient_checkpointing_kwargs = {"use_reentrant": True}
+    # set seed
+    set_seed(training_args.seed)
+  
+    # launch training
+    print("Training Complete")
+    model, tokenizer = training_function(script_args, training_args)
+    
+    print("Running Evaluation")
+    datasets = [
+    'kateacuff',
+    'ellenosborne',
+    'grahampaige',
+    'judyle',
+    'katrinacallsen',
+    'davidoberg',
+    'jonnoalcaro'
+    ]
+
+    print("Loading Metrics")
+    bleu = evaluate.load("bleu")
+    rouge = evaluate.load("rouge")
+    bertscore = evaluate.load("bertscore")
+
+    results = []
+
+    for dataset in datasets:
+        print(f'Model: {script_args.model_path}, Dataset: {dataset}')
+        _, test_data, train_completion_data = train_test_split(dataset)
+
+        print("Computing Train Perplexity")
+        perplexity_train, generated_texts, reference_texts = compute_perplexity(
+            model,
+            train_completion_data,
+            tokenizer,
+            max_length=1024,
+            verbose=False
+        )
+
+        bleu_score, rouge_score, bertscore_result, avg_bertscore_f1 = compute_metrics(
+            generated_texts, reference_texts, bleu, rouge, bertscore
+        )
+
+        print("Computing Test Perplexity")
+        perplexity_test = compute_perplexity(
+            model,
+            test_data, 
+            tokenizer,
+            max_length=1024,
+            verbose=False
+        )
+
+        print(f"Train PPL: {perplexity_train:.2f}, Test PPL: {perplexity_test:.2f}")
+        print(f"BLEU: {bleu_score}, ROUGE: {rouge_score}, BERTScore-F1: {avg_bertscore_f1:.4f}")
+
+        # Append result row
+        results.append({
+            "model": script_args.model_path,
+            "dataset": str(dataset),
+            "train_perplexity": perplexity_train,
+            "test_perplexity": perplexity_test,
+            "bleu_score": bleu_score["bleu"],
+            "rouge_score": rouge_score["rougeL"],
+            "bertscore_f1": avg_bertscore_f1
+        })
+
+    # Convert to DataFrame and save
+    df = pd.DataFrame(results)
+    
+    df.to_csv(os.path.join(training_args.output_dir, "evaluation_results.csv"), index=False)
+    print(f"\nSaved all results to {os.path.join(training_args.output_dir, 'evaluation_results.csv')}")
+
+    
+    wandb.finish()
