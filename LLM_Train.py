@@ -104,13 +104,19 @@ def training_function(script_args, training_args):
     torch_dtype = torch.bfloat16
     quant_storage_dtype = torch.bfloat16
 
+    #quantization_config = BitsAndBytesConfig(
+    #        load_in_4bit=True,
+    #        bnb_4bit_use_double_quant=True,
+    #        bnb_4bit_quant_type="nf4",
+    #        bnb_4bit_compute_dtype=torch_dtype,
+    #        bnb_4bit_quant_storage=quant_storage_dtype,
+    #    )
+    
+    # Whichever config we want
     quantization_config = BitsAndBytesConfig(
-            load_in_4bit=True,
-            bnb_4bit_use_double_quant=True,
-            bnb_4bit_quant_type="nf4",
-            bnb_4bit_compute_dtype=torch_dtype,
-            bnb_4bit_quant_storage=quant_storage_dtype,
-        )
+            load_in_4bit=False,  # Disable 4-bit loading
+            )
+
 
     model = AutoModelForCausalLM.from_pretrained(
         script_args.model_name,
@@ -181,8 +187,8 @@ def training_function(script_args, training_args):
     trainer.save_model()
     
 
-    merged_model = model.merge_and_unload()
-    merged_model.save_pretrained(training_args.output_dir,safe_serialization=True, max_shard_size="2GB")
+    #merged_model = model.merge_and_unload()
+    #merged_model.save_pretrained(training_args.output_dir,safe_serialization=True, max_shard_size="2GB")
     return model, tokenizer
     
 if __name__ == "__main__":
