@@ -454,12 +454,13 @@ def train_test_split(member: str, test_size: float = 0.2, seed: int = 42, data_p
     train_data = list(real_data) + list(synth_data)
     return train_data, test_data, train_completion_data
 
+
 def compute_perplexity(
     model,
     dataset,
     tokenizer,
     max_length=1024,
-    verbose=False):
+    verbose=True):
     """
     Compute average perplexity of model predicting 'completion' given 'prompt'.
 
@@ -472,11 +473,15 @@ def compute_perplexity(
 
     Returns:
     - perplexity (float)
+    - generated_texts (list of dicts with 'prompt', 'completion', 'decoded_completion')
     """
     model.eval()
-    
+
     total_loss = 0.0
     total_tokens = 0
+    
+    generated_texts = []
+    reference_texts = []
     
     if tokenizer.pad_token is None:
         print("No pad token set, assigning eos_token as pad_token")
@@ -492,15 +497,17 @@ def compute_perplexity(
         input_ids = torch.cat([prompt_tokens, completion_tokens], dim=1)
 
         if input_ids.size(1) > max_length:
-            input_ids = input_ids[:, -max_length:]  # truncate from left
+            input_ids = input_ids[:, -max_length:]
 
         prompt_len = prompt_tokens.size(1)
         if input_ids.size(1) < prompt_len:
             prompt_len = input_ids.size(1)
 
         labels = input_ids.clone()
-        labels[:, :prompt_len] = -100  # ignore prompt loss
+        labels[:, :prompt_len] = -100
 
+        #input_ids = input_ids.to(device)
+        #labels = labels.to(device)
         attention_mask = (input_ids != tokenizer.pad_token_id).long()
 
         try:
@@ -510,35 +517,31 @@ def compute_perplexity(
         except Exception as e:
             print(f"\n❌ Skipping example {idx + 1} due to model error: {e}")
             print(f"input_ids shape: {input_ids.shape}, prompt_len: {prompt_len}")
-            continue  # skip this example
+            continue
 
         completion_token_count = (labels != -100).sum().item()
         total_loss += loss.item() * completion_token_count
         total_tokens += completion_token_count
 
-        if verbose:
-            print(f"\nExample {idx + 1}:")
-            print(f"Prompt (truncated): {tokenizer.decode(input_ids[0, :prompt_len], skip_special_tokens=True)[:200]!r}")
-            print(f"Completion (truncated): {tokenizer.decode(input_ids[0, prompt_len:], skip_special_tokens=True)[:200]!r}")
-            print(f"input_ids shape: {input_ids.shape}")
-            print(f"labels shape: {labels.shape}")
-            print(f"Prompt length (tokens): {prompt_len}")
-            print(f"Tokens total: {input_ids.size(1)}, Completion tokens: {completion_token_count}")
-            print(f"Loss: {loss.item():.4f}, Per-token loss: {loss.item():.4f}")
+        decoded_completion = tokenizer.decode(input_ids[0, prompt_len:], skip_special_tokens=True)
+
+        # Save to generated_texts
+        generated_texts.append(decoded_completion)
+        reference_texts.append(completion_text)
+
 
     if total_tokens == 0:
-        if verbose:
-            print("⚠️ No valid completion tokens found, returning inf perplexity")
-        return float('inf')
+        print("⚠️ No valid completion tokens found, returning inf perplexity")
+        return float('inf'), generated_texts
 
     avg_loss = total_loss / total_tokens
     perplexity = math.exp(avg_loss)
 
-    if verbose:
-        print(f"\n✅ Overall average loss per token: {avg_loss:.4f}")
-        print(f"✅ Overall perplexity: {perplexity:.2f}")
+    print(f"\n✅ Overall average loss per token: {avg_loss:.4f}")
+    print(f"✅ Overall perplexity: {perplexity:.2f}")
 
-    return perplexity
+    return perplexity, generated_texts, reference_texts
+
 
 def compute_metrics(generated_texts, reference_texts, bleu, rouge, bertscore):
 
