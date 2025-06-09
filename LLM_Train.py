@@ -8,9 +8,11 @@ from transformers import (
     AutoModelForCausalLM,
     AutoTokenizer,
     BitsAndBytesConfig,
-        set_seed,
+    AutoConfig,
+    set_seed,
 
 )
+
 from trl import setup_chat_format
 from peft import LoraConfig
 import numpy as np
@@ -85,6 +87,7 @@ def training_function(script_args, training_args):
     output_dir = os.path.join(script_args.save_dir, script_args.model_name, output_name)
     training_args.output_dir = output_dir  # if it's a class like TrainingArguments
 
+
     ################
     # Dataset
     ################
@@ -104,18 +107,20 @@ def training_function(script_args, training_args):
     torch_dtype = torch.bfloat16
     quant_storage_dtype = torch.bfloat16
 
-    #quantization_config = BitsAndBytesConfig(
-    #        load_in_4bit=True,
-    #        bnb_4bit_use_double_quant=True,
-    #        bnb_4bit_quant_type="nf4",
-    #        bnb_4bit_compute_dtype=torch_dtype,
-    #        bnb_4bit_quant_storage=quant_storage_dtype,
-    #    )
+    quantization_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_use_double_quant=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_compute_dtype=torch_dtype,
+            bnb_4bit_quant_storage=quant_storage_dtype,
+        )
     
     # Whichever config we want
-    quantization_config = BitsAndBytesConfig(
-            load_in_4bit=False,  # Disable 4-bit loading
-            )
+    #quantization_config = BitsAndBytesConfig(
+    #    load_in_8bit=True,
+    #    llm_int8_threshold=6.0,  # Optional, can tweak based on model
+    #    llm_int8_has_fp16_weight=False,  # Optional, depends on your model and setup
+    #)
 
 
     model = AutoModelForCausalLM.from_pretrained(
@@ -226,7 +231,7 @@ if __name__ == "__main__":
     results = []
 
     for dataset in datasets:
-        print(f'Model: {script_args.model_path}, Dataset: {dataset}')
+        print(f'Model: {script_args.model_name}, Dataset: {dataset}')
         _, test_data, train_completion_data = train_test_split(dataset)
 
         print("Computing Train Perplexity")

@@ -4,10 +4,12 @@ from typing import List, Tuple
 import random
 import numpy as np
 from datasets import (Dataset, IterableDataset,)
-import tqdm
+from tqdm import tqdm
 import torch
 import math
 import evaluate
+from transformers import PreTrainedTokenizerBase
+import re
 
 def fix_zero_training_loss(model, tokenizer, train_dataset):
     """
@@ -538,100 +540,6 @@ def compute_perplexity(
 
     return perplexity
 
-
-import evaluate
-
-def compute_perplexity(
-    model,
-    dataset,
-    tokenizer,
-    max_length=1024,
-    device=None,
-    verbose=True):
-    """
-    Compute average perplexity of model predicting 'completion' given 'prompt'.
-
-    Parameters:
-    - model: causal LM
-    - dataset: list of dicts with keys 'prompt' and 'completion'
-    - tokenizer: tokenizer matching model
-    - max_length: max tokens to feed into model
-    - device: torch device
-    - verbose: if True, print per-example details
-
-    Returns:
-    - perplexity (float)
-    - generated_texts (list of dicts with 'prompt', 'completion', 'decoded_completion')
-    """
-    model.eval()
-    device = device or (torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu"))
-    model.to(device)
-
-    total_loss = 0.0
-    total_tokens = 0
-    
-    generated_texts = []
-    reference_texts = []
-    
-    if tokenizer.pad_token is None:
-        print("No pad token set, assigning eos_token as pad_token")
-        tokenizer.pad_token = tokenizer.eos_token
-
-    for idx, example in enumerate(tqdm(dataset, desc="Computing perplexity")):
-        prompt_text = example['prompt']
-        completion_text = example['completion']
-
-        prompt_tokens = tokenizer(prompt_text, return_tensors="pt", add_special_tokens=False).input_ids
-        completion_tokens = tokenizer(completion_text, return_tensors="pt", add_special_tokens=False).input_ids
-
-        input_ids = torch.cat([prompt_tokens, completion_tokens], dim=1)
-
-        if input_ids.size(1) > max_length:
-            input_ids = input_ids[:, -max_length:]
-
-        prompt_len = prompt_tokens.size(1)
-        if input_ids.size(1) < prompt_len:
-            prompt_len = input_ids.size(1)
-
-        labels = input_ids.clone()
-        labels[:, :prompt_len] = -100
-
-        input_ids = input_ids.to(device)
-        labels = labels.to(device)
-        attention_mask = (input_ids != tokenizer.pad_token_id).long()
-
-        try:
-            with torch.no_grad():
-                outputs = model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
-                loss = outputs.loss
-        except Exception as e:
-            print(f"\n❌ Skipping example {idx + 1} due to model error: {e}")
-            print(f"input_ids shape: {input_ids.shape}, prompt_len: {prompt_len}")
-            continue
-
-        completion_token_count = (labels != -100).sum().item()
-        total_loss += loss.item() * completion_token_count
-        total_tokens += completion_token_count
-
-        decoded_completion = tokenizer.decode(input_ids[0, prompt_len:], skip_special_tokens=True)
-
-        # Save to generated_texts
-        generated_texts.append(decoded_completion)
-        reference_texts.append(completion_text)
-
-
-    if total_tokens == 0:
-        print("⚠️ No valid completion tokens found, returning inf perplexity")
-        return float('inf'), generated_texts
-
-    avg_loss = total_loss / total_tokens
-    perplexity = math.exp(avg_loss)
-
-    print(f"\n✅ Overall average loss per token: {avg_loss:.4f}")
-    print(f"✅ Overall perplexity: {perplexity:.2f}")
-
-    return perplexity, generated_texts, reference_texts
-
 def compute_metrics(generated_texts, reference_texts, bleu, rouge, bertscore):
 
     # Compute metrics
@@ -643,3 +551,30 @@ def compute_metrics(generated_texts, reference_texts, bleu, rouge, bertscore):
     avg_bertscore_f1 = sum(bertscore_result['f1']) / len(bertscore_result['f1'])
             
     return bleu_score, rouge_score, bertscore_result, avg_bertscore_f1
+
+
+def get_speaker_special_tokens(train_data):
+    def extract_speakers(text):
+        return re.findall(r"^(?:speaker \d+|[a-zA-Z0-9_]+):", text, flags=re.MULTILINE)
+
+    speaker_counter = Counter()
+    for sample in train_data:
+        speakers = extract_speakers(sample["text"])
+        speaker_counter.update(speakers)
+
+    speaker_tokens = list(speaker_counter.keys())
+    # Add special tokens
+    special_tokens = {
+    "additional_special_tokens": speaker_tokens + ["<|start_header_id|>", "<|end_header_id|>", "<|eot_id|>"]
+    }
+    return special_tokens
+
+
+def debug_tokenization(example_text: str, tokenizer: PreTrainedTokenizerBase):
+    tokens = tokenizer(example_text, return_tensors="pt", add_special_tokens=False)
+    input_ids = tokens["input_ids"][0]
+    decoded = [tokenizer.decode([tid]) for tid in input_ids]
+
+    print("=== Tokenized Input ===")
+    for i, (tid, tok) in enumerate(zip(input_ids, decoded)):
+        print(f"{i:03}: {tid.item():>5}  ->  {repr(tok)}")
