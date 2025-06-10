@@ -136,12 +136,24 @@ if __name__ == "__main__":
     #model = accelerator.prepare(model)
 
     print("Running Perplexity Evaluation on Each Dataset (Accelerate)")
+    results = []
     for dataset in datasets:
         torch.cuda.empty_cache()
         gc.collect()
         print(f'Computing Perplexity for Dataset: {dataset}')
         _, test_data, train_completion_data = train_test_split(dataset)
-        ppl = compute_perplexity_on_dataset_accelerate(model, tokenizer, train_completion_data, accelerator, max_length=1024, batch_size=1)
+        ppl = compute_perplexity_on_dataset_accelerate(
+            model, tokenizer, train_completion_data, accelerator, max_length=1024, batch_size=1
+        )
         if accelerator.is_main_process:
             print(f"Perplexity for {dataset}: {ppl:.2f}")
+            results.append({"dataset": dataset, "perplexity": ppl})
+
+    # Save results as DataFrame (only on main process)
+    if accelerator.is_main_process:
+        df = pd.DataFrame(results)
+        save_path = os.path.join(ScriptArguments.merged_path, "perplexity_results.csv")
+        df.to_csv(save_path, index=False)
+        print(f"Saved perplexity results to {save_path}")
+
     wandb.finish()
