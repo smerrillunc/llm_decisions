@@ -38,12 +38,9 @@ from accelerate.utils import gather_object
 class ScriptArguments:
    
     merged_path: str = field(
-        default="/playpen-ssd/smerrill/trained_models/meta-llama/Meta-Llama-3-70B-Instruct/ellenosborne_16/merged", metadata={"help": "Model Name"}
+        default=None, metadata={"help": "Model Name"}
     )
 
-    check_point_path: int = field(default="/playpen-ssd/smerrill/trained_models/meta-llama/Meta-Llama-3-70B-Instruct/grahampaige_16/checkpoint-72",
-                                        metadata={"help": "The maximum sequence length for SFT Trainer"} )
-    
     dataset_path: str = field(
         default='/playpen-ssd/smerrill/dataset', metadata={"help": "Dataset path"}
     )
@@ -59,7 +56,7 @@ class ScriptArguments:
     
 if __name__ == "__main__":
     # To run this script with accelerate, use:
-    # CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6 ACCELERATE_USE_FSDP=1 FSDP_CPU_RAM_EFFICIENT_LOADING=1 accelerate launch --num_processes 7 LLM_Test.py
+    # CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6 ACCELERATE_USE_FSDP=1 FSDP_CPU_RAM_EFFICIENT_LOADING=1 accelerate launch --num_processes 1 LLM_Test.py --merged_path /playpen-ssd/smerrill/trained_models/meta-llama/Meta-Llama-3-70B-Instruct/ellenosborne_16/merged  --wandb_run_name /playpen-ssd/smerrill/trained_models/meta-llama/Meta-Llama-3-70B-Instruct/ellenosborne_16/merged
     
     torch.cuda.empty_cache()
     gc.collect()
@@ -147,7 +144,7 @@ if __name__ == "__main__":
         )
         if accelerator.is_main_process:
             print(f"Perplexity for {dataset}: {ppl:.2f}")
-            results.append({"dataset": dataset, "perplexity": ppl})
+            results.append({'model': ScriptArguments.merged_path, "dataset": dataset, "perplexity": ppl})
 
     # Save results as DataFrame (only on main process)
     if accelerator.is_main_process:
