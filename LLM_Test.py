@@ -19,13 +19,14 @@ from transformers import (
 from torch.utils.data import DataLoader
 
 from peft import AutoPeftModelForCausalLM
+from transformers import HfArgumentParser
 
 from peft import LoraConfig
 import numpy as np
 import pandas as pd
 
 import wandb
-from utils import train_test_split, compute_perplexity_on_dataset_accelerate, compute_metrics, train_on_responses_only
+from utils import train_test_split, compute_metrics, train_on_responses_only
 import evaluate
 from peft import PeftModel, PeftConfig
 from transformers import AutoModelForCausalLM
@@ -33,12 +34,67 @@ import torch
 from accelerate import Accelerator
 from accelerate.utils import gather_object
 
+def compute_perplexity_on_dataset_accelerate(model, tokenizer, dataset, accelerator, max_length=1024, batch_size=1):
+    import math
+    import torch
+    from torch.utils.data import DataLoader
+    from torch.nn.utils.rnn import pad_sequence
+    from torch.utils.data import Dataset as TorchDataset
+
+    class PromptCompletionDataset(TorchDataset):
+        def __init__(self, data):
+            self.data = data
+        def __len__(self):
+            return len(self.data)
+        def __getitem__(self, idx):
+            item = self.data[idx]
+            return item['prompt'] + item['completion']
+
+    eval_dataset = PromptCompletionDataset(dataset)
+    dataloader = DataLoader(
+        eval_dataset, 
+        batch_size=batch_size, 
+        shuffle=False,
+        collate_fn=lambda batch: tokenizer(
+            batch, 
+            padding="longest",  # Better padding control
+            truncation=True, 
+            max_length=max_length,
+            return_tensors="pt"
+        )
+    )
+    dataloader = accelerator.prepare(dataloader)  # Critical for distributed setup
+    
+    model.eval()
+    losses = []
+    with torch.no_grad():
+        for batch in dataloader:
+            input_ids = batch["input_ids"]#.to(accelerator.device)
+            attention_mask = batch["attention_mask"]#.to(accelerator.device)
+            labels = input_ids.clone()
+            
+            outputs = model(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                labels=labels
+            )
+            
+            loss = outputs.loss
+            # Handle padding and gathering properly
+            loss = accelerator.pad_across_processes(loss, dim=0)
+            gathered_loss = accelerator.gather(loss)
+            losses.append(gathered_loss.cpu())
+    
+    all_losses = torch.cat(losses)
+    mean_loss = all_losses.mean().item()
+    perplexity = math.exp(mean_loss)
+    return perplexity
 
 @dataclass
 class ScriptArguments:
    
     merged_path: str = field(
-        default=None, metadata={"help": "Model Name"}
+        default='None', metadata={"help": "Merged model path"}
     )
 
     dataset_path: str = field(
@@ -57,26 +113,17 @@ class ScriptArguments:
 if __name__ == "__main__":
     # To run this script with accelerate, use:
     # CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6 ACCELERATE_USE_FSDP=1 FSDP_CPU_RAM_EFFICIENT_LOADING=1 accelerate launch --num_processes 1 LLM_Test.py --merged_path /playpen-ssd/smerrill/trained_models/meta-llama/Meta-Llama-3-70B-Instruct/ellenosborne_16/merged  --wandb_run_name /playpen-ssd/smerrill/trained_models/meta-llama/Meta-Llama-3-70B-Instruct/ellenosborne_16/merged
-    
+    parser = HfArgumentParser(ScriptArguments)
+    script_args, = parser.parse_args_into_dataclasses()
+
     torch.cuda.empty_cache()
     gc.collect()
     
     accelerator = Accelerator()
 
     if accelerator.is_main_process:
-        wandb.init(project=ScriptArguments.wandb_project, name=ScriptArguments.wandb_run_name)
+        wandb.init(project=script_args.wandb_project, name=script_args.wandb_run_name)
 
-    max_memory = {
-    0: "40GiB",
-    1: "40GiB",
-    2: "40GiB",
-    3: "40GiB",
-    4: "40GiB",
-    5: "40GiB",
-    6: "40GiB",
-    7: "40GiB",  
-    "cpu": "100GiB"
-}
     torch_dtype = torch.bfloat16
     quant_storage_dtype = torch.bfloat16
     quantization_config = BitsAndBytesConfig(
@@ -89,14 +136,19 @@ if __name__ == "__main__":
 
         )
     
-    tokenizer = AutoTokenizer.from_pretrained(ScriptArguments.merged_path.split('/merged')[0])
+    path = script_args.merged_path
+    print(path)
+    path = path.replace('/merged', '')
+    print(f"Loading tokenizer from {path}")
+    tokenizer = AutoTokenizer.from_pretrained(path, use_fast=True)    
 
     # Try to load model with device_map="auto" and lower max_memory per GPU
+    max_memory = {i: "25GiB" for i in range(torch.cuda.device_count())}
+    max_memory["cpu"] = "200GiB"
+    print(max_memory)
     try:
-        max_memory = {i: "25GiB" for i in range(torch.cuda.device_count())}
-        max_memory["cpu"] = "100GiB"
         model = AutoModelForCausalLM.from_pretrained(
-            ScriptArguments.merged_path,
+            script_args.merged_path,
             quantization_config=quantization_config,
             torch_dtype=quant_storage_dtype,
             attn_implementation="sdpa",
@@ -107,7 +159,7 @@ if __name__ == "__main__":
     except RuntimeError as e:
         print("[WARNING] OOM on GPU, loading model on CPU only.")
         model = AutoModelForCausalLM.from_pretrained(
-            ScriptArguments.merged_path,
+            script_args.merged_path,
             quantization_config=quantization_config,
             torch_dtype=quant_storage_dtype,
             attn_implementation="sdpa",
@@ -139,17 +191,17 @@ if __name__ == "__main__":
         gc.collect()
         print(f'Computing Perplexity for Dataset: {dataset}')
         _, test_data, train_completion_data = train_test_split(dataset)
+        
         ppl = compute_perplexity_on_dataset_accelerate(
-            model, tokenizer, train_completion_data, accelerator, max_length=1024, batch_size=1
-        )
+            model, tokenizer, test_data, accelerator, max_length=1024, batch_size=1)
         if accelerator.is_main_process:
             print(f"Perplexity for {dataset}: {ppl:.2f}")
-            results.append({'model': ScriptArguments.merged_path, "dataset": dataset, "perplexity": ppl})
+            results.append({'model': path, "dataset": dataset, "perplexity": ppl})
 
     # Save results as DataFrame (only on main process)
     if accelerator.is_main_process:
         df = pd.DataFrame(results)
-        save_path = os.path.join(ScriptArguments.merged_path, "perplexity_results.csv")
+        save_path = os.path.join(path, "perplexity_results.csv")
         df.to_csv(save_path, index=False)
         print(f"Saved perplexity results to {save_path}")
 

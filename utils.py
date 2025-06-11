@@ -455,39 +455,41 @@ def train_test_split(member: str, test_size: float = 0.2, seed: int = 42, data_p
     return train_data, test_data, train_completion_data
 
 
-    def compute_perplexity_on_dataset_accelerate(model, tokenizer, dataset, accelerator, max_length=1024, batch_size=1):
-        import math
-        from torch.utils.data import DataLoader
-        from torch.nn.utils.rnn import pad_sequence
-        from torch.utils.data import Dataset as TorchDataset
 
-        class PromptCompletionDataset(TorchDataset):
-            def __init__(self, data):
-                self.data = data
-            def __len__(self):
-                return len(self.data)
-            def __getitem__(self, idx):
-                item = self.data[idx]
-                return item['prompt'] + item['completion']
 
-        eval_dataset = PromptCompletionDataset(dataset)
-        dataloader = DataLoader(eval_dataset, batch_size=batch_size, shuffle=False)
-        model.eval()
-        losses = []
-        with torch.no_grad():
-            for batch in dataloader:
-                encodings = tokenizer(batch, return_tensors="pt", padding=True, truncation=True, max_length=max_length)
-                input_ids = encodings.input_ids.to(accelerator.device)
-                attention_mask = encodings.attention_mask.to(accelerator.device)
-                labels = input_ids.clone()
-                outputs = model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
-                loss = outputs.loss
-                losses.append(accelerator.gather(loss.detach()).cpu())
-        all_losses = torch.cat(losses)
-        mean_loss = all_losses.mean().item()
-        perplexity = math.exp(mean_loss)
-        return perplexity
+def compute_perplexity_on_dataset_accelerate(model, tokenizer, dataset, accelerator, max_length=1024, batch_size=1):
+    import math
+    from torch.utils.data import DataLoader
+    from torch.utils.data import Dataset as TorchDataset
 
+    class PromptCompletionDataset(TorchDataset):
+        def __init__(self, data):
+            self.data = data
+        def __len__(self):
+            return len(self.data)
+        def __getitem__(self, idx):
+            item = self.data[idx]
+            return item['prompt'] + item['completion']
+
+    eval_dataset = PromptCompletionDataset(dataset)
+    dataloader = DataLoader(eval_dataset, batch_size=batch_size, shuffle=False)
+    model.eval()
+    losses = []
+    with torch.no_grad():
+        for batch in dataloader:
+            encodings = tokenizer(batch, return_tensors="pt", padding=True, truncation=True, max_length=max_length)
+            # Move to the device of the input embedding layer
+            embed_device = model.model.embed_tokens.weight.device
+            input_ids = encodings.input_ids.to(embed_device)
+            attention_mask = encodings.attention_mask.to(embed_device)
+            labels = input_ids.clone()
+            outputs = model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
+            loss = outputs.loss
+            losses.append(accelerator.gather(loss.detach()).cpu())
+    all_losses = torch.cat(losses)
+    mean_loss = all_losses.mean().item()
+    perplexity = math.exp(mean_loss)
+    return perplexity
 
 
 def compute_metrics(generated_texts, reference_texts, bleu, rouge, bertscore):
