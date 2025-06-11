@@ -117,6 +117,7 @@ def process_monologues(pipe, monologues: Dict[str, List[str]], prompt_template: 
 
 # ----------- Main --------------
 if __name__ == "__main__":
+    # CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6 accelerate launch --num_processes 1 run_monologue_analysis.py
     args = parse_args()
 
     os.makedirs(args.output_dir, exist_ok=True)
@@ -131,7 +132,7 @@ if __name__ == "__main__":
     pipe = setup_model(args.model)
 
     print("Starting Personality Alignment filtering...")
-    personality_results = process_monologues(pipe, monologues, PERSONALITY_FILTER_PROMPT)
+    personality_results = process_monologues(pipe, monologues, PERSONALITY_FILTER_PROMPT, generate_question=True)
     with open(os.path.join(args.output_dir, "personality_results.json"), "w") as f:
         json.dump(personality_results, f, indent=2)
     print("Saved personality_results.json")
@@ -143,7 +144,7 @@ if __name__ == "__main__":
     print("Saved belief_results.json")
 
     print("\nStarting Memory/Episodic Recall extraction...")
-    memory_results = process_monologues(pipe, monologues, MEMORY_EXTRACTION_PROMPT)
+    memory_results = process_monologues(pipe, monologues, MEMORY_EXTRACTION_PROMPT, generate_question=True)
     with open(os.path.join(args.output_dir, "memory_results.json"), "w") as f:
         json.dump(memory_results, f, indent=2)
     print("Saved memory_results.json")
