@@ -55,7 +55,7 @@ Train a LoRA/QLoRA model for a specific agent using multi-GPU and FSDP.
 ```bash
 export ACCELERATE_USE_FSDP=1
 export FSDP_CPU_RAM_EFFICIENT_LOADING=1
-torchrun --nproc_per_node=8 llm_decisions/train_agent_llm.py --config llm_decisions/configs/llamma_3_70b.yaml --agent_name kateacuff
+accelerate launch --num_processes 4 train_agent_llm.py --config configs/llamma_3_70b.yaml --agent_name kateacuff
 ```
 
 ---
