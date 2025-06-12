@@ -5,15 +5,15 @@ output_dir: "./llama-3-70b-hf-no-robot" # Temporary output NOT USED
 report_to: "wandb"               # report metrics to tensorboard
 learning_rate: 0.0001                  # learning rate 2e-4
 lr_scheduler_type: "constant"          # learning rate scheduler
-num_train_epochs: 1                    # number of training epochs
-#num_steps: 2
+num_train_epochs: 10                    # number of training epochs
+#num_steps: 1
 per_device_train_batch_size: 1         # batch size per device during training
-#per_device_eval_batch_size: 1          # batch size for evaluation
-gradient_accumulation_steps: 2         # number of steps before performing a backward/update pass
+per_device_eval_batch_size: 1          # batch size for evaluation
+gradient_accumulation_steps: 1         # number of steps before performing a backward/update pass
 optim: adamw_torch                     # use torch adamw optimizer
 logging_steps: 1                      # log every 1 steps
 save_strategy: epoch                   # save checkpoint every epoch
-#evaluation_strategy: epoch             # evaluate every epoch
+evaluation_strategy: epoch             # evaluate every epoch
 max_grad_norm: 0.3                     # max gradient norm
 warmup_ratio: 0.03                     # warmup ratio
 bf16: true                             # use bfloat16 precision
@@ -24,5 +24,5 @@ fsdp: "full_shard auto_wrap" # remove offload if enough GPU memory
 fsdp_config:
   backward_prefetch: "backward_pre"
   forward_prefetch: "false"
-  use_orig_params: "false"
+  use_orig_params: "true"
   fsdp_save_optimizer_state": "false"

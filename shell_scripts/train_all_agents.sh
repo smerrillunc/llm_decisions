@@ -17,7 +17,7 @@ CONFIG_PATH="/playpen-ssd/smerrill/llm_decisions/configs/llamma_3_70b.yaml"
 
 for AGENT in "${AGENTS[@]}"; do
   echo "Starting training for agent: $AGENT"
-  accelerate launch --num_processes 4 train_agent_llm.py --agent_name "$AGENT" --config "$CONFIG_PATH" 
+  accelerate launch --num_processes 4 train_agent_llm.py --agent_name "$AGENT" --config "$CONFIG_PATH" --wandb_run_name "$AGENT"
 
   if [ $? -ne 0 ]; then
     echo "Training failed for agent: $AGENT. Exiting..."
