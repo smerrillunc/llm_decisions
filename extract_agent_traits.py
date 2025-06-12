@@ -19,16 +19,12 @@ BELIEF_QUESTION_GENERATION_PROMPT = """Based on the following summary of someone
 MEMORY_QUESTION_GENERATION_PROMPT = """Based on the personal story or memory, generate a concise, direct question that invites the person to reflect on or discuss the memory:\n\nSummary: \"\"\"{summary}\"\"\"\n\nQuestion:"""
 
 
-
-
 # -------------- Setup Argument Parsing -----------------
 def parse_args():
     parser = argparse.ArgumentParser(description="Run monologue analysis for personality, beliefs, and memory.")
     parser.add_argument("--model", type=str, default="meta-llama/Meta-Llama-3-70B-Instruct", help="Huggingface model name or path")
     parser.add_argument("--input", type=str, default="/playpen-ssd/smerrill/dataset/monologues.pkl", help="Path to monologues.pkl")
     parser.add_argument("--output_dir", type=str, default="./results", help="Directory to save results")
-    parser.add_argument("--max_chunks_per_speaker", type=int, default=5, help="Max chunks per speaker to process")
-    parser.add_argument("--single_speaker", type=str, default="ellenosborne", help="Process only this speaker")
     return parser.parse_args()
 
 # -------------- Setup Model & Tokenizer -----------------
@@ -121,7 +117,7 @@ def process_monologues(pipe, monologues: Dict[str, List[str]], prompt_template: 
 
 # ----------- Main --------------
 if __name__ == "__main__":
-    # CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6 accelerate launch --num_processes 1 run_monologue_analysis.py
+    # CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6 accelerate launch --num_processes 1 extract_agent_traits.py
     args = parse_args()
 
     os.makedirs(args.output_dir, exist_ok=True)
@@ -130,11 +126,7 @@ if __name__ == "__main__":
     with open(args.input, "rb") as f:
         monologues = pickle.load(f)
 
-    print(f"Loaded monologues for {len(monologues)} speakers.")
-    monologues = {args.single_speaker: monologues[args.single_speaker][:args.max_chunks_per_speaker]}
-
     pipe = setup_model(args.model)
-
 
     print("Starting Personality Alignment filtering...")
     personality_results = process_monologues(pipe, monologues, PERSONALITY_FILTER_PROMPT, PERSONALITY_QUESTION_GENERATION_PROMPT)
