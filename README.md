@@ -1,21 +1,14 @@
 # LLM Decisions Pipeline
 
-This repository contains scripts and utilities for training, merging, evaluating, and analyzing large language models (LLMs) for personalized conversational agents. The workflow supports multi-GPU training, quantized inference, and downstream analysis of model outputs.
+This repository provides a modular pipeline for training, merging, evaluating, and analyzing large language models (LLMs) as personalized conversational agents. The workflow supports multi-GPU training, quantized inference, and downstream analysis of model outputs, including belief/personality extraction, question generation, and alignment evaluation.
 
 ---
 
 ## Table of Contents
 
 - [Environment Setup](#environment-setup)
+- [Workflow Overview](#workflow-overview)
 - [Scripts Overview](#scripts-overview)
-  - [Training: `LLM_Train.py`](#training-llm_trainpy)
-  - [Merging Adapters: `merge_peft.py`](#merging-adapters-merge_peftpy)
-  - [Perplexity Evaluation: `LLM_Test.py`](#perplexity-evaluation-llm_testpy)
-  - [Monologue Analysis: `run_monologue_analysis.py`](#monologue-analysis-run_monologue_analysispy)
-  - [Question Review CLI: `question_CLI.py`](#question-review-cli-question_clip)
-  - [Automated Question Answering: `askQuestions.py`](#automated-question-answering-askquestionspy)
-  - [Alignment Evaluation: `evaluate_alignment.py`](#alignment-evaluation-evaluate_alignmentpy)
-  - [Train All Agents: `train_all_agents.sh`](#train-all-agents-train_all_agentssh)
 - [Data Structure](#data-structure)
 - [Tips and Troubleshooting](#tips-and-troubleshooting)
 
@@ -39,9 +32,22 @@ This repository contains scripts and utilities for training, merging, evaluating
 
 ---
 
+## Workflow Overview
+
+1. **Train** a personalized LLM for each agent using LoRA/QLoRA adapters.
+2. **Merge** adapters into the base model for efficient inference.
+3. **Evaluate** perplexity of each agent model on held-out data.
+4. **Extract** beliefs, memories, and personality traits from agent monologues using the LLM.
+5. **Generate** probing questions for each agent based on extracted traits.
+6. **Ask** the agent LLM these questions and record responses.
+7. **Judge** the alignment of agent responses using a separate judge LLM.
+8. **(Optional) Review** and edit generated questions via CLI.
+
+---
+
 ## Scripts Overview
 
-### Training: `LLM_Train.py`
+### 1. Training: `train_agent_llm.py` (was `LLM_Train.py`)
 
 Train a LoRA/QLoRA model for a specific agent using multi-GPU and FSDP.
 
@@ -49,113 +55,86 @@ Train a LoRA/QLoRA model for a specific agent using multi-GPU and FSDP.
 ```bash
 export ACCELERATE_USE_FSDP=1
 export FSDP_CPU_RAM_EFFICIENT_LOADING=1
-torchrun --nproc_per_node=8 llm_decisions/LLM_Train.py --config llm_decisions/configs/llamma_3_70b.yaml --agent_name kateacuff
+torchrun --nproc_per_node=8 llm_decisions/train_agent_llm.py --config llm_decisions/configs/llamma_3_70b.yaml --agent_name kateacuff
 ```
-
-- **Arguments**: See `ScriptArguments` in the script for all options (e.g., `--agent_name`, `--dataset_path`, `--wandb_project`).
-- **Output**: Trained model and logs are saved to the specified output directory.
 
 ---
 
-### Merging Adapters: `merge_peft.py`
+### 2. Merging Adapters: `merge_lora_adapters.py` (was `merge_peft.py`)
 
 Merge LoRA/PEFT adapters into the base model for efficient inference.
 
 **Example command:**
 ```bash
-python llm_decisions/merge_peft.py
+python llm_decisions/tools/merge_lora_adapters.py
 ```
-
-- **Edit** the `output_dirs` list in the script to include the directories you want to merge.
-- **Output**: Merged models are saved in a `merged` subdirectory within each agent's output directory.
 
 ---
 
-### Perplexity Evaluation: `LLM_Test.py`
+### 3. Perplexity Evaluation: `evaluate_agent_perplexity.py` (was `LLM_Test.py`)
 
 Compute perplexity for each agent's test set using the merged model.
 
 **Example command:**
 ```bash
-CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6 accelerate launch --num_processes 1 llm_decisions/LLM_Test.py --merged_path /path/to/agent/merged
+CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6 accelerate launch --num_processes 1 llm_decisions/evaluate_agent_perplexity.py --merged_path /path/to/agent/merged
 ```
-
-- **Arguments**: `--merged_path` (required), `--wandb_project`, etc.
-- **Output**: Perplexity results are saved as `perplexity_results.csv` in the merged model directory.
-
-**Note:**  
-- Only use `--num_processes 1` for inference.  
-- Do **not** use FSDP or multi-process for evaluation with quantized models.
 
 ---
 
-### Monologue Analysis: `run_monologue_analysis.py`
+### 4. Extract Agent Traits: `extract_agent_traits.py` (was `run_monologue_analysis.py`)
 
-Extract personality, beliefs, and memory cues from monologue data using the LLM.
+Extract beliefs, memories, and personality traits from agent monologues using the LLM.
 
 **Example command:**
 ```bash
-CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6 accelerate launch --num_processes 1 llm_decisions/run_monologue_analysis.py --model /path/to/merged --input /path/to/monologues.pkl --output_dir ./results --single_speaker ellenosborne
+CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6 accelerate launch --num_processes 1 llm_decisions/extract_agent_traits.py --model /path/to/merged --input /path/to/monologues.pkl --output_dir ./results --single_speaker ellenosborne
 ```
-
-- **Arguments**: See `parse_args()` in the script.
-- **Output**: JSON files for personality, belief, and memory results in the output directory.
 
 ---
 
-### Question Review CLI: `question_CLI.py`
+### 5. Generate Agent Responses: `generate_agent_responses.py` (was `askQuestions.py`)
+
+Ask the agent LLM probing questions (generated from traits) and record responses.
+
+**Example command:**
+```bash
+CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6 accelerate launch --num_processes 1 llm_decisions/generate_agent_responses.py --model-path /path/to/merged --input-file ./results/belief_results.json --output-file ./results/belief_results.json
+```
+
+---
+
+### 6. Judge Response Alignment: `judge_response_alignment.py` (was `evaluate_alignment.py`)
+
+Use a judge LLM to score the alignment of agent responses with their extracted beliefs.
+
+**Example command:**
+```bash
+CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6 accelerate launch --num_processes 1 llm_decisions/judge_response_alignment.py --data_file ./results/belief_results.json --model_name meta-llama/Meta-Llama-3-70B-Instruct
+```
+
+---
+
+### 7. Question Review CLI: `review_questions_cli.py` (was `question_CLI.py`)
 
 Interactive CLI to review and edit generated questions for each speaker.
 
 **Example command:**
 ```bash
-python llm_decisions/question_CLI.py --file ./results/personality_results.json --speaker ellenosborne
+python llm_decisions/tools/review_questions_cli.py --file ./results/personality_results.json --speaker ellenosborne
 ```
-
-- **Arguments**: `--file` (required), `--speaker` (optional).
-- **Output**: Edits are saved back to the JSON file.
 
 ---
 
-### Automated Question Answering: `askQuestions.py`
+### 8. Batch Scripts
 
-Generate model responses to the generated questions for each speaker.
+- **Train All Agents:**  
+  `train_all_agents.sh`  
+  Automate training for all agents in sequence.
 
-**Example command:**
-```bash
-CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6 accelerate launch --num_processes 1 llm_decisions/askQuestions.py --model-path /path/to/merged --input-file ./results/belief_results.json --output-file ./results/belief_results.json
-```
-
-- **Arguments**: `--model-path`, `--input-file`, `--output-file`.
-- **Output**: Updates the JSON file with model responses.
-
----
-
-### Alignment Evaluation: `evaluate_alignment.py`
-
-Use a judge LLM to score the alignment of model responses with speaker beliefs.
-
-**Example command:**
-```bash
-CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6 accelerate launch --num_processes 1 llm_decisions/evaluate_alignment.py --data_file ./results/belief_results.json --model_name meta-llama/Meta-Llama-3-70B-Instruct
-```
-
-- **Arguments**: `--data_file`, `--model_name`, `--speaker` (optional), `--overwrite`.
-- **Output**: Adds an `evaluation` field to each entry in the JSON file.
-
----
-
-### Train All Agents: `train_all_agents.sh`
-
-Automate training for all agents in sequence.
-
-**Example command:**
-```bash
-bash llm_decisions/train_all_agents.sh
-```
-
-- **Edit** the `AGENTS` array and paths in the script as needed.
-- **Output**: Trains and saves models for each agent.
+- **Evaluate All Agents:**  
+  `evaluate_all_agents.sh` (was `test_all_agents.sh`)  
+  Batch evaluation for all agents' perplexity.
 
 ---
 

@@ -51,7 +51,7 @@ LLAMA_3_CHAT_TEMPLATE = (
 class ScriptArguments:
    
     model_name: str = field(
-        default="meta-llama/Meta-Llama-3-70B-Instruct", metadata={"help": "Model Name"}
+        default="meta-llama/Meta-Llama-3-8B-Instruct", metadata={"help": "Model Name"}
     )
 
     max_seq_length: int = field(
@@ -82,17 +82,54 @@ class ScriptArguments:
     )
 
 
+def preprocess_test_data(test_data):
+    # test_data: list of {'prompt': ..., 'completion': ...}
+    # Concatenate prompt and completion for evaluation
+    return Dataset.from_list([
+        {"text": item["prompt"] + item["completion"]} for item in test_data
+    ])
+
+def compute_perplexity_metrics(eval_pred):
+    import math
+    logits, labels = eval_pred
+    # Mask out padding tokens
+    loss_fct = torch.nn.CrossEntropyLoss(ignore_index=-100)
+    shift_logits = torch.tensor(logits[..., :-1, :])
+    shift_labels = torch.tensor(labels[..., 1:])
+    loss = loss_fct(
+        shift_logits.reshape(-1, shift_logits.size(-1)),
+        shift_labels.reshape(-1)
+    )
+    perplexity = math.exp(loss.item())
+    return {"perplexity": perplexity}
+
+
 def training_function(script_args, training_args):
     output_name = f"{script_args.agent_name}_{script_args.factors}"
     output_dir = os.path.join(script_args.save_dir, script_args.model_name, output_name)
     training_args.output_dir = output_dir  # if it's a class like TrainingArguments
 
-
     ################
     # Dataset
     ################
-    train_data, test_data, train_completion_data = train_test_split(script_args.agent_name, data_path=script_args.dataset_path)
+    train_data, test_data, train_completion_data = train_test_split(
+    script_args.agent_name, data_path=script_args.dataset_path
+    )
     train_data = Dataset.from_list([{"text": text} for text in train_data])
+
+    AGENTS = [
+        'judyle',
+        'kateacuff',
+        'ellenosborne',
+        'grahampaige',
+        'katrinacallsen',
+        'davidoberg',
+        'jonnoalcaro'
+    ]
+    eval_datasets = {
+        agent: preprocess_test_data(train_test_split(agent, data_path=script_args.dataset_path)[1])
+        for agent in AGENTS
+    }
 
     ################
     # Model & Tokenizer
@@ -156,6 +193,7 @@ def training_function(script_args, training_args):
         model=model,
         args=training_args,
         train_dataset=train_data,
+        eval_dataset=eval_datasets,  # <-- Add this line
         dataset_text_field="text",
         peft_config=peft_config,
         max_seq_length=script_args.max_seq_length,
@@ -165,6 +203,7 @@ def training_function(script_args, training_args):
             "add_special_tokens": False,  # We template with special tokens
             "append_concat_token": False,  # No need to add additional separator token
         },
+        compute_metrics=compute_perplexity_metrics
     )
     
     trainer = train_on_responses_only(
@@ -191,6 +230,13 @@ def training_function(script_args, training_args):
         trainer.accelerator.state.fsdp_plugin.set_state_dict_type("FULL_STATE_DICT")
     trainer.save_model()
     
+    # --- Save train/eval logs to CSV ---
+    if trainer.accelerator.is_main_process:
+        log_history = trainer.state.log_history
+        df = pd.DataFrame(log_history)
+        results_path = os.path.join(training_args.output_dir, "train_eval_log.csv")
+        df.to_csv(results_path, index=False)
+        print(f"\nSaved train/eval logs to {results_path}")
 
     #merged_model = model.merge_and_unload()
     #merged_model.save_pretrained(training_args.output_dir,safe_serialization=True, max_shard_size="2GB")
@@ -212,68 +258,6 @@ if __name__ == "__main__":
     print("Training Complete")
     model, tokenizer = training_function(script_args, training_args)
     
-    print("Running Evaluation")
-    datasets = [
-    'kateacuff',
-    'ellenosborne',
-    'grahampaige',
-    'judyle',
-    'katrinacallsen',
-    'davidoberg',
-    'jonnoalcaro'
-    ]
-
-    print("Loading Metrics")
-    bleu = evaluate.load("bleu")
-    rouge = evaluate.load("rouge")
-    bertscore = evaluate.load("bertscore")
-
-    results = []
-
-    for dataset in datasets:
-        print(f'Model: {script_args.model_name}, Dataset: {dataset}')
-        _, test_data, train_completion_data = train_test_split(dataset)
-
-        print("Computing Train Perplexity")
-        perplexity_train, generated_texts, reference_texts = compute_perplexity(
-            model,
-            train_completion_data,
-            tokenizer,
-            max_length=1024,
-            verbose=False
-        )
-
-        bleu_score, rouge_score, bertscore_result, avg_bertscore_f1 = compute_metrics(
-            generated_texts, reference_texts, bleu, rouge, bertscore
-        )
-
-        print("Computing Test Perplexity")
-        perplexity_test = compute_perplexity(
-            model,
-            test_data, 
-            tokenizer,
-            max_length=1024,
-            verbose=False
-        )
-
-        print(f"Train PPL: {perplexity_train:.2f}, Test PPL: {perplexity_test:.2f}")
-        print(f"BLEU: {bleu_score}, ROUGE: {rouge_score}, BERTScore-F1: {avg_bertscore_f1:.4f}")
-
-        # Append result row
-        results.append({
-            "model": script_args.model_path,
-            "dataset": str(dataset),
-            "train_perplexity": perplexity_train,
-            "test_perplexity": perplexity_test,
-            "bleu_score": bleu_score["bleu"],
-            "rouge_score": rouge_score["rougeL"],
-            "bertscore_f1": avg_bertscore_f1
-        })
-
-    # Convert to DataFrame and save
-    df = pd.DataFrame(results)
-    
-    df.to_csv(os.path.join(training_args.output_dir, "evaluation_results.csv"), index=False)
     print(f"\nSaved all results to {os.path.join(training_args.output_dir, 'evaluation_results.csv')}")
 
     
