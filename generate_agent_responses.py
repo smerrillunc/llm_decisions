@@ -96,7 +96,8 @@ def run_inference_on_data(model_path: str, input_file: str, output_file: str):
 
 
 if __name__ == "__main__":
-    # CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6 accelerate launch --num_processes 1 askQuestions.py --model-path /playpen-ssd/smerrill/trained_models/meta-llama/Meta-Llama-3-70B-Instruct/ellenosborne_16 -i /playpen-ssd/smerrill/llm_decisions/results/belief_results.json -o /playpen-ssd/smerrill/llm_decisions/results/belief_results.json
+    # CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6 accelerate launch --num_processes 1 generate_agent_responses.py --model-path /playpen-ssd/smerrill/trained_models/meta-llama/Meta-Llama-3-70B-Instruct/ellenosborne_16 -i /playpen-ssd/smerrill/llm_decisions/results/belief_results.json -o /playpen-ssd/smerrill/llm_decisions/results/memory_results.json
+    
     parser = argparse.ArgumentParser(description="Run inference with fine-tuned LLM on question dataset.")
     parser.add_argument('--model-path', '-m', required=True, help='Path to the fine-tuned model directory or HF hub ID.')
     parser.add_argument('--input-file', '-i', required=True, help='Path to the input JSON data.')
