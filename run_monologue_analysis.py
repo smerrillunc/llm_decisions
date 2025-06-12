@@ -12,14 +12,19 @@ import os
 # -------------- Prompts -----------------
 PERSONALITY_FILTER_PROMPT = """Does this excerpt reveal anything about the speaker’s personality (e.g., preferences, tendencies, behavior, emotions, or values)?\nAnswer YES or NO. If YES, summarize briefly.\nExcerpt: \"\"\"{chunk}\"\"\"\nAnswer:"""
 BELIEF_FILTER_PROMPT = """Does the following conversation excerpt contain any opinions, beliefs, values, or general stances by the speaker?\nAnswer YES or NO. If YES, explain briefly.\nExcerpt: \"\"\"{chunk}\"\"\"\nAnswer:"""
-MEMORY_EXTRACTION_PROMPT = """Does this text contain a personal story, opinion, or memory?\nIf yes, summarize it as a structured fact.\nIf no, say \"NO\".\nExcerpt: \"\"\"{chunk}\"\"\"\nAnswer:"""
-QUESTION_GENERATION_PROMPT = """Based on the following summary of someone's belief or opinion, generate a concise, direct question that would elicit their stance:\n\nSummary: \"\"\"{summary}\"\"\"\n\nQuestion:"""
+MEMORY_EXTRACTION_PROMPT = """Does this text contain a personal story or memory?\nIf yes, summarize it as a structured fact.\nIf no, say \"NO\".\nExcerpt: \"\"\"{chunk}\"\"\"\nAnswer:"""
+
+PERSONALITY_QUESTION_GENERATION_PROMPT = """Based on the following summary of someone's preferences, tendencies, behavior, emotions, or values, write a direct question that would reveal whether they genuinely possess these qualities:\n\nSummary: \"\"\"{summary}\"\"\"\n\nQuestion:"""
+BELIEF_QUESTION_GENERATION_PROMPT = """Based on the following summary of someone's belief or opinion, generate a concise, direct question that would elicit their stance:\n\nSummary: \"\"\"{summary}\"\"\"\n\nQuestion:"""
+MEMORY_QUESTION_GENERATION_PROMPT = """Based on the personal story or memory, generate a concise, direct question that invites the person to reflect on or discuss the memory:\n\nSummary: \"\"\"{summary}\"\"\"\n\nQuestion:"""
+
+
 
 
 # -------------- Setup Argument Parsing -----------------
 def parse_args():
     parser = argparse.ArgumentParser(description="Run monologue analysis for personality, beliefs, and memory.")
-    parser.add_argument("--model", type=str, default="meta-llama/Meta-Llama-3-8B-Instruct", help="Huggingface model name or path")
+    parser.add_argument("--model", type=str, default="meta-llama/Meta-Llama-3-70B-Instruct", help="Huggingface model name or path")
     parser.add_argument("--input", type=str, default="/playpen-ssd/smerrill/dataset/monologues.pkl", help="Path to monologues.pkl")
     parser.add_argument("--output_dir", type=str, default="./results", help="Directory to save results")
     parser.add_argument("--max_chunks_per_speaker", type=int, default=5, help="Max chunks per speaker to process")
@@ -80,7 +85,7 @@ def query_llm(pipe, prompt: str) -> str:
     return completion
 
 # -------------- Processing Pipeline -----------------
-def process_monologues(pipe, monologues: Dict[str, List[str]], prompt_template: str, generate_question: bool=False) -> Dict[str, List[Dict]]:
+def process_monologues(pipe, monologues: Dict[str, List[str]], prompt_template: str, question_template: str) -> Dict[str, List[Dict]]:
     results = {}
 
     for speaker, texts in monologues.items():
@@ -100,10 +105,9 @@ def process_monologues(pipe, monologues: Dict[str, List[str]], prompt_template: 
                     summary = response.strip()[3:].strip()
                     print(f"  -> YES detected. Summary: {summary[:100]}")
                     item = {"chunk": chunk, "summary": summary}
-                    if generate_question:
-                        q_prompt = QUESTION_GENERATION_PROMPT.format(summary=summary)
-                        question = query_llm(pipe, q_prompt)
-                        item["question"] = question
+                    q_prompt = question_template.format(summary=summary)
+                    question = query_llm(pipe, q_prompt)
+                    item["question"] = question
                     speaker_results.append(item)
                     relevant_chunks += 1
                 else:
@@ -131,20 +135,21 @@ if __name__ == "__main__":
 
     pipe = setup_model(args.model)
 
+
     print("Starting Personality Alignment filtering...")
-    personality_results = process_monologues(pipe, monologues, PERSONALITY_FILTER_PROMPT, generate_question=True)
+    personality_results = process_monologues(pipe, monologues, PERSONALITY_FILTER_PROMPT, PERSONALITY_QUESTION_GENERATION_PROMPT)
     with open(os.path.join(args.output_dir, "personality_results.json"), "w") as f:
         json.dump(personality_results, f, indent=2)
     print("Saved personality_results.json")
 
     print("\nStarting Beliefs/Values extraction...")
-    belief_results = process_monologues(pipe, monologues, BELIEF_FILTER_PROMPT, generate_question=True)
+    belief_results = process_monologues(pipe, monologues, BELIEF_FILTER_PROMPT, BELIEF_QUESTION_GENERATION_PROMPT)
     with open(os.path.join(args.output_dir, "belief_results.json"), "w") as f:
         json.dump(belief_results, f, indent=2)
     print("Saved belief_results.json")
 
     print("\nStarting Memory/Episodic Recall extraction...")
-    memory_results = process_monologues(pipe, monologues, MEMORY_EXTRACTION_PROMPT, generate_question=True)
+    memory_results = process_monologues(pipe, monologues, MEMORY_EXTRACTION_PROMPT, MEMORY_QUESTION_GENERATION_PROMPT)
     with open(os.path.join(args.output_dir, "memory_results.json"), "w") as f:
         json.dump(memory_results, f, indent=2)
     print("Saved memory_results.json")
