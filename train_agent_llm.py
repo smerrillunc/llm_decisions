@@ -21,8 +21,10 @@ from trl import (
    SFTTrainer)
 
 import wandb
-from utils import train_test_split, compute_perplexity, compute_metrics, train_on_responses_only
+from utils import train_test_split, train_on_responses_only, preprocess_test_data, compute_perplexity_metrics
+
 import evaluate
+from accelerate import Accelerator
 
 # Comment in if you want to use the Llama 3 instruct template but make sure to add modules_to_save
 # LLAMA_3_CHAT_TEMPLATE="{% set loop_messages = messages %}{% for message in loop_messages %}{% set content = '<|start_header_id|>' + message['role'] + '<|end_header_id|>\n\n'+ message['content'] | trim + '<|eot_id|>' %}{% if loop.index0 == 0 %}{% set content = bos_token + content %}{% endif %}{{ content }}{% endfor %}{% if add_generation_prompt %}{{ '<|start_header_id|>assistant<|end_header_id|>\n\n' }}{% endif %}"
@@ -43,15 +45,11 @@ LLAMA_3_CHAT_TEMPLATE = (
     "{% endif %}"
 )
 
-
-
-# ACCELERATE_USE_FSDP=1 FSDP_CPU_RAM_EFFICIENT_LOADING=1 torchrun --nproc_per_node=4 ./scripts/run_fsdp_qlora.py --config llama_3_70b_fsdp_qlora.yaml
-
 @dataclass
 class ScriptArguments:
    
     model_name: str = field(
-        default="meta-llama/Meta-Llama-3-8B-Instruct", metadata={"help": "Model Name"}
+        default="meta-llama/Meta-Llama-3-70B-Instruct", metadata={"help": "Model Name"}
     )
 
     max_seq_length: int = field(
@@ -82,55 +80,21 @@ class ScriptArguments:
     )
 
 
-def preprocess_test_data(test_data):
-    # test_data: list of {'prompt': ..., 'completion': ...}
-    # Concatenate prompt and completion for evaluation
-    return Dataset.from_list([
-        {"text": item["prompt"] + item["completion"]} for item in test_data
-    ])
-
-def compute_perplexity_metrics(eval_pred):
-    import math
-    logits, labels = eval_pred
-    # Mask out padding tokens
-    loss_fct = torch.nn.CrossEntropyLoss(ignore_index=-100)
-    shift_logits = torch.tensor(logits[..., :-1, :])
-    shift_labels = torch.tensor(labels[..., 1:])
-    loss = loss_fct(
-        shift_logits.reshape(-1, shift_logits.size(-1)),
-        shift_labels.reshape(-1)
-    )
-    perplexity = math.exp(loss.item())
-    return {"perplexity": perplexity}
-
-
-def training_function(script_args, training_args):
+def training_function(script_args, training_args, accelerator):
     output_name = f"{script_args.agent_name}_{script_args.factors}"
     output_dir = os.path.join(script_args.save_dir, script_args.model_name, output_name)
-    training_args.output_dir = output_dir  # if it's a class like TrainingArguments
+    training_args.output_dir = output_dir
 
     ################
     # Dataset
     ################
-    train_data, test_data, train_completion_data = train_test_split(
-    script_args.agent_name, data_path=script_args.dataset_path
+    train_data, eval_data, train_completion_data = train_test_split(
+        script_args.agent_name, data_path=script_args.dataset_path
     )
+    
     train_data = Dataset.from_list([{"text": text} for text in train_data])
-
-    AGENTS = [
-        'judyle',
-        'kateacuff',
-        'ellenosborne',
-        'grahampaige',
-        'katrinacallsen',
-        'davidoberg',
-        'jonnoalcaro'
-    ]
-    eval_datasets = {
-        agent: preprocess_test_data(train_test_split(agent, data_path=script_args.dataset_path)[1])
-        for agent in AGENTS
-    }
-
+    eval_data = preprocess_test_data(eval_data)
+    
     ################
     # Model & Tokenizer
     ################
@@ -141,16 +105,16 @@ def training_function(script_args, training_args):
     tokenizer.chat_template = LLAMA_3_CHAT_TEMPLATE
     
     # Model    
-    torch_dtype = torch.bfloat16
-    quant_storage_dtype = torch.bfloat16
+    #torch_dtype = torch.bfloat16
+    #quant_storage_dtype = torch.bfloat16
 
-    quantization_config = BitsAndBytesConfig(
-            load_in_4bit=True,
-            bnb_4bit_use_double_quant=True,
-            bnb_4bit_quant_type="nf4",
-            bnb_4bit_compute_dtype=torch_dtype,
-            bnb_4bit_quant_storage=quant_storage_dtype,
-        )
+    #quantization_config = BitsAndBytesConfig(
+    #        load_in_4bit=True,
+    #        bnb_4bit_use_double_quant=True,
+    #        bnb_4bit_quant_type="nf4",
+    #        bnb_4bit_compute_dtype=torch_dtype,
+    #        bnb_4bit_quant_storage=quant_storage_dtype,
+    #    )
     
     # Whichever config we want
     #quantization_config = BitsAndBytesConfig(
@@ -159,17 +123,24 @@ def training_function(script_args, training_args):
     #    llm_int8_has_fp16_weight=False,  # Optional, depends on your model and setup
     #)
 
+    max_memory = {i: "35GiB" for i in range(torch.cuda.device_count())}
+    max_memory["cpu"] = "200GiB"
 
     model = AutoModelForCausalLM.from_pretrained(
         script_args.model_name,
-        quantization_config=quantization_config,
+        #quantization_config=quantization_config,
         attn_implementation="sdpa", # use sdpa, alternatively use "flash_attention_2"
-        torch_dtype=quant_storage_dtype,
+        #torch_dtype=quant_storage_dtype,
+        max_memory=max_memory,
+        device_map=None,  # Automatically set device map for multi-GPU
         use_cache=False if training_args.gradient_checkpointing else True,  # this is needed for gradient checkpointing
     )
     
     if training_args.gradient_checkpointing:
         model.gradient_checkpointing_enable()
+
+    # --- Accelerate: prepare model and tokenizer ---
+    #model, train_data, eval_data = accelerator.prepare(model, train_data, eval_data)
 
     ################
     # PEFT
@@ -193,15 +164,15 @@ def training_function(script_args, training_args):
         model=model,
         args=training_args,
         train_dataset=train_data,
-        eval_dataset=eval_datasets,  # <-- Add this line
+        eval_dataset=eval_data,
         dataset_text_field="text",
         peft_config=peft_config,
         max_seq_length=script_args.max_seq_length,
         tokenizer=tokenizer,
         packing=False,
         dataset_kwargs={
-            "add_special_tokens": False,  # We template with special tokens
-            "append_concat_token": False,  # No need to add additional separator token
+            "add_special_tokens": False,
+            "append_concat_token": False,
         },
         compute_metrics=compute_perplexity_metrics
     )
@@ -212,53 +183,44 @@ def training_function(script_args, training_args):
         response_part="<|start_header_id|>assistant<|end_header_id|>\n\n",
     )
 
-    if trainer.accelerator.is_main_process:
+    if accelerator.is_main_process:
         trainer.model.print_trainable_parameters()
 
-    ##########################
-    # Train model
-    ##########################
     checkpoint = None
     if training_args.resume_from_checkpoint is not None:
         checkpoint = training_args.resume_from_checkpoint
     trainer.train(resume_from_checkpoint=checkpoint)
+    accelerator.wait_for_everyone()
 
-    ##########################
-    # SAVE MODEL FOR SAGEMAKER
-    ##########################
     if trainer.is_fsdp_enabled:
         trainer.accelerator.state.fsdp_plugin.set_state_dict_type("FULL_STATE_DICT")
     trainer.save_model()
-    
-    # --- Save train/eval logs to CSV ---
-    if trainer.accelerator.is_main_process:
+
+    if accelerator.is_main_process:
         log_history = trainer.state.log_history
         df = pd.DataFrame(log_history)
         results_path = os.path.join(training_args.output_dir, "train_eval_log.csv")
         df.to_csv(results_path, index=False)
         print(f"\nSaved train/eval logs to {results_path}")
 
-    #merged_model = model.merge_and_unload()
-    #merged_model.save_pretrained(training_args.output_dir,safe_serialization=True, max_shard_size="2GB")
     return model, tokenizer
-    
-if __name__ == "__main__":
-    parser = TrlParser((ScriptArguments, TrainingArguments))
-    script_args, training_args = parser.parse_args_and_config()    
-    
-    wandb.init(project=script_args.wandb_project, name=script_args.wandb_run_name)
 
-    # set use reentrant to False
+
+if __name__ == "__main__":
+    # CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6 ACCELERATE_USE_FSDP=1 FSDP_CPU_RAM_EFFICIENT_LOADING=1 accelerate launch --num_processes 4 train_agent_llm.py --agent_name judyle --config "/playpen-ssd/smerrill/llm_decisions/configs/llamma_3_70b.yaml"
+    parser = TrlParser((ScriptArguments, TrainingArguments))
+    script_args, training_args = parser.parse_args_and_config()
+
+    accelerator = Accelerator()
+    if accelerator.is_main_process:
+        wandb.init(project=script_args.wandb_project, name=script_args.wandb_run_name)
+
     if training_args.gradient_checkpointing:
         training_args.gradient_checkpointing_kwargs = {"use_reentrant": True}
-    # set seed
     set_seed(training_args.seed)
-  
-    # launch training
-    print("Training Complete")
-    model, tokenizer = training_function(script_args, training_args)
-    
-    print(f"\nSaved all results to {os.path.join(training_args.output_dir, 'evaluation_results.csv')}")
 
-    
-    wandb.finish()
+    model, tokenizer = training_function(script_args, training_args, accelerator)
+
+    if accelerator.is_main_process:
+        print(f"\nSaved all results to {os.path.join(training_args.output_dir, 'evaluation_results.csv')}")
+        wandb.finish()
