@@ -526,3 +526,26 @@ def debug_tokenization(example_text: str, tokenizer: PreTrainedTokenizerBase):
     print("=== Tokenized Input ===")
     for i, (tid, tok) in enumerate(zip(input_ids, decoded)):
         print(f"{i:03}: {tid.item():>5}  ->  {repr(tok)}")
+
+
+def preprocess_test_data(test_data):
+    # test_data: list of {'prompt': ..., 'completion': ...}
+    # Concatenate prompt and completion for evaluation
+    return Dataset.from_list([
+        {"text": item["prompt"] + item["completion"]} for item in test_data
+    ])
+
+
+def compute_perplexity_metrics(eval_pred):
+    import math
+    logits, labels = eval_pred
+    # Mask out padding tokens
+    loss_fct = torch.nn.CrossEntropyLoss(ignore_index=-100)
+    shift_logits = torch.tensor(logits[..., :-1, :])
+    shift_labels = torch.tensor(labels[..., 1:])
+    loss = loss_fct(
+        shift_logits.reshape(-1, shift_logits.size(-1)),
+        shift_labels.reshape(-1)
+    )
+    perplexity = math.exp(loss.item())
+    return {"perplexity": perplexity}
