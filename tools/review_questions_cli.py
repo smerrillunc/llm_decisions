@@ -6,7 +6,7 @@ from typing import Dict, List, Any
 
 def load_data(filepath: str) -> Dict[str, List[Dict[str, Any]]]:
     if not os.path.exists(filepath):
-        raise FileNotFoundError(f"❌ No data file found at: {filepath}")
+        raise FileNotFoundError(f"No data file found at: {filepath}")
     with open(filepath, 'r', encoding='utf-8') as f:
         return json.load(f)
 
@@ -14,7 +14,7 @@ def load_data(filepath: str) -> Dict[str, List[Dict[str, Any]]]:
 def save_data(filepath: str, data: Dict[str, List[Dict[str, Any]]]):
     with open(filepath, 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
-    print("✅ Data saved.")
+    print("Data saved.")
 
 
 def edit_question(entry: Dict[str, Any]) -> bool:
@@ -26,16 +26,16 @@ def edit_question(entry: Dict[str, Any]) -> bool:
     new_question = input("Enter a new question (or press Enter to keep current): ").strip()
     if new_question:
         entry['question'] = new_question
-        print("✅ Question updated.\n")
+        print("Question updated.\n")
         return True
     else:
-        print("⏭️  No changes made.\n")
+        print("No changes made.\n")
         return False
 
 
 def review_speaker_entries(data: Dict[str, List[Dict[str, Any]]], speaker: str, save_path: str):
     if speaker not in data:
-        print(f"⚠️ Speaker '{speaker}' not found in the dataset.")
+        print(f"Speaker '{speaker}' not found in the dataset.")
         return
 
     entries = data[speaker]
@@ -53,7 +53,7 @@ def review_speaker_entries(data: Dict[str, List[Dict[str, Any]]], speaker: str, 
 
     if modified:
         save_data(save_path, data)
-    print(f"\n✅ Finished reviewing {speaker}.")
+    print(f"\nFinished reviewing {speaker}.")
 
 
 def main():
@@ -79,7 +79,7 @@ def main():
                 review_speaker_entries(data, speaker, args.file)
 
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"Error: {e}")
 
 
 if __name__ == "__main__":
