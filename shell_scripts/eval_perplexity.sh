@@ -12,9 +12,9 @@ MODELS=(
 
 for MODEL in "${MODELS[@]}"; do
   echo "Starting training for agent: $MODEL"
-  CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6 accelerate launch --num_processes 1 LLM_Test.py --merged_path "$MODEL" --wandb_run_name "$MODEL"
+  CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6 accelerate launch --num_processes 1 evaluate_agent_perplexity.py --merged_path "$MODEL" --wandb_run_name "$MODEL"
   if [ $? -ne 0 ]; then
-    echo "Training failed for agent: $AGENT. Exiting..."
+    echo "Eval failed for agent: $AGENT. Exiting..."
     exit 1
   fi
 done
