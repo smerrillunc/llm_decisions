@@ -57,7 +57,7 @@ class ScriptArguments:
     )
 
     factors: int = field(
-        default=16, metadata={"help": "Lora factors"}
+        default=32, metadata={"help": "Lora factors"}
     )
 
     agent_name: str = field(
@@ -74,11 +74,6 @@ class ScriptArguments:
     wandb_project: str = field(
         default='LLM_Decisions', metadata={"help": "Wandb project name"}
     )
-
-    wandb_run_name: str = field(
-        default='test', metadata={"help": "Wandb run name"}
-    )
-
 
 def training_function(script_args, training_args, accelerator):
     output_name = f"{script_args.agent_name}_{script_args.factors}"
@@ -213,7 +208,8 @@ if __name__ == "__main__":
 
     accelerator = Accelerator()
     if accelerator.is_main_process:
-        wandb.init(project=script_args.wandb_project, name=script_args.wandb_run_name)
+        wandb_run_name = f"{script_args.agent_name}_{script_args.factors}"
+        wandb.init(project=script_args.wandb_project, name=wandb_run_name)
 
     if training_args.gradient_checkpointing:
         training_args.gradient_checkpointing_kwargs = {"use_reentrant": True}
