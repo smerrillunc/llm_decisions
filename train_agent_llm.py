@@ -130,7 +130,7 @@ def training_function(script_args, training_args, accelerator):
         script_args.model_name,
         #quantization_config=quantization_config,
         attn_implementation="sdpa", # use sdpa, alternatively use "flash_attention_2"
-        #torch_dtype=quant_storage_dtype,
+        torch_dtype=torch.bfloat16,  
         max_memory=max_memory,
         device_map=None,  # Automatically set device map for multi-GPU
         use_cache=False if training_args.gradient_checkpointing else True,  # this is needed for gradient checkpointing
