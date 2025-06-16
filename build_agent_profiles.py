@@ -9,7 +9,7 @@ from transformers.utils import logging
 
 # ------------------- Config -------------------
 
-MODEL_NAME = "meta-llama/Meta-Llama-3-8B-Instruct"
+MODEL_NAME = "meta-llama/Meta-Llama-3-70B-Instruct"
 MAX_MONOLOGUE_CHARS = 5000
 MAX_NEW_TOKENS = 500
 MAX_FINAL_TOKENS = 700
@@ -168,8 +168,6 @@ def main(monologue_pkl_path: str, output_json_path: str):
     print(f"Loading monologues from: {monologue_pkl_path}")
     with open(monologue_pkl_path, "rb") as f:
         data: Dict[str, List[str]] = pickle.load(f)
-
-    data = {"katrinacallsen": data["katrinacallsen"]}
 
     print(f"🚀 Loading model: {MODEL_NAME}")
     model, tokenizer = load_model(MODEL_NAME)
