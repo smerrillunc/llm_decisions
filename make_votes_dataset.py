@@ -16,7 +16,7 @@ from accelerate import init_empty_weights, Accelerator
 AGENT_NAME_MAP = {
     "acuff": "kateacuff",
     "dr. acuff": "kateacuff",
-    "mr. acuff": "kateacuff",
+    "mrs. acuff": "kateacuff",
     "osborne": "ellenosborne",
     "ms. osborne": "ellenosborne",
     "paige": "grahampaige",
@@ -117,8 +117,9 @@ def save_dataset(dataset, output_path, json_out=False):
 
 
 def main():
+    #CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6  accelerate launch --num_processes 1 process_votes.py
     parser = argparse.ArgumentParser(description="Build agent vote dataset from board meeting votes.")
-    parser.add_argument("--model", type=str, default="meta-llama/Meta-Llama-3-8B-Instruct", help="HuggingFace model name or path")
+    parser.add_argument("--model", type=str, default="meta-llama/Meta-Llama-3-70B-Instruct", help="HuggingFace model name or path")
     parser.add_argument("--csv_path", type=str, default="/playpen-ssd/smerrill/dataset/votes.csv", help="Path to votes.csv file")
     parser.add_argument("--output_path", type=str, default="agent_vote_dataset.pkl", help="Output .pkl file path")
     parser.add_argument("--json_out", action="store_true", help="Also save the dataset as JSON")
