@@ -4,7 +4,7 @@ import argparse
 import torch
 from tqdm import tqdm
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
-from accelerate import init_empty_weights, Accelerator
+from accelerate import Accelerator
 
 def load_data(path):
     with open(path, "r", encoding="utf-8") as f:
@@ -148,8 +148,6 @@ def evaluate_entries(data, generator, speaker_filter=None, overwrite=False, outp
 def load_judge_model(model_name):
     accelerator = Accelerator()
     tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=True)
-    with init_empty_weights():
-        model = AutoModelForCausalLM.from_pretrained(model_name)
     model = AutoModelForCausalLM.from_pretrained(
         model_name,
         device_map='auto',

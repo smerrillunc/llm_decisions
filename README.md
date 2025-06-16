@@ -12,7 +12,9 @@ This repository provides a modular pipeline for training, merging, evaluating, a
   - [Training: train_agent_llm.py](#1-training-train_agent_llmpy)
   - [Merging Adapters: merge_lora_adapters.py](#2-merging-adapters-merge_lora_adapterspy)
   - [Perplexity Evaluation: evaluate_agent_perplexity.py](#3-perplexity-evaluation-evaluate_agent_perplexitypy)
-  - [Votes Evaluation/Alignment](#votes-evaluationalignment)
+  - [Votes Evaluation/Alignment](#4-votes-evaluationalignment)
+    - [Create Votes Dataset: make_votes_dataset.py](#41-create-votes-dataset-make_votes_datasetpy)
+    - [Review Votes CLI: review_votes_cli.py](#42-review-votes-cli-review_votes_clip...
   - [Extract Agent Traits: extract_agent_traits.py](#4-extract-agent-traits-extract_agent_traitspy)
   - [Generate Agent Responses: generate_agent_responses.py](#5-generate-agent-responses-generate_agent_responsespy)
   - [Judge Response Alignment: judge_response_alignment.py](#6-judge-response-alignment-judge_response_alignmentpy)
@@ -130,6 +132,15 @@ CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6 accelerate launch --num_processes 1 llm_decis
 ---
 
 ### 5. Personality, Beliefs and Memory Evaluation
+
+#### 5.0 Build Agent Profiles: `build_agent_profiles.py`
+
+Generate detailed personality profiles and interview questions for each agent from their monologues.
+
+**Example command:**
+```bash
+python llm_decisions/build_agent_profiles.py --input /playpen-ssd/smerrill/dataset/monologues.pkl --output ./results/speaker_profiles.json
+```
 
 #### 5.1 Extract Agent Traits: `extract_agent_traits.py`
 
