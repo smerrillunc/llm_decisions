@@ -64,6 +64,7 @@ def compute_perplexity_on_dataset_accelerate(model, tokenizer, dataset, accelera
         )
     )
     dataloader = accelerator.prepare(dataloader)  # Critical for distributed setup
+    model = accelerator.prepare(model)  # Critical for distributed setup
     
     model.eval()
     losses = []
@@ -125,48 +126,42 @@ if __name__ == "__main__":
         wandb.init(project=script_args.wandb_project, name=script_args.wandb_run_name)
 
     torch_dtype = torch.bfloat16
-    quant_storage_dtype = torch.bfloat16
-    quantization_config = BitsAndBytesConfig(
-            load_in_4bit=True,
-            bnb_4bit_use_double_quant=True,
-            bnb_4bit_quant_type="nf4",
-            bnb_4bit_compute_dtype=torch_dtype,
-            bnb_4bit_quant_storage=quant_storage_dtype,
-            llm_int8_enable_fp32_cpu_offload=True
-
-        )
+    #quant_storage_dtype = torch.bfloat16
+    #quantization_config = BitsAndBytesConfig(
+    #       load_in_4bit=True,
+    #        bnb_4bit_use_double_quant=True,
+    #        bnb_4bit_quant_type="nf4",
+    #        bnb_4bit_compute_dtype=torch_dtype,
+    #        bnb_4bit_quant_storage=quant_storage_dtype,
+    #        llm_int8_enable_fp32_cpu_offload=True
+    #)
     
     path = script_args.merged_path
     print(path)
     path = path.replace('/merged', '')
     print(f"Loading tokenizer from {path}")
-    tokenizer = AutoTokenizer.from_pretrained(path, use_fast=True)    
+    tokenizer = AutoTokenizer.from_pretrained(path, use_fast=True)  
+      
+    if tokenizer.pad_token is None:
+        print("Tokenizer has no pad_token, setting pad_token to eos_token.")
+        tokenizer.pad_token = tokenizer.eos_token
 
     # Try to load model with device_map="auto" and lower max_memory per GPU
-    max_memory = {i: "25GiB" for i in range(torch.cuda.device_count())}
-    max_memory["cpu"] = "200GiB"
+    max_memory = {i: "35GiB" for i in range(torch.cuda.device_count())}
+    #max_memory["cpu"] = "200GiB"
     print(max_memory)
     try:
         model = AutoModelForCausalLM.from_pretrained(
             script_args.merged_path,
-            quantization_config=quantization_config,
-            torch_dtype=quant_storage_dtype,
+            #quantization_config=quantization_config,
+            #torch_dtype=quant_storage_dtype,
             attn_implementation="sdpa",
-            low_cpu_mem_usage=True,
+            #low_cpu_mem_usage=True,
             max_memory=max_memory,
-            device_map="auto",
+            #device_map='auto',
         )
     except RuntimeError as e:
-        print("[WARNING] OOM on GPU, loading model on CPU only.")
-        model = AutoModelForCausalLM.from_pretrained(
-            script_args.merged_path,
-            quantization_config=quantization_config,
-            torch_dtype=quant_storage_dtype,
-            attn_implementation="sdpa",
-            low_cpu_mem_usage=True,
-            device_map={"": "cpu"},
-        )
-
+        print("[WARNING] OOM on GPU.")
 
     print("Running Evaluation")
     datasets = [
