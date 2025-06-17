@@ -64,7 +64,6 @@ def compute_perplexity_on_dataset_accelerate(model, tokenizer, dataset, accelera
         )
     )
     dataloader = accelerator.prepare(dataloader)  # Critical for distributed setup
-    model = accelerator.prepare(model)  # Critical for distributed setup
     
     model.eval()
     losses = []
@@ -113,7 +112,7 @@ class ScriptArguments:
     
 if __name__ == "__main__":
     # To run this script with accelerate, use:
-    # CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6 accelerate launch --num_processes 1 evaluate_agent_perplexity.py --merged_path /playpen-ssd/smerrill/trained_models/meta-llama/Meta-Llama-3-70B-Instruct/ellenosborne_16/merged  --wandb_run_name /playpen-ssd/smerrill/trained_models/meta-llama/Meta-Llama-3-70B-Instruct/ellenosborne_16/merged
+    # CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 accelerate launch --num_processes 8 evaluate_agent_perplexity.py --merged_path /path/to/merged --wandb_run_name myrun
     parser = HfArgumentParser(ScriptArguments)
     script_args, = parser.parse_args_into_dataclasses()
 
@@ -128,40 +127,40 @@ if __name__ == "__main__":
     torch_dtype = torch.bfloat16
     #quant_storage_dtype = torch.bfloat16
     #quantization_config = BitsAndBytesConfig(
-    #       load_in_4bit=True,
+    #        load_in_4bit=True,
     #        bnb_4bit_use_double_quant=True,
     #        bnb_4bit_quant_type="nf4",
     #        bnb_4bit_compute_dtype=torch_dtype,
     #        bnb_4bit_quant_storage=quant_storage_dtype,
-    #        llm_int8_enable_fp32_cpu_offload=True
-    #)
+    #        llm_int8_enable_fp32_cpu_offload=True#
+    #
+    # #   )
     
     path = script_args.merged_path
     print(path)
     path = path.replace('/merged', '')
     print(f"Loading tokenizer from {path}")
-    tokenizer = AutoTokenizer.from_pretrained(path, use_fast=True)  
-      
+    tokenizer = AutoTokenizer.from_pretrained(path, use_fast=True)    
     if tokenizer.pad_token is None:
         print("Tokenizer has no pad_token, setting pad_token to eos_token.")
         tokenizer.pad_token = tokenizer.eos_token
 
-    # Try to load model with device_map="auto" and lower max_memory per GPU
-    max_memory = {i: "35GiB" for i in range(torch.cuda.device_count())}
-    #max_memory["cpu"] = "200GiB"
-    print(max_memory)
+    # Load model in full precision (bf16) and let Accelerate handle device placement
     try:
         model = AutoModelForCausalLM.from_pretrained(
             script_args.merged_path,
-            #quantization_config=quantization_config,
-            #torch_dtype=quant_storage_dtype,
+            torch_dtype=torch.bfloat16,  # or torch.float16 if you prefer
             attn_implementation="sdpa",
-            #low_cpu_mem_usage=True,
-            max_memory=max_memory,
-            #device_map='auto',
+            low_cpu_mem_usage=True,
+            trust_remote_code=True
         )
     except RuntimeError as e:
-        print("[WARNING] OOM on GPU.")
+        print("[ERROR] Failed to load model on CUDA. Exiting.")
+        raise e
+
+    # Let Accelerate handle device placement
+    model = accelerator.prepare(model)
+
 
     print("Running Evaluation")
     datasets = [
@@ -174,17 +173,13 @@ if __name__ == "__main__":
     'jonnoalcaro'
     ]
 
-    print("Loading Metrics")
-
-    # no need to wrap model with PeftModel since we are not training
-    #model = accelerator.prepare(model)
-
     print("Running Perplexity Evaluation on Each Dataset (Accelerate)")
     results = []
     for dataset in datasets:
         torch.cuda.empty_cache()
         gc.collect()
-        print(f'Computing Perplexity for Dataset: {dataset}')
+        if accelerator.is_main_process:
+            print(f'Computing Perplexity for Dataset: {dataset}')
         _, test_data, train_completion_data = train_test_split(dataset)
         
         ppl = compute_perplexity_on_dataset_accelerate(
