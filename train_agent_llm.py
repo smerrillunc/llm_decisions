@@ -60,6 +60,10 @@ class ScriptArguments:
         default=32, metadata={"help": "Lora factors"}
     )
 
+    dropout: float = field(
+        default=0.05, metadata={"help": "Lora factors"}
+    )
+
     agent_name: str = field(
         default='judyle', metadata={"help": "Name of agent to train"}
     )
@@ -76,7 +80,7 @@ class ScriptArguments:
     )
 
 def training_function(script_args, training_args, accelerator):
-    output_name = f"{script_args.agent_name}_{script_args.factors}"
+    output_name = f"{script_args.agent_name}_{script_args.factors}_{script_args.dropout}"
     output_dir = os.path.join(script_args.save_dir, script_args.model_name, output_name)
     training_args.output_dir = output_dir
 
@@ -144,7 +148,7 @@ def training_function(script_args, training_args, accelerator):
     # LoRA config based on QLoRA paper & Sebastian Raschka experiment
     peft_config = LoraConfig(
         lora_alpha=16,
-        lora_dropout=0.05,
+        lora_dropout=script_args.dropout,
         r=script_args.factors,
         bias="none",
         target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],

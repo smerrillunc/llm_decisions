@@ -1,29 +1,8 @@
 import os
-from dataclasses import dataclass, field
-from datasets import (Dataset, IterableDataset,)
-import torch
-from transformers import AutoTokenizer, TrainingArguments
-from trl.commands.cli_utils import  TrlParser
-from transformers import (
-    AutoModelForCausalLM,
-    AutoTokenizer,
-    BitsAndBytesConfig,
-    AutoConfig,
-    set_seed,
-
-)
-
-from trl import setup_chat_format
-from peft import LoraConfig
-import numpy as np
-import pandas as pd
-from trl import (
-   SFTTrainer)
-
-import wandb
-import evaluate
-from peft import AutoPeftModelForCausalLM
+import argparse
 import gc
+import torch
+from peft import AutoPeftModelForCausalLM
 
 
 def merge(output_dir):
@@ -51,18 +30,19 @@ def merge(output_dir):
     print("Merge complete. Cleaning up.")
     del merged_model
     gc.collect()
-    
+
 
 if __name__ == "__main__":
-    output_dirs = ['/playpen-ssd/smerrill/trained_models/meta-llama/Meta-Llama-3-70B-Instruct/jonnoalcaro_16',]
-    #'/playpen-ssd/smerrill/trained_models/meta-llama/Meta-Llama-3-70B-Instruct/ellenosborne_16',
-    #           '/playpen-ssd/smerrill/trained_models/meta-llama/Meta-Llama-3-70B-Instruct/grahampaige_16',
-    #           '/playpen-ssd/smerrill/trained_models/meta-llama/Meta-Llama-3-70B-Instruct/judyle_16',
-    #           '/playpen-ssd/smerrill/trained_models/meta-llama/Meta-Llama-3-70B-Instruct/kateacuff_16',
-    #           '/playpen-ssd/smerrill/trained_models/meta-llama/Meta-Llama-3-70B-Instruct/katrinacallsen_16',
-    #           '/playpen-ssd/smerrill/trained_models/meta-llama/Meta-Llama-3-70B-Instruct/davidoberg_16',
-    #           ]
-    
-    for output_dir in output_dirs:
-        print(f"attempting to merge model: {output_dir}")
-        merge(output_dir)
+    parser = argparse.ArgumentParser(description="Merge LoRA adapter into base model")
+    parser.add_argument(
+        "--output_dir",
+        type=str,
+        required=True,
+        help="Path to the output directory to merge"
+    )
+
+    args = parser.parse_args()
+
+    output_dir = args.outputdir
+    print(f"Attempting to merge model: {output_dir}")
+    merge(output_dir)

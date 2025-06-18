@@ -180,7 +180,7 @@ if __name__ == "__main__":
         gc.collect()
         if accelerator.is_main_process:
             print(f'Computing Perplexity for Dataset: {dataset}')
-        _, test_data, train_completion_data = train_test_split(dataset)
+        _, _, test_data = train_test_split(dataset)
         
         ppl = compute_perplexity_on_dataset_accelerate(
             model, tokenizer, test_data, accelerator, max_length=1024, batch_size=1)
