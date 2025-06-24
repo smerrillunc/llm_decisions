@@ -1,4 +1,5 @@
 #!/bin/bash
+export CUDA_VISIBLE_DEVICES=0,7,2,3,4,5,6
 
 AGENT_MODELS_JSON="/playpen-ssd/smerrill/llm_decisions/configs/models.json"
 SCRIPT=/playpen-ssd/smerrill/llm_decisions/evaluate_agent_perplexity.py
@@ -18,7 +19,7 @@ for agent in "${agents[@]}"; do
   fi
 
   echo "Starting evaluation for agent: $agent"
-  CUDA_VISIBLE_DEVICES=0,7,2,3,4,5,6 accelerate launch --num_processes 7 "$SCRIPT" --merged_path "$MODEL" --wandb_run_name "$agent"
+  accelerate launch --main_process_port 0 --num_processes 7 "$SCRIPT" --merged_path "$MODEL" --wandb_run_name "$agent"
 
   if [ $? -ne 0 ]; then
     echo "Eval failed for agent: $agent. Exiting..."
