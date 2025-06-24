@@ -14,7 +14,7 @@ def load_model_and_tokenizer(model_path: str):
     print(model_path)
     print(tokenizer_path)
 
-    tokenizer = AutoTokenizer.from_pretrained(model_path)
+    tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
 
     print(f"🔄 Loading model from {model_path} using `accelerate`...")
     model = AutoModelForCausalLM.from_pretrained(
@@ -62,6 +62,9 @@ def ask_model(question: str, model, tokenizer, speaker='ellenosborne', max_new_t
 
 
 def run_inference_on_data(model_path: str, input_file: str, output_file: str):
+    
+    speaker = model_path.split('/')[-2].split('_')[0]
+    
     # Load data
     if not os.path.exists(input_file):
         raise FileNotFoundError(f"Input file not found: {input_file}")
@@ -72,21 +75,22 @@ def run_inference_on_data(model_path: str, input_file: str, output_file: str):
     model, tokenizer = load_model_and_tokenizer(model_path)
     model.eval()
 
+    entries = data[speaker]
+    print(f"\nProcessing entries for: {speaker}")
+    
     # Inference loop
-    for speaker, entries in data.items():
-        print(f"\nProcessing entries for: {speaker}")
-        for entry in tqdm(entries, desc=f"{speaker}", leave=False):
-            question = entry.get("question", "").strip()
-            if not question:
-                continue
+    for entry in tqdm(entries, desc=f"{speaker}", leave=False):
+        question = entry.get("question", "").strip()
+        if not question:
+            continue
 
-            # Only generate response if not already present
-            try:
-                response = ask_model(question, model, tokenizer, speaker)
-                entry["response"] = response
-            except Exception as e:
-                print(f"Error generating response for question: {question[:60]}... — {e}")
-                entry["response"] = "ERROR"
+        # Only generate response if not already present
+        try:
+            response = ask_model(question, model, tokenizer, speaker)
+            entry["response"] = response
+        except Exception as e:
+            print(f"Error generating response for question: {question[:60]}... — {e}")
+            entry["response"] = "ERROR"
 
     # Save updated data
     with open(output_file, 'w', encoding='utf-8') as f:

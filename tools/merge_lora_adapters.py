@@ -43,6 +43,6 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    output_dir = args.outputdir
+    output_dir = args.output_dir
     print(f"Attempting to merge model: {output_dir}")
     merge(output_dir)

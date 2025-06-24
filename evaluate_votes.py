@@ -12,27 +12,6 @@ from transformers import (
 )
 from accelerate import init_empty_weights
 
-
-AGENT_MODELS = {
-    "kateacuff": "/playpen-ssd/smerrill/trained_models/meta-llama/Meta-Llama-3-70B-Instruct/kateacuff_32/merged",          
-    "ellenosborne": "/playpen-ssd/smerrill/trained_models/meta-llama/Meta-Llama-3-70B-Instruct/ellenosborne_32/mergede",
-    "grahampaige": "/playpen-ssd/smerrill/trained_models/meta-llama/Meta-Llama-3-70B-Instruct/grahampaige_32/merged",
-    "katrinacallsen": "/playpen-ssd/smerrill/trained_models/meta-llama/Meta-Llama-3-70B-Instruct/katrinacallsen_32/merged",
-    "davidoberg": "/playpen-ssd/smerrill/trained_models/meta-llama/Meta-Llama-3-70B-Instruct/davidoberg_32/merged",
-    "jonnoalcaro": "/playpen-ssd/smerrill/trained_models/meta-llama/Meta-Llama-3-70B-Instruct/jonnoalcaro_32/merged",
-    "judyle": "/playpen-ssd/smerrill/trained_models/meta-llama/Meta-Llama-3-70B-Instruct/judyle_32/merged",
-}
-
-AGENT_MODELS = {
-    "kateacuff": "/playpen-ssd/smerrill/trained_models_4bit/meta-llama/Meta-Llama-3-70B-Instruct/kateacuff_16/merged",          
-    "ellenosborne": "/playpen-ssd/smerrill/trained_models_4bit/meta-llama/Meta-Llama-3-70B-Instruct/ellenosborne_16/mergede",
-    "grahampaige": "/playpen-ssd/smerrill/trained_models_4bit/meta-llama/Meta-Llama-3-70B-Instruct/grahampaige_16/merged",
-    "katrinacallsen": "/playpen-ssd/smerrill/trained_models_4bit/meta-llama/Meta-Llama-3-70B-Instruct/katrinacallsen_16/merged",
-    "davidoberg": "/playpen-ssd/smerrill/trained_models_4bit/meta-llama/Meta-Llama-3-70B-Instruct/davidoberg_16/merged",
-    "jonnoalcaro": "/playpen-ssd/smerrill/trained_models_4bit/meta-llama/Meta-Llama-3-70B-Instruct/jonnoalcaro_16/merged",
-    "judyle": "/playpen-ssd/smerrill/trained_models_4bit/meta-llama/Meta-Llama-3-70B-Instruct/judyle_16/merged",
-}
-
 def load_question_votes(json_path):
     with open(json_path, "r") as f:
         return json.load(f)
@@ -148,9 +127,18 @@ def main():
         default='/playpen-ssd/smerrill/llm_decisions/reviewed_questions2.json',
         help="Output path for detailed predictions JSON"
     )
+    parser.add_argument(
+        "--agent_models", type=str,
+        required=True,
+        help="Path to JSON file mapping agent names to model paths"
+    )
 
     args = parser.parse_args()
-    evaluate_models(args.reviewed_json, AGENT_MODELS, args.output)
+
+    with open(args.agent_models, "r") as f:
+        agent_models = json.load(f)
+
+    evaluate_models(args.reviewed_json, agent_models, args.output)
 
 
 if __name__ == "__main__":

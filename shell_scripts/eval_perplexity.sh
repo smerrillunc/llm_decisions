@@ -1,23 +1,27 @@
 #!/bin/bash
 
+AGENT_MODELS_JSON="/playpen-ssd/smerrill/llm_decisions/configs/models.json"
+SCRIPT=/playpen-ssd/smerrill/llm_decisions/evaluate_agent_perplexity.py
 
-MODELS=(
-  /playpen-ssd/smerrill/trained_models/meta-llama/Meta-Llama-3-70B-Instruct/judyle_32/merged
-  /playpen-ssd/smerrill/trained_models/meta-llama/Meta-Llama-3-70B-Instruct/ellenosborne_32/merged
-  /playpen-ssd/smerrill/trained_models/meta-llama/Meta-Llama-3-70B-Instruct/grahampaige_32/merged
-  /playpen-ssd/smerrill/trained_models/meta-llama/Meta-Llama-3-70B-Instruct/katrinacallsen_32/merged
-  /playpen-ssd/smerrill/trained_models/meta-llama/Meta-Llama-3-70B-Instruct/kateacuff_32/merged
-  /playpen-ssd/smerrill/trained_models/meta-llama/Meta-Llama-3-70B-Instruct/jonnoalcaro_32/merged
-  /playpen-ssd/smerrill/trained_models/meta-llama/Meta-Llama-3-70B-Instruct/davidoberg_32/merged
-  /playpen-ssd/smerrill/trained_models/meta-llama/Meta-Llama-3-70B-Instruct/baseline
-)
+agents=($(jq -r 'keys[]' "$AGENT_MODELS_JSON"))
 
+for agent in "${agents[@]}"; do
+  MODEL=$(jq -r --arg agent "$agent" '.[$agent]' "$AGENT_MODELS_JSON")
 
-for MODEL in "${MODELS[@]}"; do
-  echo "Starting training for agent: $MODEL"
-  CUDA_VISIBLE_DEVICES=0,7,2,3,4,5,6 accelerate launch --num_processes 7 evaluate_agent_perplexity.py --merged_path "$MODEL" --wandb_run_name "$MODEL"
+  # Get the parent directory (one above "merged")
+  PARENT_DIR=$(dirname "$MODEL")
+  RESULT_FILE="$PARENT_DIR/perplexity_results.csv"
+
+  if [ -f "$RESULT_FILE" ]; then
+    echo "Skipping $MODEL as results already exist at $RESULT_FILE"
+    continue
+  fi
+
+  echo "Starting evaluation for agent: $agent"
+  CUDA_VISIBLE_DEVICES=0,7,2,3,4,5,6 accelerate launch --num_processes 7 "$SCRIPT" --merged_path "$MODEL" --wandb_run_name "$agent"
+
   if [ $? -ne 0 ]; then
-    echo "Eval failed for agent: $AGENT. Exiting..."
+    echo "Eval failed for agent: $agent. Exiting..."
     exit 1
   fi
 done

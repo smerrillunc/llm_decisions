@@ -109,6 +109,10 @@ def process_monologues(pipe, monologues: Dict[str, List[str]], prompt_template: 
                 else:
                     print("  -> NO or irrelevant.")
                     continue
+                
+                if len(speaker_results) >= 25:
+                    print("Reached 25 relevant chunks, stopping early.")
+                    break
 
         results[speaker] = speaker_results
         print(f"Finished speaker {speaker}: {relevant_chunks} relevant chunks out of {total_chunks} total.")
