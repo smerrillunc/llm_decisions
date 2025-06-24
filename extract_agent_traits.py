@@ -132,22 +132,34 @@ if __name__ == "__main__":
 
     pipe = setup_model(args.model)
 
-    print("Starting Personality Alignment filtering...")
-    personality_results = process_monologues(pipe, monologues, PERSONALITY_FILTER_PROMPT, PERSONALITY_QUESTION_GENERATION_PROMPT)
-    with open(os.path.join(args.output_dir, "personality_results.json"), "w") as f:
-        json.dump(personality_results, f, indent=2)
-    print("Saved personality_results.json")
+    personality_path = os.path.join(args.output_dir, "personality_results.json")
+    if not os.path.exists(personality_path):
+        print("Starting Personality Alignment filtering...")
+        personality_results = process_monologues(pipe, monologues, PERSONALITY_FILTER_PROMPT, PERSONALITY_QUESTION_GENERATION_PROMPT)
+        with open(personality_path, "w") as f:
+            json.dump(personality_results, f, indent=2)
+        print("Saved personality_results.json")
+    else:
+        print(f"{personality_path} already exists. Skipping Personality Alignment filtering.")
 
-    print("\nStarting Beliefs/Values extraction...")
-    belief_results = process_monologues(pipe, monologues, BELIEF_FILTER_PROMPT, BELIEF_QUESTION_GENERATION_PROMPT)
-    with open(os.path.join(args.output_dir, "belief_results.json"), "w") as f:
-        json.dump(belief_results, f, indent=2)
-    print("Saved belief_results.json")
+    belief_path = os.path.join(args.output_dir, "belief_results.json")
+    if not os.path.exists(belief_path):
+        print("\nStarting Beliefs/Values extraction...")
+        belief_results = process_monologues(pipe, monologues, BELIEF_FILTER_PROMPT, BELIEF_QUESTION_GENERATION_PROMPT)
+        with open(belief_path, "w") as f:
+            json.dump(belief_results, f, indent=2)
+        print("Saved belief_results.json")
+    else:
+        print(f"{belief_path} already exists. Skipping Beliefs/Values extraction.")
 
-    print("\nStarting Memory/Episodic Recall extraction...")
-    memory_results = process_monologues(pipe, monologues, MEMORY_EXTRACTION_PROMPT, MEMORY_QUESTION_GENERATION_PROMPT)
-    with open(os.path.join(args.output_dir, "memory_results.json"), "w") as f:
-        json.dump(memory_results, f, indent=2)
-    print("Saved memory_results.json")
+    memory_path = os.path.join(args.output_dir, "memory_results.json")
+    if not os.path.exists(memory_path):
+        print("\nStarting Memory/Episodic Recall extraction...")
+        memory_results = process_monologues(pipe, monologues, MEMORY_EXTRACTION_PROMPT, MEMORY_QUESTION_GENERATION_PROMPT)
+        with open(memory_path, "w") as f:
+            json.dump(memory_results, f, indent=2)
+        print("Saved memory_results.json")
+    else:
+        print(f"{memory_path} already exists. Skipping Memory/Episodic Recall extraction.")
 
     print("\nAll processing complete!")
