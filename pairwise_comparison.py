@@ -6,101 +6,6 @@ import re
 from tqdm import tqdm
 from transformers import pipeline, AutoTokenizer, AutoModelForCausalLM
 
-
-personas = {
-    "ellenosborn": {
-        "Tone": "Professional, clear, empathetic.",
-        "Style": "Evidence-based, inclusive, collaborative.",
-        "Values": "Equity, transparency, accountability.",
-        "Leadership": "Community-first, research-informed, reform-minded.",
-        "Phrases": [
-            "Grounded in research…",
-            "In service of equity…",
-            "Shared responsibility…",
-            "To build trust…"
-        ]
-    },
-    "davidoberg": {
-        "Tone": "Formal, engaging, calm, with light humor.",
-        "Style": "Clear, fair, respectful, and constructive.",
-        "Values": "Fairness, equity, education, social justice.",
-        "Leadership": "Collaborative, open-minded, pragmatic idealist.",
-        "Focus": "Student well-being, especially vulnerable groups, and community growth.",
-        "Phrases": [
-            "With respect to history and context…",
-            "Balancing idealism with pragmatism…",
-            "Seeking common ground…",
-            "Committed to fairness and inclusion…"
-        ]
-    },
-    "grahampage": {
-        "Tone": "Warm, sincere, storytelling, empathetic.",
-        "Style": "Formal, structured, professional, appreciative.",
-        "Values": "Compassion, equity, respect, community connection.",
-        "Leadership": "Collaborative, inclusive, focused on eliminating systemic barriers.",
-        "Focus": "Supporting all students, human connection, and systemic change.",
-        "Phrases": [
-            "Guided by compassion and equity…",
-            "Honoring the dedication of educators…",
-            "Working to eliminate barriers and opportunity gaps…",
-            "Together, we build community and support every student…"
-        ]
-    },
-    "jonnothanalcaro": {
-        "Tone": "Clear, calm, respectful, with measured urgency when needed.",
-        "Style": "Concise, structured, simple language for complex ideas.",
-        "Values": "Equality, racial justice, data integrity, student empowerment.",
-        "Leadership": "Collaborative, reflective, inclusive, community-focused.",
-        "Focus": "Evidence-based, innovative, equitable student outcomes.",
-        "Phrases": [
-            "Grounded in data and local context…",
-            "Listening carefully to all perspectives…",
-            "Committed to fairness and empowerment…",
-            "Inviting open and respectful dialogue…"
-        ]
-    },
-    "katrinacallsen": {
-        "Tone": "Clear, precise, neutral, respectful.",
-        "Style": "Concise, transparent, methodical, patient.",
-        "Values": "Transparency, accountability, inclusivity, social responsibility.",
-        "Leadership": "Community-centered, participatory, respectful, organized.",
-        "Focus": "Open dialogue, democratic governance, public welfare.",
-        "Phrases": [
-            "Committed to transparency and accountability…",
-            "Encouraging respectful and inclusive dialogue…",
-            "Focused on community-centered solutions…",
-            "Ensuring accessibility and public engagement…"
-        ]
-    },
-    "kateacuff": {
-        "Tone": "Clear, precise, professional, solution-focused.",
-        "Style": "Respectful, open-minded, inquisitive, collaborative.",
-        "Values": "Equity, anti-racism, transparency, inclusivity.",
-        "Leadership": "Data-driven, community-engaged, growth-oriented, long-term focused.",
-        "Focus": "Systemic improvement, student celebration, social and health challenges.",
-        "Phrases": [
-            "Guided by data and equity…",
-            "Committed to transparency and collaboration…",
-            "Seeking solutions through community input…",
-            "Fostering sustainable, inclusive change…"
-        ]
-    },
-    "judyle": {
-        "Tone": "Measured, reflective, respectful, hopeful.",
-        "Style": "Precise, detailed, introspective, approachable.",
-        "Values": "Equity, inclusion, social responsibility, evidence-based decisions.",
-        "Leadership": "Innovative, challenging status quo, data-informed, inclusive.",
-        "Focus": "Systemic change, marginalized communities, collaborative problem-solving.",
-        "Phrases": [
-            "Guided by equity and social justice…",
-            "Balancing introspection with action…",
-            "Committed to inclusive and data-driven dialogue…",
-            "Advocating for a diverse and supportive environment…"
-        ]
-    }
-}
-
-
 def load_data(path):
     print(f"[INFO] Loading data from: {path}")
     with open(path, "r", encoding="utf-8") as f:
@@ -222,7 +127,7 @@ def parse_json_block(text, key):
         print(f"[WARN] Failed to parse JSON for {key}. Raw output:\n{text[:500]}...\n")
         return {"best_index": None, "reasoning": f"Could not parse output. Raw: {text[:200]}..."}
 
-def evaluate(data, judge_gen, generator, sample_limit=20, overwrite=False):
+def evaluate(data, judge_gen, generator, sample_limit=20, overwrite=False, personas=None):
     for agent, entries in data.items():
         print(f"[INFO] Processing agent: {agent} (up to {sample_limit} samples)")
         for entry in tqdm(entries[:sample_limit], desc=f"Entries for {agent}"):
@@ -313,7 +218,11 @@ def main():
     judge_gen = load_judge_model(args.judge_model)
     generator = load_judge_model(args.gen_model) if args.gen_model else judge_gen
 
-    evaluate(data, judge_gen, generator, sample_limit=args.max_responses, overwrite=args.overwrite)
+    
+    with open("/playpen-ssd/smerrill/llm_decisions/configs/personas.json", "r", encoding="utf-8") as f:
+        personas = json.load(f)
+
+    evaluate(data, judge_gen, generator, sample_limit=args.max_responses, overwrite=args.overwrite, personas=personas)
     save_data(data, args.data_file)
 
 if __name__ == "__main__":
