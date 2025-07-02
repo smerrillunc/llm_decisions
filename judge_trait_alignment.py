@@ -5,6 +5,7 @@ import torch
 from tqdm import tqdm
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 from accelerate import Accelerator
+import re
 
 def load_data(path):
     with open(path, "r", encoding="utf-8") as f:
@@ -30,78 +31,76 @@ def save_data(data, path):
 
 # === Prompt Builders ===
 
+
 def build_belief_prompt(summary, question, response):
-    return f"""You are an impartial evaluator judging whether a model’s response reflects the key beliefs and values of a real speaker, based on a provided summary of that speaker’s statements.
+    return f"""You are an impartial evaluator judging whether a model’s response reflects the key beliefs and values of a real speaker, based on a summary.
 
-Your task is to give a score from 1 to 5 based on how well the model's response captures the core beliefs, attitudes, and values reflected in the summary — even if some minor details are missing.
+Return ONLY a JSON object like:
+{{"score": 4, "explanation": "..."}} 
 
-Be lenient and generous in scoring: as long as the main position and values are reflected accurately and respectfully, the response can score 4 or 5.
-
-5 = Strong alignment; clearly reflects core beliefs and values.
-4 = Generally aligns with the speaker's values; may miss some nuance but still consistent.
-3 = Partially aligns; contains some core ideas but also notable gaps or ambiguity.
-2 = Misalignment or oversimplification of the speaker's position.
-1 = Poor alignment or contradicts the speaker's expressed views.
-
-Return your evaluation as a JSON object with score and explanation fields. Be concise and focus only on the most important belief alignment.
+Scoring guide:
+5 = Strong alignment with core beliefs.
+4 = Generally consistent; minor omissions.
+3 = Partial alignment; notable ambiguity.
+2 = Misalignment or oversimplification.
+1 = Contradiction or no alignment.
 
 Summary:
 \"\"\"{summary}\"\"\"
 
-Question asked:
+Question:
 \"\"\"{question}\"\"\"
 
-Model's response:
+Model Response:
 \"\"\"{response}\"\"\"
-
-Evaluate how well the response reflects the summary. Be generous in your interpretation:
 """
 
 def build_personality_prompt(summary, question, response):
-    return f"""You are judging how well a model captures someone’s personality — including their preferences, emotions, tendencies, or values — based on a summary of such traits.
+    return f"""You are evaluating how well a model captures a person's personality, preferences, or emotional tone based on a summary.
 
-Give a score from 1 to 5 based on how accurately the model’s response reflects the personality described in the summary.
+Return ONLY a JSON object like:
+{{"score": 4, "explanation": "..."}} 
 
-5 = Personality traits are clearly and convincingly expressed.
-4 = Generally aligned; some nuance missing but still shows consistent tone or values.
-3 = Some traits reflected but inconsistent or generic tone.
-2 = Weak personality expression or wrong emotional tone.
-1 = Personality traits absent or misrepresented.
-
-Return a JSON object with score and explanation fields.
+Scoring guide:
+5 = Strong personality expression aligned with summary.
+4 = Generally consistent tone and traits.
+3 = Some personality present, but generic or inconsistent.
+2 = Weak or incorrect tone.
+1 = Traits are absent or misrepresented.
 
 Summary:
 \"\"\"{summary}\"\"\"
 
-Question asked:
+Question:
 \"\"\"{question}\"\"\"
 
-Model's response:
+Model Response:
 \"\"\"{response}\"\"\"
 """
 
 def build_memory_prompt(summary, question, response):
-    return f"""You are judging how well a model reflects a speaker’s personal memory, story, or lived experience based on the summary below.
+    return f"""You are evaluating how well a model reflects someone's personal memory or experience based on the summary.
 
-Score from 1 to 5 how accurately and authentically the model conveys or builds upon this memory.
+Return ONLY a JSON object like:
+{{"score": 4, "explanation": "..."}} 
 
-5 = Response clearly affirms or extends the memory in a realistic and meaningful way.
-4 = Generally consistent with the memory, with minor gaps or surface-level restatement.
-3 = Acknowledges the memory but is vague, shallow, or lacks emotion.
-2 = Misrepresents key facts or tone of the memory.
-1 = Ignores or contradicts the memory entirely.
-
-Return a JSON object with score and explanation fields.
+Scoring guide:
+5 = Strong realistic extension or affirmation of the memory.
+4 = Consistent but surface-level or partial.
+3 = Acknowledges memory but vague or flat.
+2 = Misrepresents facts or tone.
+1 = Ignores or contradicts memory.
 
 Summary:
 \"\"\"{summary}\"\"\"
 
-Question asked:
+Question:
 \"\"\"{question}\"\"\"
 
-Model's response:
+Model Response:
 \"\"\"{response}\"\"\"
 """
+
 
 def get_prompt(evaluation_type, summary, question, response):
     if evaluation_type == "belief":
@@ -128,14 +127,19 @@ def evaluate_entries(data, generator, speaker_filter=None, overwrite=False, outp
 
             score = None
             explanation = None
-            for line in result.splitlines():
-                if line.lower().startswith("score:"):
-                    try:
-                        score = int(line.split(":", 1)[1].strip())
-                    except ValueError:
-                        pass
-                elif line.lower().startswith("explanation:"):
-                    explanation = line.split(":", 1)[1].strip()
+
+            try:
+                # Find the last { ... } block that looks like JSON
+                json_candidates = re.findall(r"\{.*?\"score\"\s*:\s*\d+.*?\}", result, re.DOTALL)
+                if json_candidates:
+                    parsed = json.loads(json_candidates[-1])
+                    score = int(parsed.get("score", None))
+                    explanation = parsed.get("explanation", "").strip()
+                else:
+                    print(f"[Warning] No JSON object found in output:\n{result}")
+            except Exception as e:
+                print(f"[Warning] Failed to parse JSON: {e}\nOutput:\n{result}")
+
 
             entry[output_key] = {
                 "score": score,
@@ -146,15 +150,13 @@ def evaluate_entries(data, generator, speaker_filter=None, overwrite=False, outp
 # === Model Loading ===
 
 def load_judge_model(model_name):
-    accelerator = Accelerator()
     tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=True)
     model = AutoModelForCausalLM.from_pretrained(
         model_name,
-        device_map='auto',
-        torch_dtype="auto",
-        max_memory={i: "35GiB" for i in range(torch.cuda.device_count())}
+        torch_dtype=torch.float16,
+        device_map="auto"
     )
-    return pipeline("text-generation", model=model, tokenizer=tokenizer, device_map="auto")
+    return pipeline("text-generation", model=model, tokenizer=tokenizer)
 
 # === CLI ===
 
@@ -165,7 +167,7 @@ def main():
 
     parser = argparse.ArgumentParser(description="Evaluate alignment using a judge LLM.")
     parser.add_argument("--data_file", type=str, required=True, help="Path to the JSON data file.")
-    parser.add_argument("--model_name", type=str, default="meta-llama/Meta-Llama-3-70B-Instruct", help="Judge model name.")
+    parser.add_argument("--model_name", type=str, default="meta-llama/Meta-Llama-3-8B-Instruct", help="Judge model name.")
     parser.add_argument("--speaker", type=str, default=None, help="Limit evaluation to a specific speaker.")
     parser.add_argument("--overwrite", default=True, action="store_true", help="Overwrite existing evaluations.")
     parser.add_argument("--output_key", type=str, default="evaluation", help="Key name for evaluation output.")

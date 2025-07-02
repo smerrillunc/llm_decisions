@@ -74,8 +74,11 @@ def run_inference_on_data(model_path: str, input_file: str, output_file: str):
 
     model, tokenizer = load_model_and_tokenizer(model_path)
     model.eval()
-
-    entries = data[speaker]
+    try:
+        entries = data[speaker]
+    except:
+        entries = []
+        print("no entries found for speaker:", speaker )
     print(f"\nProcessing entries for: {speaker}")
     
     # Inference loop

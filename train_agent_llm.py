@@ -147,7 +147,7 @@ def training_function(script_args, training_args, accelerator):
 
     # LoRA config based on QLoRA paper & Sebastian Raschka experiment
     peft_config = LoraConfig(
-        lora_alpha=16,
+        lora_alpha=2*script_args.factors,
         lora_dropout=script_args.dropout,
         r=script_args.factors,
         bias="none",

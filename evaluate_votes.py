@@ -1,7 +1,7 @@
 import argparse
 import json
 import os
-#os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:64,garbage_collection_threshold:0.8"
+# os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:64,garbage_collection_threshold:0.8"
 
 from collections import defaultdict
 import torch
@@ -11,6 +11,8 @@ from transformers import (
     pipeline
 )
 from accelerate import init_empty_weights
+import warnings
+import re
 
 def load_question_votes(json_path):
     with open(json_path, "r") as f:
@@ -21,9 +23,11 @@ def load_model_pipeline(model_path):
     print(f"[INFO] Loading model: {model_path}")
     base_path = model_path.split('/merged')[0]
     tokenizer = AutoTokenizer.from_pretrained(base_path, use_fast=True)
-
-    with init_empty_weights():
-        _ = AutoModelForCausalLM.from_pretrained(model_path)
+    
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        with init_empty_weights():
+            _ = AutoModelForCausalLM.from_pretrained(model_path)
 
     model = AutoModelForCausalLM.from_pretrained(
         model_path,
@@ -35,16 +39,73 @@ def load_model_pipeline(model_path):
     return pipeline("text-generation", model=model, tokenizer=tokenizer, device_map="auto")
 
 
-def format_prompt(question):
-    return f"{question} Please answer with either 'Yes' or 'No'."
+def format_prompt(question, agent):
+    # Added explicit instruction for clean vote output
+    return (
+        f"<|begin_of_text|><|start_header_id|>user<|end_header_id|>\n\n"
+        f"Please respond ONLY with one of the following vote options: \"Aye\" or \"Naye\".\n\n"
+        f"{question}\n\n"
+        f"<|eot_id|>\n\n"
+        f"<|start_header_id|>assistant<|end_header_id|>\n\n"
+        f"{agent}:"
+    )
 
 
 def interpret_answer(generated_text):
     text = generated_text.lower()
-    if "yes" in text:
-        return "Aye"
-    elif "no" in text:
-        return "Naye"
+
+    # Patterns that imply an Aye vote
+    patterns_aye = [
+        r'\bi (move|recommend|propose)\b.*\bapprove\b',
+        r'\bi (move|recommend|propose)\b.*\badopt\b',
+        r'\bi (move|recommend|propose)\b.*\bauthorize\b',
+        r'\bi (support|am in favor|would support|do support|shall support)\b',
+        r'\bi vote (yes|aye|in favor)\b',
+        r'\b(i )?vote (yes|aye|in favor)\b',
+        r'\byes\b',
+        r'\baye\b',
+        r'\bsecond\b',
+        r'\bi agree\b',
+        r'\bapprove\b',
+        r'\bsupport\b',
+        r'\bit should be approved\b',
+        r'\bthis is acceptable\b',
+        r'\bi (move|propose)\b.*\bresolution\b.*\b(adopt|approve|authorize)\b'
+    ]
+
+    # Patterns that imply a Naye vote
+    patterns_naye = [
+        r'\bi (move|recommend|propose)\b.*\breject\b',
+        r'\bi oppose\b',
+        r'\boppose\b',
+        r'\bvote against\b',
+        r'\bi vote no\b',
+        r'\bno\b',
+        r'\bnaye\b',
+        r'\bdisagree\b',
+        r'\breject\b',
+        r'\bi do not support\b',
+        r'\bi (cannot|won\'t|will not|don\'t) support\b',
+        r'\bi am not in favor\b',
+        r'\bi’m not in favor\b',
+        r'\bi oppose this\b',
+        r'\bshould not be approved\b'
+    ]
+
+    # First pass: Aye detection
+    for pattern in patterns_aye:
+        if re.search(pattern, text):
+            return "Aye"
+
+    # Second pass: Naye detection
+    for pattern in patterns_naye:
+        if re.search(pattern, text):
+            return "Naye"
+
+    # Optional: disqualify procedural motion-only phrases
+    if re.search(r'\bi move that\b', text) and not re.search(r'\b(approve|support|yes|aye|favor)\b', text):
+        return "Unknown"
+
     return "Unknown"
 
 
@@ -69,29 +130,53 @@ def evaluate_models(reviewed_json_path, agent_models, output_path=None):
                 continue
 
             true_vote = agent_votes[agent]
-            prompt = format_prompt(question)
+            prompt = format_prompt(question, agent)
 
             try:
-                output = pipe(prompt, max_new_tokens=20, do_sample=False)[0]["generated_text"]
-                pred_vote = interpret_answer(output)
+                # Generate with repetition penalty and deterministic output
+                response = pipe(
+                    prompt,
+                    max_new_tokens=100,
+                    do_sample=False,
+                    repetition_penalty=1.2
+                )[0]["generated_text"]
+
+                # Extract generated completion by removing prompt prefix
+                if response.startswith(prompt):
+                    completion = response[len(prompt):].strip()
+                else:
+                    # Fallback if prefix not found
+                    completion = response.strip()
+
+                pred_vote = interpret_answer(completion)
                 is_correct = pred_vote == true_vote
+
+                # Logging details
+                print(f"\n[QUESTION]     {question}")
+                print(f"[PROMPT]       {repr(prompt)}")
+                print(f"[RAW OUTPUT]   {repr(response)}")
+                print(f"[COMPLETION]   {repr(completion)}")
+                print(f"[PREDICTED]    {pred_vote} | [ACTUAL] {true_vote} {'✅' if is_correct else '❌'}\n")
+
                 predictions[agent].append({
                     "question": question,
                     "true_vote": true_vote,
                     "pred_vote": pred_vote,
+                    "completion": completion,
                     "correct": is_correct
                 })
+
                 total += 1
                 if is_correct:
                     correct += 1
 
-                print(f"  - {question[:60]}... | Predicted={pred_vote} | Actual={true_vote} {'✅' if is_correct else '❌'}")
             except Exception as e:
                 print(f"  - ERROR running model for question: {e}")
                 predictions[agent].append({
                     "question": question,
                     "true_vote": true_vote,
                     "pred_vote": "ERROR",
+                    "completion": "",
                     "correct": False
                 })
 
@@ -99,7 +184,7 @@ def evaluate_models(reviewed_json_path, agent_models, output_path=None):
         accuracy[agent] = {"accuracy": acc, "total": total}
         print(f"[SUMMARY] {agent}: {acc}% accuracy on {total} questions")
 
-        # Clean up
+        # Free GPU memory
         del pipe
         torch.cuda.empty_cache()
 
