@@ -1,23 +1,22 @@
 # LLM Decisions Pipeline
 
-This repository provides a modular pipeline for training, merging, evaluating, and analyzing large language models (LLMs) as personalized conversational agents. The workflow supports multi-GPU training, quantized inference, and downstream analysis of model outputs, including belief/personality extraction, question generation, and alignment evaluation.
+This repository provides a modular, multi-stage pipeline for training, merging, evaluating, and analyzing large language models (LLMs) as personalized conversational agents. The workflow supports multi-GPU training, quantized inference, and downstream analysis of model outputs, including belief/personality extraction, question generation, and alignment evaluation. All major steps are orchestrated via shell scripts for reproducibility and ease of use.
 
 ---
 
 ## Table of Contents
 - [Environment Setup](#environment-setup)
-- [Workflow Overview](#workflow-overview)
-- [Scripts and Shell Files](#scripts-and-shell-files)
-  - [Training: train_agent_llm.py](#training-train_agent_llmpy)
-  - [Merging Adapters: merge_lora_adapters.py](#merging-adapters-merge_lora_adapterspy)
-  - [Perplexity Evaluation: evaluate_agent_perplexity.py](#perplexity-evaluation-evaluate_agent_perplexitypy)
-  - [Votes Dataset Creation: make_votes_dataset.py](#votes-dataset-creation-make_votes_datasetpy)
-  - [Agent Profile Building: build_agent_profiles.py](#agent-profile-building-build_agent_profilespy)
-  - [Agent Response Generation: generate_agent_responses.py](#agent-response-generation-generate_agent_responsespy)
-  - [Alignment Judging: judge_response_alignment.py](#alignment-judging-judge_response_alignmentpy)
-  - [Votes Evaluation: evaluate_votes.py](#votes-evaluation-evaluate_votespy)
-  - [Question Review CLI: review_questions_cli.py](#question-review-cli-review_questions_clip)
-- [Shell Scripts](#shell-scripts)
+- [Pipeline Overview](#pipeline-overview)
+- [Detailed Workflow and Script Descriptions](#detailed-workflow-and-script-descriptions)
+  - [1. Training and Merging](#1-training-and-merging)
+  - [2. Perplexity Evaluation](#2-perplexity-evaluation)
+  - [3. Trait/Belief/Memory Extraction and Question Generation](#3-traitbeliefmemory-extraction-and-question-generation)
+  - [4. Agent Response Generation](#4-agent-response-generation)
+  - [5. Judging and Alignment Evaluation](#5-judging-and-alignment-evaluation)
+  - [6. Vote Dataset Creation and Evaluation](#6-vote-dataset-creation-and-evaluation)
+  - [7. Completion Response Generation and Judging](#7-completion-response-generation-and-judging)
+  - [8. Manual Review and Utilities](#8-manual-review-and-utilities)
+- [Shell Scripts: Orchestration](#shell-scripts-orchestration)
 - [Tips and Troubleshooting](#tips-and-troubleshooting)
 
 ---
@@ -29,99 +28,174 @@ This repository provides a modular pipeline for training, merging, evaluating, a
 2. **Set up CUDA and GPUs** as needed for your hardware.
 3. **Configure Accelerate**:
    - Run `accelerate config` and set up your distributed environment as needed.
+4. **Set environment variables** as needed for FSDP, CUDA, and memory management (see shell scripts for examples).
 
 ---
 
-## Workflow Overview
+## Pipeline Overview
 
-1. **Train** a personalized LLM for each agent using LoRA/QLoRA adapters.
+The pipeline is designed to:
+1. **Train** LoRA/QLoRA adapters for each agent using multi-GPU FSDP.
 2. **Merge** adapters into the base model for efficient inference.
 3. **Evaluate** perplexity of each agent model on held-out data.
-4. **Extract** beliefs, memories, and personality traits from agent monologues using the LLM.
+4. **Extract** beliefs, memories, and personality traits from agent monologues.
 5. **Generate** probing questions for each agent based on extracted traits.
-6. **Ask** the agent LLM these questions and record responses.
+6. **Generate** agent responses to these questions using the merged LLMs.
 7. **Judge** the alignment of agent responses using a separate judge LLM.
-8. **(Optional) Review** and edit generated questions via CLI.
+8. **Create and evaluate** a yes/no vote dataset for agent models.
+9. **Generate and judge** completion responses for further analysis.
+10. **(Optional) Review and edit** generated questions via CLI.
+
+All steps are orchestrated via shell scripts in `llm_decisions/shell_scripts/`, which ensure correct order and environment setup.
 
 ---
 
-## Scripts and Shell Files
+## Detailed Workflow and Script Descriptions
 
-All scripts can be run using the provided shell scripts in `llm_decisions/shell_scripts/`. These shell scripts handle environment variables, GPU selection, and batch processing for you.
+### 1. Training and Merging
 
-### Training: `train_agent_llm.py`
-Train a LoRA/QLoRA model for a specific agent using multi-GPU and FSDP. Handles dataset loading, tokenizer/model setup, LoRA config, and training loop.
-- **Shell script:** `shell_scripts/train_all_agents.sh`
-- **Inputs:** Agent name, config YAML, dataset path
-- **Outputs:** Trained LoRA adapter and checkpoints in `trained_models/`
+#### `train_agent_llm.py`
+- **Purpose:** Trains a LoRA/QLoRA adapter for each agent using multi-GPU FSDP. Handles dataset loading, tokenizer/model setup, LoRA config, and training loop.
+- **Inputs:** Agent name, config YAML, dataset path, LoRA factors/dropout.
+- **Outputs:** Trained LoRA adapter and checkpoints in `trained_models/`.
+- **How to run:**
+  - Use `shell_scripts/train_all_agents.sh` to train all agents with their respective hyperparameters.
+  - The script also calls the merge step below after each agent is trained.
 
-### Merging Adapters: `merge_lora_adapters.py`
-Merge LoRA/PEFT adapters into the base model for efficient inference. Produces a "merged" model directory for downstream evaluation and inference.
-- **Shell script:** Called from `train_all_agents.sh` after training
-- **Inputs:** Output directory from training
-- **Outputs:** Merged model in `merged/` subdirectory
+#### `merge_lora_adapters.py`
+- **Purpose:** Merges LoRA/PEFT adapters into the base model for efficient inference. Produces a "merged" model directory for downstream evaluation and inference.
+- **Inputs:** Output directory from training.
+- **Outputs:** Merged model in `merged/` subdirectory.
+- **How to run:**
+  - Called automatically from `train_all_agents.sh` after each agent is trained.
 
-### Perplexity Evaluation: `evaluate_agent_perplexity.py`
-Compute perplexity for each agent's test set using the merged model. Uses Accelerate for distributed evaluation.
-- **Shell script:** `shell_scripts/eval_perplexity.sh`
-- **Inputs:** Merged model path, agent name
-- **Outputs:** Perplexity results CSV per agent
+### 2. Perplexity Evaluation
 
-### Votes Dataset Creation: `make_votes_dataset.py`
-Create a dataset of yes/no vote questions for training or analysis, using the LLM to generate questions from context.
-- **Run directly:**
-  ```bash
-  python llm_decisions/make_votes_dataset.py --model <model_name> --csv_path <votes.csv> --output_path <output.pkl>
-  ```
-- **Inputs:** CSV of vote contexts
-- **Outputs:** Pickle/JSON dataset of questions
+#### `evaluate_agent_perplexity.py`
+- **Purpose:** Computes perplexity for each agent's test set using the merged model. Uses Accelerate for distributed evaluation.
+- **Inputs:** Merged model path, agent name.
+- **Outputs:** Perplexity results CSV per agent.
+- **How to run:**
+  - Use `shell_scripts/eval_perplexity.sh` to evaluate all agent models in batch.
 
-### Agent Profile Building: `build_agent_profiles.py`
-Generate detailed personality profiles and interview questions for each agent from their monologues.
-- **Run directly:**
-  ```bash
-  python llm_decisions/build_agent_profiles.py --input <monologues.pkl> --output_dir <results_dir>
-  ```
-- **Inputs:** Pickle of agent monologues
-- **Outputs:** JSON profiles and questions
+### 3. Trait/Belief/Memory Extraction and Question Generation
 
-### Agent Response Generation: `generate_agent_responses.py`
-Generate agent responses to probing questions using the merged LLMs. Handles inference and response post-processing.
-- **Shell script:** `shell_scripts/eval_traits.sh`
-- **Inputs:** Merged model path, input JSON of questions
-- **Outputs:** JSON with generated responses
+#### `extract_agent_traits.py`
+- **Purpose:** Extracts beliefs, memories, and personality traits from agent monologues using the LLM. Generates summaries and candidate probing questions.
+- **Inputs:** Pickle of agent monologues.
+- **Outputs:** JSON profiles and questions.
+- **How to run:**
+  - Run directly with appropriate arguments (see script for details).
 
-### Alignment Judging: `judge_response_alignment.py`
-Judge the alignment of agent responses to their profiles/questions using a separate LLM. Produces alignment scores and explanations.
-- **Shell script:** `shell_scripts/eval_traits.sh` (final step)
-- **Inputs:** JSON with agent responses
-- **Outputs:** JSON with alignment scores
+#### `build_agent_profiles.py`
+- **Purpose:** Generates detailed personality profiles and interview questions for each agent from their monologues.
+- **Inputs:** Pickle of agent monologues.
+- **Outputs:** JSON profiles and questions.
+- **How to run:**
+  - Run directly with appropriate arguments.
 
-### Votes Evaluation: `evaluate_votes.py`
-Evaluate agent models on yes/no vote prediction tasks. Loads each agent's model and predicts answers to vote questions.
-- **Shell script:** `shell_scripts/eval_votes.sh`
-- **Inputs:** JSON of reviewed questions, agent model paths
-- **Outputs:** JSON with predictions and accuracy summary
+#### `make_votes_dataset.py`
+- **Purpose:** Creates a dataset of yes/no vote questions for training or analysis, using the LLM to generate questions from context.
+- **Inputs:** CSV of vote contexts.
+- **Outputs:** Pickle/JSON dataset of questions.
+- **How to run:**
+  - Run directly with appropriate arguments.
 
-### Question Review CLI: `review_questions_cli.py`
-Interactive CLI to review and edit generated questions for each agent. Allows manual correction and curation of probing questions.
-- **Run directly:**
-  ```bash
-  python llm_decisions/tools/review_questions_cli.py --file <questions.json> --speaker <agent_name>
-  ```
-- **Inputs:** JSON of questions
-- **Outputs:** Updated JSON after review
+### 4. Agent Response Generation
+
+#### `generate_trait_responses.py`
+- **Purpose:** Generates agent responses to probing questions (belief, memory, personality) using the merged LLMs. Handles inference and response post-processing.
+- **Inputs:** Merged model path, input JSON of questions.
+- **Outputs:** JSON with generated responses.
+- **How to run:**
+  - Use `shell_scripts/eval_traits.sh` to run response generation for all agents and all trait types.
+
+#### `generate_completion_responses.py`
+- **Purpose:** Generates agent responses to completion prompts for further analysis and pairwise comparison.
+- **Inputs:** Merged model path, speaker name, output file.
+- **Outputs:** JSON with generated completion responses.
+- **How to run:**
+  - Use `shell_scripts/eval_model_completions.sh` to run for all agents.
+
+#### `merge_agent_responses.py`
+- **Purpose:** Merges per-agent response files into a single JSON for downstream judging and analysis.
+- **Inputs:** Per-agent response JSON files.
+- **Outputs:** Merged response JSON.
+- **How to run:**
+  - Called from `eval_model_completions.sh` after all agent responses are generated.
+
+### 5. Judging and Alignment Evaluation
+
+#### `judge_trait_alignment.py`
+- **Purpose:** Judges the alignment of agent responses to their profiles/questions using a separate LLM. Produces alignment scores and explanations for belief, memory, and personality.
+- **Inputs:** JSON with agent responses.
+- **Outputs:** JSON with alignment scores.
+- **How to run:**
+  - Use `shell_scripts/eval_traits.sh` to run judging for all agents and all trait types.
+
+#### `judge_completion_response.py`
+- **Purpose:** Judges the quality, plausibility, and alignment of agent completion responses using a separate LLM. Produces scores and explanations.
+- **Inputs:** Merged response JSON.
+- **Outputs:** JSON with judgment results.
+- **How to run:**
+  - Called from `eval_model_completions.sh` after merging responses.
+
+#### `pairwise_comparison.py`
+- **Purpose:** Performs pairwise comparison of agent completion responses for further analysis.
+- **Inputs:** Merged response JSON.
+- **Outputs:** JSON with pairwise comparison results.
+- **How to run:**
+  - Called from `eval_model_completions.sh` after judging responses.
+
+### 6. Vote Dataset Creation and Evaluation
+
+#### `make_votes_dataset.py` (see above)
+- **Purpose:** Creates a dataset of yes/no vote questions.
+
+#### `evaluate_votes.py`
+- **Purpose:** Evaluates agent models on yes/no vote prediction tasks. Loads each agent's model and predicts answers to vote questions.
+- **Inputs:** JSON of reviewed questions, agent model paths.
+- **Outputs:** JSON with predictions and accuracy summary.
+- **How to run:**
+  - Use `shell_scripts/eval_votes.sh` to run vote evaluation for all agents.
+
+### 7. Completion Response Generation and Judging
+
+#### `generate_completion_responses.py` (see above)
+#### `merge_agent_responses.py` (see above)
+#### `judge_completion_response.py` (see above)
+#### `pairwise_comparison.py` (see above)
+- **How to run:**
+  - Use `shell_scripts/eval_model_completions.sh` to run the full completion response and judging pipeline.
+
+### 8. Manual Review and Utilities
+
+#### `review_questions_cli.py`
+- **Purpose:** Interactive CLI to review and edit generated questions for each agent. Allows manual correction and curation of probing questions.
+- **Inputs:** JSON of questions.
+- **Outputs:** Updated JSON after review.
+- **How to run:**
+  - Run directly with appropriate arguments.
 
 ---
 
-## Shell Scripts
+## Shell Scripts: Orchestration
 
-- **train_all_agents.sh**: Trains and merges LoRA adapters for all agents and hyperparameter settings.
-- **eval_perplexity.sh**: Evaluates perplexity for all agent models.
-- **eval_traits.sh**: Runs response generation and alignment judging for all agents.
-- **eval_votes.sh**: Runs vote prediction evaluation for all agent models.
+All major steps are orchestrated via shell scripts in `llm_decisions/shell_scripts/`. These scripts:
+- Set up environment variables (CUDA, FSDP, memory management, etc.)
+- Select GPUs to use
+- Run the appropriate Python scripts in the correct order
+- Batch process all agents and hyperparameter settings as needed
 
-Each shell script sets up the environment, selects GPUs, and runs the appropriate Python scripts in batch mode. You can modify these scripts to change which agents, models, or datasets are processed.
+**Key shell scripts:**
+- `train_all_agents.sh`: Trains and merges LoRA adapters for all agents and hyperparameter settings.
+- `eval_perplexity.sh`: Evaluates perplexity for all agent models.
+- `eval_traits.sh`: Runs trait response generation and alignment judging for all agents.
+- `eval_votes.sh`: Runs vote prediction evaluation for all agent models.
+- `eval_model_completions.sh`: Runs completion response generation, merging, judging, and pairwise comparison for all agents.
+
+**Usage:**
+- Run each shell script in order as needed for your workflow. The scripts are self-documenting and can be modified to change which agents, models, or datasets are processed.
 
 ---
 
@@ -133,6 +207,7 @@ Each shell script sets up the environment, selects GPUs, and runs the appropriat
 - **Environment Variables:** Some scripts require `ACCELERATE_USE_FSDP=1` and `FSDP_CPU_RAM_EFFICIENT_LOADING=1` for efficient sharding and memory usage.
 - **Editing Questions:** Use the CLI tool to review and edit probing questions before running evaluations.
 - **Logs and Outputs:** All results, logs, and outputs are saved in the `trained_models/` and `results/` directories for later analysis.
+- **Script Names:** Always check the shell scripts for the current script names and order of execution, as these reflect the latest workflow.
 
 ---
 
