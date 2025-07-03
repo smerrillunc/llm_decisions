@@ -87,6 +87,7 @@ if __name__ == "__main__":
     model, tokenizer = load_model_and_tokenizer(args.model_path)
 
     num_prompts = args.max_prompts if args.max_prompts is not None else len(test_data)
+    num_prompts = min(num_prompts, len(test_data))
     for i in tqdm(range(num_prompts)):
         prompt = test_data[i]['prompt']
         completion = test_data[i]['completion']

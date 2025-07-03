@@ -9,12 +9,12 @@ SCRIPT="/playpen-ssd/smerrill/llm_decisions/generate_completion_responses.py"
 RESULT_DIR="/playpen-ssd/smerrill/llm_decisions/results"
 
 # Max responses per prompt (used in generation, judging, comparison)
-MAX_RESPONSES=1
+MAX_RESPONSES=20
 
 # Sweep parameters
-temps=(1.0)
-top_ps=(0.95)
-top_ks=(50)
+temps=(0.7 1.0)
+top_ps=(0.8 1)
+top_ks=(50 100)
 reps=(1.2)
 
 # Read agent keys from JSON
