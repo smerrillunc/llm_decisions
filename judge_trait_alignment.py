@@ -167,7 +167,7 @@ def main():
 
     parser = argparse.ArgumentParser(description="Evaluate alignment using a judge LLM.")
     parser.add_argument("--data_file", type=str, required=True, help="Path to the JSON data file.")
-    parser.add_argument("--model_name", type=str, default="meta-llama/Meta-Llama-3-8B-Instruct", help="Judge model name.")
+    parser.add_argument("--model_name", type=str, default="meta-llama/Meta-Llama-3-70B-Instruct", help="Judge model name.")
     parser.add_argument("--speaker", type=str, default=None, help="Limit evaluation to a specific speaker.")
     parser.add_argument("--overwrite", default=True, action="store_true", help="Overwrite existing evaluations.")
     parser.add_argument("--output_key", type=str, default="evaluation", help="Key name for evaluation output.")

@@ -26,37 +26,36 @@ def save_data(data, path):
         json.dump(cleaned, f, indent=2, ensure_ascii=False)
     print("[INFO] Save successful.")
 
-def build_selection_prompt(candidates, persona_key=None, personas=None):
+def build_selection_prompt(candidates, prompt, max_prompt_words=100):
     if not candidates:
         return None
+
+    # Keep only the most recent words
+    words = prompt.split()
+    truncated_prompt = " ".join(words[-max_prompt_words:])
+    if len(words) > max_prompt_words:
+        truncated_prompt = "... " + truncated_prompt
+
     choices = "\n".join(f"{i}: {c}" for i, c in enumerate(candidates))
-    persona_info = ""
-    if persona_key and personas and persona_key in personas:
-        persona_info = f"Persona Description:\n{personas[persona_key]}"
+
     return f"""
-You are an impartial evaluator. Your task is to:
-1. Review a list of candidate model responses.
-2. Select the most appropriate continuation of the conversation.
-3. Ensure the selected response aligns with the given persona’s tone, style, values, and leadership approach.
+You are an impartial evaluator. Your task is to review the context prompt and a list of candidate responses. Select the candidate that best fits the context in a logical and coherent way.
 
-Criteria:
-- Logical flow and conversational continuity.
-- Alignment with the persona’s communication style and core values.
-- Clarity, coherence, and relevance.
+Context Prompt (last {max_prompt_words} words shown):
+{truncated_prompt}
 
-Persona:
-{persona_info}
-
-Candidates:
+Candidate Responses:
 {choices}
 
-Respond ONLY with a JSON object, in the following format:
+Please respond with a JSON object in the following format:
 {{
-  "best_index": <integer index of the best candidate, or null if none>,
-  "reasoning": "A short explanation for your choice."
+  "best_index": <integer index of the best candidate, or null if none are suitable>,
+  "reasoning": "A short explanation (1–2 sentences) justifying your choice."
 }}
-Output your JSON object now:
-"""
+
+Output your JSON object below:
+""".strip()
+
 
 def build_generation_prompt(context, persona_key, personas):
     persona_info = personas.get(persona_key, "")
@@ -131,12 +130,13 @@ def evaluate(data, judge_gen, generator, sample_limit=20, overwrite=False, perso
     for agent, entries in data.items():
         print(f"[INFO] Processing agent: {agent} (up to {sample_limit} samples)")
         for entry in tqdm(entries[:sample_limit], desc=f"Entries for {agent}"):
+            prompt = entry.get("prompt", "").strip()
             gt = entry.get("true_completion", "").strip()
             raw_cands = entry.get("model_responses", [])
             cands = [c.strip() for c in raw_cands if c.strip()]  # Filter empty/blank
 
             if overwrite or "best_selection" not in entry:
-                sel_prompt = build_selection_prompt(cands, agent, personas)
+                sel_prompt = build_selection_prompt(cands, prompt)
                 
                 if sel_prompt:
                     try:

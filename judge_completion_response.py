@@ -163,7 +163,7 @@ def main():
     print("START ")
     parser = argparse.ArgumentParser(description="Judge model responses using GPT.")
     parser.add_argument("--data_file", type=str, required=True, help="Path to JSON file with prompts/completions.")
-    parser.add_argument("--model_name", type=str, default="meta-llama/Meta-Llama-3-8B-Instruct", help="Name of HuggingFace model to use for judging.")
+    parser.add_argument("--model_name", type=str, default="meta-llama/Meta-Llama-3-70B-Instruct", help="Name of HuggingFace model to use for judging.")
     parser.add_argument("--agent", type=str, default=None, help="(Optional) Evaluate only one specific agent.")
     parser.add_argument("--output_key", type=str, default="gpt_judgment", help="Key name to store evaluation results.")
     parser.add_argument("--overwrite", action="store_true", help="Overwrite previous evaluations.")

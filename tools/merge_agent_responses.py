@@ -1,45 +1,72 @@
-import json
 import os
+import json
+import re
+from collections import defaultdict
 
-def merge_agent_responses(agent_names, input_dir, output_file):
-    completion_dict = {}
+def parse_params_from_filename(filename):
+    # Matches pattern like _T1.0_P0.95_K50_R1.2_responses.json
+    pattern = r'_T([\d.]+)_P([\d.]+)_K(\d+)_R([\d.]+)_responses\.json$'
+    match = re.search(pattern, filename)
+    if match:
+        return tuple(match.groups())
+    return None
 
-    for agent_name in agent_names:
-        input_path = os.path.join(input_dir, f"{agent_name}_test_responses.json")
+def merge_grouped_files(grouped_files, input_dir, output_dir, delete_original=False):
+    for param_key, file_list in grouped_files.items():
+        merged = {}
+        successfully_loaded = []
 
-        if not os.path.exists(input_path):
-            print(f"[WARNING] File not found for agent '{agent_name}': {input_path}. Skipping.")
+        for file_name in file_list:
+            agent_name = file_name.split('_T')[0]
+            file_path = os.path.join(input_dir, file_name)
+
+            try:
+                with open(file_path, 'r') as f:
+                    merged[agent_name] = json.load(f)
+                successfully_loaded.append(file_path)
+                print(f"[INFO] Loaded: {file_name}")
+            except Exception as e:
+                print(f"[ERROR] Skipping {file_name}: {e}")
+
+        if not merged:
+            print(f"[WARNING] No valid files for param group {param_key}. Skipping output.")
             continue
-        
+
+        # Format output filename
+        temp, top_p, top_k, rep_pen = param_key
+        output_file = os.path.join(
+            output_dir,
+            f"test_responses_T{temp}_P{top_p}_K{top_k}_R{rep_pen}.json"
+        )
+
         try:
-            with open(input_path, 'r') as file:
-                data = json.load(file)
-            completion_dict[agent_name] = data
-            print(f"[INFO] Successfully loaded data for agent '{agent_name}'")
-        except json.JSONDecodeError as e:
-            print(f"[ERROR] JSON decode error in file {input_path}: {e}. Skipping.")
+            with open(output_file, 'w') as f:
+                json.dump(merged, f, indent=2)
+            print(f"[SUCCESS] Wrote merged file: {output_file}")
         except Exception as e:
-            print(f"[ERROR] Unexpected error reading file {input_path}: {e}. Skipping.")
+            print(f"[ERROR] Writing failed for {output_file}: {e}")
+            continue  # Don't delete if write failed
 
-    if not completion_dict:
-        print("[ERROR] No valid agent files found. Exiting without writing output.")
-        return
-
-    try:
-        with open(output_file, 'w') as file:
-            json.dump(completion_dict, file, indent=4)
-        print(f"[INFO] Successfully wrote merged responses to: {output_file}")
-    except Exception as e:
-        print(f"[ERROR] Failed to write output file: {e}")
+        # Optionally delete source files
+        if delete_original:
+            for path in successfully_loaded:
+                try:
+                    os.remove(path)
+                    print(f"[INFO] Deleted source file: {path}")
+                except Exception as e:
+                    print(f"[WARNING] Could not delete {path}: {e}")
 
 if __name__ == "__main__":
-    agents = ["ellenosborne", "grahampaige", "katrinacallsen",
-              "kateacuff", "jonnoalcaro", "judyle"]
-    
-    print(f"[INFO] Agents to merge: {agents}")
-    
-    input_directory = "/playpen-ssd/smerrill/llm_decisions/results"
-    output_filepath = "/playpen-ssd/smerrill/llm_decisions/results/test_responses.json"
-    
-    print(f"[INFO] Starting merge from directory: {input_directory}")
-    merge_agent_responses(agents, input_directory, output_filepath)
+    input_dir = "/playpen-ssd/smerrill/llm_decisions/results"
+    output_dir = input_dir  # Save merged files in same directory
+
+    grouped = defaultdict(list)
+
+    for file_name in os.listdir(input_dir):
+        if file_name.endswith("_responses.json"):
+            params = parse_params_from_filename(file_name)
+            if params:
+                grouped[params].append(file_name)
+
+    print(f"[INFO] Found {len(grouped)} parameter groups to merge.")
+    merge_grouped_files(grouped, input_dir, output_dir, delete_original=True)

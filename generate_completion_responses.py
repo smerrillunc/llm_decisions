@@ -26,7 +26,7 @@ def load_model_and_tokenizer(model_path: str):
 
 
 def ask_model(input_text: str, model, tokenizer, speaker='kateacuff', max_new_tokens=150,
-              temperature=1.0, top_p=0.95, seed=None) -> str:
+              temperature=1.0, top_p=0.95, top_k=50, repetition_penalty=1.0, seed=None) -> str:
     if seed is not None:
         torch.manual_seed(seed)
 
@@ -38,7 +38,9 @@ def ask_model(input_text: str, model, tokenizer, speaker='kateacuff', max_new_to
         pad_token_id=tokenizer.eos_token_id,
         do_sample=True,
         temperature=temperature,
-        top_p=top_p
+        top_p=top_p,
+        top_k=top_k,
+        repetition_penalty=repetition_penalty
     )
     decoded = tokenizer.decode(outputs[0], skip_special_tokens=True)
 
@@ -66,14 +68,22 @@ if __name__ == "__main__":
     parser.add_argument('--speaker', '-s', required=True, help='Speaker.')
     parser.add_argument('--output_file', '-o', default='test_responses.json', help='File to save generated responses.')
     parser.add_argument('--max_prompts', '-n', type=int, default=None, help='Maximum number of prompts to process.')
+    parser.add_argument('--num_completions', '-nc', type=int, default=5, help='Number of completions per prompt.')
+
+    # 🔧 Added generation parameters
+    parser.add_argument('--temperature', type=float, default=1.0, help='Sampling temperature (creativity).')
+    parser.add_argument('--top_p', type=float, default=0.95, help='Top-p nucleus sampling.')
+    parser.add_argument('--top_k', type=int, default=50, help='Top-k sampling.')
+    parser.add_argument('--repetition_penalty', type=float, default=1.0, help='Repetition penalty.')
+
     args = parser.parse_args()
 
     from utils import train_test_split
     results = []
 
     print(f"🔄 Loading data for speaker: {args.speaker}")
-    
     train_data, test_data, train_completion_data = train_test_split(args.speaker, data_path='/playpen-ssd/smerrill/dataset')
+
     model, tokenizer = load_model_and_tokenizer(args.model_path)
 
     num_prompts = args.max_prompts if args.max_prompts is not None else len(test_data)
@@ -82,9 +92,17 @@ if __name__ == "__main__":
         completion = test_data[i]['completion']
 
         responses = []
-        for j in range(3):
-            response = ask_model(prompt, model, tokenizer, speaker=args.speaker,
-                                 max_new_tokens=150, temperature=1.0, top_p=0.95, seed=torch.seed())
+        for j in range(args.num_completions):
+            response = ask_model(
+                prompt, model, tokenizer,
+                speaker=args.speaker,
+                max_new_tokens=150,
+                temperature=args.temperature,
+                top_p=args.top_p,
+                top_k=args.top_k,
+                repetition_penalty=args.repetition_penalty,
+                seed=torch.seed()
+            )
             responses.append(response)
 
         print("Prompt:", prompt)
@@ -101,4 +119,4 @@ if __name__ == "__main__":
     with open(args.output_file, 'w', encoding='utf-8') as f:
         json.dump(results, f, indent=2, ensure_ascii=False)
 
-    print(f"✅ Saved {len(results)} items with 3 responses each to {args.output_file}")
+    print(f"✅ Saved {len(results)} items with {args.num_completions} responses each to {args.output_file}")
