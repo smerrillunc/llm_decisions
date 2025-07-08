@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>LLM Generation Tester</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 700px; margin: auto; padding: 20px; }
+        textarea { width: 100%; height: 100px; font-size: 16px; }
+        button { font-size: 16px; padding: 8px 16px; margin-top: 10px; }
+        .output { margin-top: 20px; background: #f4f4f4; padding: 15px; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <h1>LLM Generation Tester</h1>
+    <form action="/generate" method="post">
+        <textarea name="prompt" placeholder="Enter prompt here...">{{ prompt or '' }}</textarea><br>
+        <button type="submit">Generate</button>
+    </form>
+
+    {% if generated_text %}
+    <div class="output">
+        <strong>Output:</strong><br>
+        {{ generated_text }}
+    </div>
+    {% endif %}
+</body>
+</html>
