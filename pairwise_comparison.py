@@ -34,11 +34,13 @@ def safe_truncate(prompt, tokenizer, max_input_tokens):
     return tokenizer.decode(tokens["input_ids"][0], skip_special_tokens=True)
 
 def build_selection_prompt(cands, prompt, max_words=100):
-    if not cands: return None
+    if not cands:
+        return None
     words = prompt.split()
     ctx = " ".join(words[-max_words:])
-    if len(words)>max_words: ctx = "... "+ctx
-    choices = "\n".join(f"{i}: {c}" for i,c in enumerate(cands))
+    if len(words) > max_words:
+        ctx = "... " + ctx
+    choices = "\n".join(f"{i}: {c}" for i, c in enumerate(cands))
     return f"""
 Context (last {max_words} words):
 {ctx}
@@ -46,12 +48,25 @@ Context (last {max_words} words):
 Candidate Responses:
 {choices}
 
-You are an impartial evaluator. Pick the best-fitting response.
+You are an impartial evaluator. Pick the response that **most plausibly and naturally completes the context** — as a **single speaker’s continuation**, not as a summary or meeting transcript.
 
-IMPORTANT: Respond ONLY with a JSON object exactly:
+AUTOMATICALLY REJECT any response that:
+- Includes multiple speakers or simulates back-and-forth dialogue.
+- Summarizes or narrates events instead of completing the speaker's thought.
+- Skips ahead to later agenda items or sections of the meeting.
+- Contains phrases like “now moving on,” “next item,” or stage directions like [pause], [unanimous assent], etc.
+
+PREFER responses that:
+- Continue in the same speaker’s voice.
+- Match tone, pacing, and structure.
+- Are concise and plausible next lines—not full meeting minutes.
+
+IMPORTANT: If a response violates any disqualifier above, **you must not select it**.
+
+Respond ONLY with a JSON object:
 {{
   "best_index": <integer or null>,
-  "reasoning": "1–2 sentences"
+  "reasoning": "1–2 sentences clearly justifying your choice, consistent with the criteria above."
 }}
 
 No extra text. Output the JSON below:
@@ -178,7 +193,7 @@ def evaluate(data, judge_pipe, gen_pipe, personas, tokenizer, max_input, sample_
         for entry in tqdm(entries[:sample_limit], desc=agent):
             prompt, gt = entry.get("prompt",""), entry.get("true_completion","")
             raw_cands = entry.get("model_responses",[])
-            cands = [c.strip() for c in raw_cands if c.strip()][:2]
+            cands = [c.strip() for c in raw_cands if c.strip()]#[:2]
 
             # selection
             if overwrite or "best_selection" not in entry:
