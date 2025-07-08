@@ -2,228 +2,256 @@ import json
 import os
 import argparse
 import torch
-import re
+import traceback
 from tqdm import tqdm
 from transformers import pipeline, AutoTokenizer, AutoModelForCausalLM
 
+MODEL_CONTEXT_LIMITS = {
+    "meta-llama/Meta-Llama-3-70B-Instruct": 8192,
+    "gpt2": 1024,
+    # Add others as needed
+}
+
 def load_data(path):
     print(f"[INFO] Loading data from: {path}")
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+    return json.load(open(path, "r", encoding="utf-8"))
 
 def save_data(data, path):
     print(f"[INFO] Saving evaluated data to: {path}")
-    def make_serializable(obj):
+    def serialize(obj):
         if isinstance(obj, dict):
-            return {k: make_serializable(v) for k, v in obj.items()}
+            return {k: serialize(v) for k, v in obj.items()}
         if isinstance(obj, list):
-            return [make_serializable(v) for v in obj]
+            return [serialize(v) for v in obj]
         if isinstance(obj, (str, int, float, bool)) or obj is None:
             return obj
         return str(obj)
-    cleaned = make_serializable(data)
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(cleaned, f, indent=2, ensure_ascii=False)
+    json.dump(serialize(data), open(path, "w", encoding="utf-8"), indent=2, ensure_ascii=False)
     print("[INFO] Save successful.")
 
-def build_selection_prompt(candidates, prompt, max_prompt_words=100):
-    if not candidates:
-        return None
+def safe_truncate(prompt, tokenizer, max_input_tokens):
+    tokens = tokenizer(prompt, truncation=True, max_length=max_input_tokens, return_tensors="pt")
+    return tokenizer.decode(tokens["input_ids"][0], skip_special_tokens=True)
 
-    # Keep only the most recent words
+def build_selection_prompt(cands, prompt, max_words=100):
+    if not cands: return None
     words = prompt.split()
-    truncated_prompt = " ".join(words[-max_prompt_words:])
-    if len(words) > max_prompt_words:
-        truncated_prompt = "... " + truncated_prompt
-
-    choices = "\n".join(f"{i}: {c}" for i, c in enumerate(candidates))
-
+    ctx = " ".join(words[-max_words:])
+    if len(words)>max_words: ctx = "... "+ctx
+    choices = "\n".join(f"{i}: {c}" for i,c in enumerate(cands))
     return f"""
-You are an impartial evaluator. Your task is to review the context prompt and a list of candidate responses. Select the candidate that best fits the context in a logical and coherent way.
-
-Context Prompt (last {max_prompt_words} words shown):
-{truncated_prompt}
+Context (last {max_words} words):
+{ctx}
 
 Candidate Responses:
 {choices}
 
-Please respond with a JSON object in the following format:
+You are an impartial evaluator. Pick the best-fitting response.
+
+IMPORTANT: Respond ONLY with a JSON object exactly:
 {{
-  "best_index": <integer index of the best candidate, or null if none are suitable>,
-  "reasoning": "A short explanation (1–2 sentences) justifying your choice."
+  "best_index": <integer or null>,
+  "reasoning": "1–2 sentences"
 }}
 
-Output your JSON object below:
-""".strip()
-
+No extra text. Output the JSON below:
+""".strip() + "\n"
 
 def build_generation_prompt(context, persona_key, personas):
-    persona_info = personas.get(persona_key, "")
-    return f'''You are a helpful assistant. Using the persona description below, craft a response that reflects their tone, style, values, and leadership approach.
+    info = personas.get(persona_key,"")
+    return f"You are a helpful assistant. Persona:\n{info}\n\nContext:\n\"{context}\"\n\nRespond:\n"
 
-Persona Description:
-{persona_info}
 
-Dialogue Context:
-"{context}"
+def build_comparison_prompt(reference, response_a, response_b):
+    return f"""
+You are an impartial evaluator comparing two responses (A and B) to a REFERENCE.
 
-Please respond thoughtfully, clearly, and consistently with the persona's communication style and core values.
-'''
+Your ONLY goal is to determine which response most closely matches the **content and tone** of the REFERENCE — NOT the context or background information.
 
-def build_comparison_prompt(ground_truth, model_resp, gpt_resp):
-    return f'''You are an impartial evaluator. Compare two responses against the human reference and decide which is better overall.
+HARD DISQUALIFIERS (automatic loss):
+- Response copies full sentences or paragraphs from any source outside the REFERENCE.
+- Response contains multiple speakers or simulates dialogue.
+- Response is more polished or formal than the REFERENCE if the REFERENCE is hesitant, vague, or informal.
+
+DO reward:
+- Similarity in tone, vagueness, informality, or stream-of-consciousness phrasing — **only if these are present in the REFERENCE.**
+- Alignment with the key points and main ideas expressed in the REFERENCE.
+
+STEP-BY-STEP:
+1. Check Response A for any disqualifying rules.
+2. Check Response B for any disqualifying rules.
+3. If one response violates a rule, it automatically loses.
+4. If both violate, result is a Tie.
+5. If neither violates, compare responses for closest match in content and tone to the REFERENCE.
+6. Confirm your justification is consistent and clearly supports your winner choice.
+7. If contradictions appear in your justification, revise it or reconsider your winner choice.
+
+Return ONLY a JSON object in this format:
+{{
+  "winner": "A" or "B" or "Tie",
+  "justification": "1–2 sentences clearly explaining your choice, consistent with the winner."
+}}
 
 Reference:
-"{ground_truth}"
+\"\"\"{reference.strip()}\"\"\"
 
-Response A (Fine-Tuned model):
-"{model_resp}"
+Response A:
+\"\"\"{response_a.strip()}\"\"\"
 
-Response B (GPT-generated):
-"{gpt_resp}"
+Response B:
+\"\"\"{response_b.strip()}\"\"\"
 
-Return ONLY a JSON object:
-{{
-  "winner": "A" or "B",
-  "justification": "..."
-}}
-Output your JSON object now:
-'''
+Output JSON Now:
+
+""".strip()
 
 def parse_json_block(text, key):
-    import json
-    # Clean markdown code blocks
-    text = re.sub(r"^``````$", "", text.strip(), flags=re.IGNORECASE)
-    
-    # Strategy: Find last valid JSON object in response
-    candidates = []
-    stack = []
-    start_idx = None
-    
-    for i, char in enumerate(text):
-        if char == '{':
-            if not stack:  # New top-level object
-                start_idx = i
-            stack.append(char)
-        elif char == '}' and stack:
+    # remove markdown fences and backticks
+    clean = text.replace("```","").replace("`","").strip()
+    # extract all {...} blocks
+    cand, stack, start = [], [], None
+    for i,ch in enumerate(clean):
+        if ch=="{":
+            if not stack: start=i
+            stack.append(ch)
+        elif ch=="}" and stack:
             stack.pop()
-            if not stack and start_idx is not None:  # Complete top-level object
-                candidate = text[start_idx:i+1]
-                candidates.append(candidate)
-                start_idx = None  # Reset for next object
-    
-    # Try candidates from last to first (most recent likely response)
-    for candidate in reversed(candidates):
+            if not stack and start is not None:
+                cand.append(clean[start:i+1])
+                start=None
+    # try longest first
+    for block in sorted(cand, key=len, reverse=True):
         try:
-            return json.loads(candidate)
-        except json.JSONDecodeError:
-            continue
-    
-    # Fallback: Try direct JSON parsing
+            obj = json.loads(block)
+            if key=="selection" and "best_index" in obj: return obj
+            if key=="comparison" and "winner" in obj: return obj
+            if key not in ("selection","comparison"): return obj
+        except: pass
+    # fallback
     try:
-        return json.loads(text)
-    except json.JSONDecodeError:
-        print(f"[WARN] Failed to parse JSON for {key}. Raw output:\n{text[:500]}...\n")
-        return {"best_index": None, "reasoning": f"Could not parse output. Raw: {text[:200]}..."}
+        return json.loads(clean)
+    except:
+        print(f"[WARN] Failed to parse JSON for {key}. Raw:\n{clean[:500]}\n")
+        return None
 
-def evaluate(data, judge_gen, generator, sample_limit=20, overwrite=False, personas=None):
+def attempt_generation(pipe, prompt, parse_key, tokenizer, max_input, sample_kwargs, greedy_kwargs):
+    prompt = safe_truncate(prompt, tokenizer, max_input)
+    # ensure prompt ends with newline
+    if not prompt.endswith("\n"): prompt += "\n"
+    for mode, kwargs in [("sample", sample_kwargs), ("greedy", greedy_kwargs)]:
+        try:
+            out = pipe(prompt, **kwargs)[0]["generated_text"]
+        except Exception as e:
+            print(f"[ERROR] generation error ({mode}): {e}")
+            traceback.print_exc()
+            continue
+        print(f"[DEBUG] Raw output ({mode}):\n{out}\n{'-'*40}")
+        if not out.strip():
+            print(f"[WARN] Empty output on {mode}, retrying...")
+            continue
+        parsed = parse_json_block(out, parse_key)
+        if parsed is not None:
+            return parsed
+    return None
+
+def evaluate(data, judge_pipe, gen_pipe, personas, tokenizer, max_input, sample_limit, overwrite):
+    sample_kwargs = {
+        "max_new_tokens": 128,
+        "do_sample": True,
+        "temperature": 0.9,
+        "top_p": 0.9,
+        "repetition_penalty":1.2,
+        "pad_token_id": tokenizer.eos_token_id,
+        "eos_token_id": tokenizer.eos_token_id,
+        "return_full_text": False
+    }
+    greedy_kwargs = {
+        "max_new_tokens": 128,
+        "do_sample": False,
+        "pad_token_id": tokenizer.eos_token_id,
+        "eos_token_id": tokenizer.eos_token_id,
+        "return_full_text": False
+    }
+
     for agent, entries in data.items():
-        print(f"[INFO] Processing agent: {agent} (up to {sample_limit} samples)")
-        for entry in tqdm(entries[:sample_limit], desc=f"Entries for {agent}"):
-            prompt = entry.get("prompt", "").strip()
-            gt = entry.get("true_completion", "").strip()
-            raw_cands = entry.get("model_responses", [])
-            cands = [c.strip() for c in raw_cands if c.strip()]  # Filter empty/blank
+        print(f"[INFO] Agent: {agent}")
+        for entry in tqdm(entries[:sample_limit], desc=agent):
+            prompt, gt = entry.get("prompt",""), entry.get("true_completion","")
+            raw_cands = entry.get("model_responses",[])
+            cands = [c.strip() for c in raw_cands if c.strip()][:2]
 
+            # selection
             if overwrite or "best_selection" not in entry:
-                sel_prompt = build_selection_prompt(cands, prompt)
-                
-                if sel_prompt:
-                    try:
-                        sel_out = judge_gen(sel_prompt, max_new_tokens=128)[0]["generated_text"]
-                        print("__________________________________")
-                        print(sel_out)
-                        print("__________________________________")
-
-                    except Exception as e:
-                        print(f"[ERROR] judge_gen failed for selection: {e}")
-                        sel_out = ""
-                        continue
-                    sel = parse_json_block(sel_out, "selection")
-                    if sel is None:
-                        continue
-                    
+                sel_p = build_selection_prompt(cands, prompt)
+                if not sel_p: continue
+                sel = attempt_generation(judge_pipe, sel_p, "selection",
+                                         tokenizer, max_input, sample_kwargs, greedy_kwargs)
+                if not sel:
+                    print("[WARN] selection failed, skipping entry")
+                    continue
                 entry["best_selection"] = sel
 
-            sel_obj = entry.get("best_selection") or {}
-            best_idx = sel_obj.get("best_index")
-            best_resp = cands[best_idx] if best_idx is not None and 0 <= best_idx < len(cands) else ""
-            # 2) Generate GPT response
+            idx = entry["best_selection"].get("best_index")
+            best = cands[idx] if idx is not None and 0<=idx<len(cands) else ""
+
+            # gpt response
             if overwrite or "gpt_response" not in entry:
-                gen_prompt = build_generation_prompt(entry.get("prompt", ""), agent, personas)
+                gen_p = build_generation_prompt(prompt, agent, personas)
                 try:
-                    gen_out = generator(gen_prompt, max_new_tokens=128)[0]["generated_text"]
-                    entry["gpt_response"] = gen_out.strip()
+                    out = gen_pipe(
+                        safe_truncate(gen_p, tokenizer, max_input)+"\n",
+                        max_new_tokens=128,
+                        do_sample=True,
+                        temperature=0.9,
+                        top_p=0.9,
+                        repetition_penalty=1.2,
+                        pad_token_id=tokenizer.eos_token_id,
+                        eos_token_id=tokenizer.eos_token_id,
+                        return_full_text=False
+                    )[0]["generated_text"]
+                    entry["gpt_response"] = out.strip()
                 except Exception as e:
                     print(f"[ERROR] generator failed: {e}")
+                    traceback.print_exc()
                     entry["gpt_response"] = ""
-                    continue
 
-            # 3) Compare responses
+            # comparison
             if overwrite or "final_comparison" not in entry:
-                if not best_resp.strip():
-                    print("NO BEST RESP, SKIPPING COMPARISON")
-                else:
-                    cmp_prompt = build_comparison_prompt(gt, best_resp, entry.get("gpt_response", ""))
-                    try:
-                        cmp_out = judge_gen(cmp_prompt, max_new_tokens=128)[0]["generated_text"]
-                        cmp = parse_json_block(cmp_out, "comparison")
-                        if cmp is None:
-                            cmp = {
-                                "winner": "Unknown",
-                                "justification": f"Could not parse comparison output. Raw: {cmp_out[:200]}..."
-                            }
-                        entry["final_comparison"] = cmp
-                        print('----------------------------------')
-                        print(cmp_out)
-                        print('----------------------------------')
-                    except Exception as e:
-                        print(f"[ERROR] judge_gen failed for comparison: {e}")
-                        entry["final_comparison"] = {
-                            "winner": "A",
-                            "justification": f"Exception during comparison: {e}"
-                        }
+                if not best: continue
+                cmp_p = build_comparison_prompt(gt, best, entry["gpt_response"])
+                cmp = attempt_generation(judge_pipe, cmp_p, "comparison",
+                                         tokenizer, max_input, sample_kwargs, greedy_kwargs)
+                entry["final_comparison"] = cmp or {"winner":"Unknown","justification":"parse failure"}
 
-def load_judge_model(model_name):
+def load_model(model_name):
     print(f"[INFO] Loading model: {model_name}")
-    tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=True)
-    model = AutoModelForCausalLM.from_pretrained(
+    tok = AutoTokenizer.from_pretrained(model_name, use_fast=True)
+    mdl = AutoModelForCausalLM.from_pretrained(
         model_name,
         torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
         device_map="auto"
     )
-    return pipeline("text-generation", model=model, return_full_text=False, tokenizer=tokenizer)
+    pipe = pipeline("text-generation", model=mdl, tokenizer=tok, return_full_text=False)
+    return pipe, tok
 
 def main():
-    #  CUDA_VISIBLE_DEVICES=0,7,2,3,4,5,6 accelerate launch --num_processes 1 --main_process_port 0 pairwise_comparison.py --data_file /playpen-ssd/smerrill/llm_decisions/results/test_responses.json
-    parser = argparse.ArgumentParser(description="Evaluate limited samples per agent.")
-    parser.add_argument("--data_file", type=str, required=True)
-    parser.add_argument("--judge_model", type=str, default="meta-llama/Meta-Llama-3-70B-Instruct")
-    parser.add_argument("--gen_model", type=str, default=None)
-    parser.add_argument("--max_responses", type=int, default=1000)
-    parser.add_argument("--overwrite", action="store_true")
-    args = parser.parse_args()
+    p = argparse.ArgumentParser()
+    p.add_argument("--data_file", required=True)
+    p.add_argument("--judge_model", default="meta-llama/Meta-Llama-3-70B-Instruct")
+    p.add_argument("--gen_model", default=None)
+    p.add_argument("--max_responses", type=int, default=20)
+    p.add_argument("--overwrite", action="store_true")
+    args = p.parse_args()
 
     data = load_data(args.data_file)
-    judge_gen = load_judge_model(args.judge_model)
-    generator = load_judge_model(args.gen_model) if args.gen_model else judge_gen
+    judge_pipe, tokenizer = load_model(args.judge_model)
+    gen_pipe = load_model(args.gen_model)[0] if args.gen_model else judge_pipe
+    max_input = MODEL_CONTEXT_LIMITS.get(args.judge_model, 4096) - 512
+    personas = json.load(open("/playpen-ssd/smerrill/llm_decisions/configs/personas.json","r"))
 
-    
-    with open("/playpen-ssd/smerrill/llm_decisions/configs/personas.json", "r", encoding="utf-8") as f:
-        personas = json.load(f)
-
-    evaluate(data, judge_gen, generator, sample_limit=args.max_responses, overwrite=args.overwrite, personas=personas)
+    evaluate(data, judge_pipe, gen_pipe, personas, tokenizer, max_input,
+             args.max_responses, args.overwrite)
     save_data(data, args.data_file)
 
-if __name__ == "__main__":
+if __name__=="__main__":
     main()
