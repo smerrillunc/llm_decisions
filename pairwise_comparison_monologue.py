@@ -159,7 +159,7 @@ def evaluate(data, judge_pipe, gen_pipe, personas, tokenizer, max_input, sample_
                 try:
                     out = gen_pipe(
                         safe_truncate(gen_p, tokenizer, max_input)+"\n",
-                        max_new_tokens=128,
+                        max_new_tokens=250,
                         do_sample=True,
                         temperature=0.9,
                         top_p=0.9,

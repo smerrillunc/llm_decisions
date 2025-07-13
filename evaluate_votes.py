@@ -13,6 +13,7 @@ from transformers import (
 from accelerate import init_empty_weights
 import warnings
 import re
+from utils import wrap_prompt
 
 def load_question_votes(json_path):
     with open(json_path, "r") as f:
@@ -37,18 +38,6 @@ def load_model_pipeline(model_path):
     )
 
     return pipeline("text-generation", model=model, tokenizer=tokenizer, device_map="auto")
-
-
-def format_prompt(question, agent):
-    # Added explicit instruction for clean vote output
-    return (
-        f"<|begin_of_text|><|start_header_id|>user<|end_header_id|>\n\n"
-        f"Please respond ONLY with one of the following vote options: \"Aye\" or \"Naye\".\n\n"
-        f"{question}\n\n"
-        f"<|eot_id|>\n\n"
-        f"<|start_header_id|>assistant<|end_header_id|>\n\n"
-        f"{agent}:"
-    )
 
 
 def interpret_answer(generated_text):
@@ -130,7 +119,7 @@ def evaluate_models(reviewed_json_path, agent_models, output_path=None):
                 continue
 
             true_vote = agent_votes[agent]
-            prompt = format_prompt(question, agent)
+            prompt = wrap_prompt(question, agent)
 
             try:
                 # Generate with repetition penalty and deterministic output

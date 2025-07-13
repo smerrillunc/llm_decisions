@@ -6,7 +6,7 @@ export CUDA_VISIBLE_DEVICES=0,7,2,3,4,5,6
 # Configuration and paths
 AGENT_MODELS_JSON="/playpen-ssd/smerrill/llm_decisions/configs/models.json"
 SCRIPT="/playpen-ssd/smerrill/llm_decisions/generate_completion_responses.py"
-RESULT_DIR="/playpen-ssd/smerrill/llm_decisions/results"
+RESULT_DIR="/playpen-ssd/smerrill/llm_decisions/completion_results"
 
 # Max responses per prompt (used in generation, judging, comparison)
 MAX_RESPONSES=20
@@ -53,13 +53,13 @@ python /playpen-ssd/smerrill/llm_decisions/tools/merge_agent_responses.py --inpu
 for merged_file in "${RESULT_DIR}"/test_responses_T*.json; do
   # pairwise comparison first, then judging
   echo "Pairwise comparison: $merged_file"
-  accelerate launch --main_process_port 0 --num_processes 1 /playpen-ssd/smerrill/llm_decisions/completion_pairwise_comparison.py \
+  accelerate launch --main_process_port 0 --num_processes 1 /playpen-ssd/smerrill/llm_decisions/pairwise_comparison_completion.py \
     --data_file "$merged_file" \
     --overwrite \
     --max_responses "$MAX_RESPONSES"
 
   echo "Judging: $merged_file"
-  accelerate launch --main_process_port 0 --num_processes 1 /playpen-ssd/smerrill/llm_decisions/judge_completion_response.py \
+  accelerate launch --main_process_port 0 --num_processes 1 /playpen-ssd/smerrill/llm_decisions/judge_completion_responses.py \
     --data_file "$merged_file" \
     --overwrite \
     --max_responses "$MAX_RESPONSES"

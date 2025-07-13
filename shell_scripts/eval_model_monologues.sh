@@ -54,13 +54,13 @@ python /playpen-ssd/smerrill/llm_decisions/tools/merge_agent_responses.py --inpu
 for merged_file in "${RESULT_DIR}"/test_responses_T*.json; do
   # pairwise comparison first, then judging
   echo "Pairwise comparison: $merged_file"
-  accelerate launch --main_process_port 0 --num_processes 1 /playpen-ssd/smerrill/llm_decisions/monologue_pairwise_comparison.py \
+  accelerate launch --main_process_port 0 --num_processes 1 /playpen-ssd/smerrill/llm_decisions/pairwise_comparison_monologue.py \
     --data_file "$merged_file" \
     --overwrite \
     --max_responses "$MAX_RESPONSES"
 
   echo "Judging: $merged_file"
-  accelerate launch --main_process_port 0 --num_processes 1 /playpen-ssd/smerrill/llm_decisions/judge_monologue_response.py \
+  accelerate launch --main_process_port 0 --num_processes 1 /playpen-ssd/smerrill/llm_decisions/judge_monologue_responses.py \
     --data_file "$merged_file" \
     --overwrite \
     --max_responses "$MAX_RESPONSES"
