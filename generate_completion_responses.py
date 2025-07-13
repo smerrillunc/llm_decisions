@@ -6,6 +6,7 @@ from tqdm import tqdm
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from accelerate import init_empty_weights, load_checkpoint_and_dispatch, infer_auto_device_map
+from utils import train_test_split
 
 
 def load_model_and_tokenizer(model_path: str):
@@ -77,8 +78,6 @@ if __name__ == "__main__":
     parser.add_argument('--repetition_penalty', type=float, default=1.0, help='Repetition penalty.')
 
     args = parser.parse_args()
-
-    from utils import train_test_split
     results = []
 
     print(f"🔄 Loading data for speaker: {args.speaker}")
@@ -117,6 +116,11 @@ if __name__ == "__main__":
             "true_completion": completion,
             "model_responses": responses
         })
+
+    # Ensure output directory exists
+    output_dir = os.path.dirname(args.output_file)
+    if output_dir:  # This avoids errors if output_file is just a filename (no dir)
+        os.makedirs(output_dir, exist_ok=True)
 
     with open(args.output_file, 'w', encoding='utf-8') as f:
         json.dump(results, f, indent=2, ensure_ascii=False)

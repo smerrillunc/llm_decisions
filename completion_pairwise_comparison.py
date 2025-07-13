@@ -8,8 +8,6 @@ from transformers import pipeline, AutoTokenizer, AutoModelForCausalLM
 
 MODEL_CONTEXT_LIMITS = {
     "meta-llama/Meta-Llama-3-70B-Instruct": 8192,
-    "gpt2": 1024,
-    # Add others as needed
 }
 
 def load_data(path):
@@ -149,24 +147,33 @@ def parse_json_block(text, key):
         print(f"[WARN] Failed to parse JSON for {key}. Raw:\n{clean[:500]}\n")
         return None
 
-def attempt_generation(pipe, prompt, parse_key, tokenizer, max_input, sample_kwargs, greedy_kwargs):
+def attempt_generation(pipe, prompt, parse_key, tokenizer, max_input, sample_kwargs, greedy_kwargs, max_retries=3):
     prompt = safe_truncate(prompt, tokenizer, max_input)
-    # ensure prompt ends with newline
-    if not prompt.endswith("\n"): prompt += "\n"
+    if not prompt.endswith("\n"):
+        prompt += "\n"
+
     for mode, kwargs in [("sample", sample_kwargs), ("greedy", greedy_kwargs)]:
-        try:
-            out = pipe(prompt, **kwargs)[0]["generated_text"]
-        except Exception as e:
-            print(f"[ERROR] generation error ({mode}): {e}")
-            traceback.print_exc()
-            continue
-        print(f"[DEBUG] Raw output ({mode}):\n{out}\n{'-'*40}")
-        if not out.strip():
-            print(f"[WARN] Empty output on {mode}, retrying...")
-            continue
-        parsed = parse_json_block(out, parse_key)
-        if parsed is not None:
-            return parsed
+        for attempt in range(1, max_retries + 1):
+            print(f"[INFO] Generation attempt {attempt} using mode '{mode}'")
+            try:
+                out = pipe(prompt, **kwargs)[0]["generated_text"]
+            except Exception as e:
+                print(f"[ERROR] Generation error ({mode}): {e}")
+                traceback.print_exc()
+                break  # Don't retry on generation failure, just switch to next mode
+
+            print(f"[DEBUG] Raw output ({mode}, attempt {attempt}):\n{out}\n{'-'*40}")
+            if not out.strip():
+                print(f"[WARN] Empty output on {mode}, retrying...")
+                continue
+
+            parsed = parse_json_block(out, parse_key)
+            if parsed is not None:
+                return parsed
+            else:
+                print(f"[WARN] Failed to parse JSON on attempt {attempt} (mode: {mode})")
+
+    print(f"[ERROR] All attempts failed for both 'sample' and 'greedy' modes.")
     return None
 
 def evaluate(data, judge_pipe, gen_pipe, personas, tokenizer, max_input, sample_limit, overwrite):

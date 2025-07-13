@@ -12,9 +12,9 @@ RESULT_DIR="/playpen-ssd/smerrill/llm_decisions/monologue_results"
 MAX_RESPONSES=20
 
 # Sweep parameters
-temps=(1.0)
-top_ps=(0.9)
-top_ks=(100)
+temps=(0.7 1.0)
+top_ps=(0.8 1)
+top_ks=(50 100)
 reps=(1.2)
 
 # Read agent keys from JSON
@@ -34,8 +34,8 @@ for temp in "${temps[@]}"; do
           accelerate launch --main_process_port 0 --num_processes 1 "$SCRIPT" \
             --model_path "$model_path" \
             --speaker "$agent" \
-            --output_file "$output_file" \
-            --prompts_file "/playpen-ssd/smerrill/llm_decisions/reverse_prompt_results/reverse_prompt_monologues.json" \
+           --output_file "$output_file" \
+            --prompts_file "/playpen-ssd/smerrill/dataset/reverse_prompt_monologues.json" \
             --temperature "$temp" \
             --top_p "$top_p" \
             --top_k "$top_k" \
@@ -48,19 +48,21 @@ for temp in "${temps[@]}"; do
 done
 
 # Merge and clean
-#python /playpen-ssd/smerrill/llm_decisions/tools/merge_agent_responses.py
+python /playpen-ssd/smerrill/llm_decisions/tools/merge_agent_responses.py --input_dir "$RESULT_DIR"
 
 # Judge and compare for each merged file
-#for merged_file in "${RESULT_DIR}"/test_responses_T*.json; do
-#  echo "⚖️  Judging: $merged_file"
-#  accelerate launch --main_process_port 0 --num_processes 1 /playpen-ssd/smerrill/llm_decisions/judge_completion_response.py \
-#    --data_file "$merged_file" \
-#    --overwrite \
-#    --max_responses "$MAX_RESPONSES"
+for merged_file in "${RESULT_DIR}"/test_responses_T*.json; do
+  # pairwise comparison first, then judging
+  echo "Pairwise comparison: $merged_file"
+  accelerate launch --main_process_port 0 --num_processes 1 /playpen-ssd/smerrill/llm_decisions/monologue_pairwise_comparison.py \
+    --data_file "$merged_file" \
+    --overwrite \
+    --max_responses "$MAX_RESPONSES"
 
-#  echo "📊 Pairwise comparison: $merged_file"
-#  accelerate launch --main_process_port 0 --num_processes 1 /playpen-ssd/smerrill/llm_decisions/pairwise_comparison.py \
-#    --data_file "$merged_file" \
-#    --overwrite \
-#    --max_responses "$MAX_RESPONSES"
-#done
+  echo "Judging: $merged_file"
+  accelerate launch --main_process_port 0 --num_processes 1 /playpen-ssd/smerrill/llm_decisions/judge_monologue_response.py \
+    --data_file "$merged_file" \
+    --overwrite \
+    --max_responses "$MAX_RESPONSES"
+
+done

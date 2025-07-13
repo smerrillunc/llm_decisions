@@ -1,6 +1,7 @@
 import os
 import json
 import re
+import argparse
 from collections import defaultdict
 
 def parse_params_from_filename(filename):
@@ -57,8 +58,20 @@ def merge_grouped_files(grouped_files, input_dir, output_dir, delete_original=Fa
                     print(f"[WARNING] Could not delete {path}: {e}")
 
 if __name__ == "__main__":
-    input_dir = "/playpen-ssd/smerrill/llm_decisions/results"
-    output_dir = input_dir  # Save merged files in same directory
+    parser = argparse.ArgumentParser(description="Merge grouped JSON response files.")
+    parser.add_argument("--input_dir", type=str, help="Directory containing response files")
+    parser.add_argument(
+        "--output_dir", type=str, default=None,
+        help="Directory to save merged files (defaults to input_dir)"
+    )
+    parser.add_argument(
+        "--delete_original", action="store_true",
+        help="Delete original files after merging"
+    )
+
+    args = parser.parse_args()
+    input_dir = args.input_dir
+    output_dir = args.output_dir or input_dir
 
     grouped = defaultdict(list)
 
@@ -69,4 +82,4 @@ if __name__ == "__main__":
                 grouped[params].append(file_name)
 
     print(f"[INFO] Found {len(grouped)} parameter groups to merge.")
-    merge_grouped_files(grouped, input_dir, output_dir, delete_original=True)
+    merge_grouped_files(grouped, input_dir, output_dir, delete_original=args.delete_original)

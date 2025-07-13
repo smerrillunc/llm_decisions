@@ -5,6 +5,7 @@ import torch
 from tqdm import tqdm
 from transformers import pipeline, AutoTokenizer, AutoModelForCausalLM
 import re
+import traceback
 
 
 def load_data(path):
@@ -73,56 +74,110 @@ Now output your JSON Object:
     return base_prompt
 
 
-def evaluate_data(data, generator, agent_filter=None, overwrite=False, output_key="gpt_judgment", max_responses=None):
-    print("[INFO] Starting evaluation loop.")
+
+def evaluate_data(
+    data,
+    generator,
+    agent_filter=None,
+    overwrite=False,
+    output_key="gpt_judgment",
+    max_responses=None,
+    max_retries=3,
+    temperature=0.7,
+    top_p=0.9
+):
+    print("[INFO] Beginning evaluation loop.")
     aspects = ["fit", "style"]
 
-    for i, entry in enumerate(tqdm(data, desc="Evaluating entries")):
-        agent = entry.get("agent", None)
+    for agent, examples in data.items():
         if agent_filter and agent != agent_filter:
+            print(f"[INFO] Skipping agent '{agent}' (filtered).")
             continue
 
-        prompt = entry.get("prompt", "")
-        monologue = entry.get("monologue", "")
-        responses = entry.get("model_responses", [])
+        print(f"[INFO] Evaluating agent: {agent}")
+        response_count = 0
 
-        if output_key not in entry:
-            entry[output_key] = []
+        for entry_idx, entry in enumerate(tqdm(examples, desc=f"Processing entries for {agent}")):
+            if max_responses is not None and response_count >= max_responses:
+                print(f"[INFO] Reached max_responses ({max_responses}) for agent '{agent}'.")
+                break
 
-        if not overwrite and len(entry[output_key]) >= len(responses) * len(aspects):
-            print(f"[INFO] Skipping entry {i} (already evaluated).")
-            continue
+            prompt = entry.get("prompt", "")
+            ground_truth = entry.get("true_completion", "")
+            responses = entry.get("model_responses", [])
+            gpt_response = entry.get("gpt_response", None)
 
-        for idx, response in enumerate(responses):
-            print(f"\n[INFO] Evaluating Response {idx} for Entry {i}")
-            for aspect in aspects:
-                full_prompt = build_judging_prompt(prompt, monologue, response, aspect)
-                result = generator(full_prompt, max_new_tokens=256, do_sample=False)[0]["generated_text"]
+            if output_key not in entry:
+                entry[output_key] = []
+                existing_evals = set()
+            elif not overwrite:
+                # Set of response indices already evaluated
+                existing_evals = {r["response_idx"] for r in entry[output_key]}
+            else:
+                entry[output_key] = []
+                existing_evals = set()
 
-                score = None
-                explanation = None
-                try:
-                    match = re.findall(r"\{.*?\"score\"\s*:\s*\d+.*?\}", result, re.DOTALL)
-                    if match:
-                        parsed = json.loads(match[-1])
-                        score = parsed.get("score")
-                        explanation = parsed.get("explanation", "").strip()
-                        print(f"[✓] Score {score} | Aspect: {aspect}")
-                    else:
-                        explanation = f"Warning: No valid JSON found in model output:\n{result.strip()[:200]}"
-                        print(explanation)
-                        continue
-                except Exception as e:
-                    explanation = f"Warning: Failed to parse JSON: {e}\nOutput snippet: {result.strip()[:200]}"
-                    print(explanation)
+            # Combine model_responses and gpt_response into a unified evaluation list
+            combined_responses = [(i, r) for i, r in enumerate(responses)]
+
+            if gpt_response and (overwrite or "gpt" not in existing_evals):
+                combined_responses.append(("gpt", gpt_response))
+
+            for i, response in combined_responses:
+                label = f"GPT" if i == "gpt" else f"Response {i}"
+                print(f"[DEBUG] Entry {entry_idx}, {label}: {response[:60]}...")
+
+                if not overwrite and i in existing_evals:
+                    print(f"[INFO] Skipping {label} (already evaluated).")
                     continue
 
-                entry[output_key].append({
-                    "response_idx": idx,
-                    "aspect": aspect,
-                    "score": score,
-                    "explanation": explanation
-                })
+                print(f"[INFO] Evaluating {label} for entry {entry_idx}")
+
+                for aspect in aspects:
+                    for attempt in range(max_retries):
+                        print(f"[INFO] Attempt {attempt+1} evaluating aspect '{aspect}'...")
+                        full_prompt = build_judging_prompt(prompt, ground_truth, response, aspect)
+
+                        try:
+                            result = generator(
+                                full_prompt,
+                                max_new_tokens=256,
+                                do_sample=True,
+                                temperature=temperature,
+                                top_p=top_p,
+                            )[0]["generated_text"]
+                        except Exception as e:
+                            print(f"[ERROR] Generation failed: {e}")
+                            traceback.print_exc()
+                            continue
+
+                        try:
+                            match = re.findall(r"\{.*?\"score\"\s*:\s*\d+.*?\}", result, re.DOTALL)
+                            if match:
+                                parsed = json.loads(match[-1])
+                                score = parsed.get("score")
+                                explanation = parsed.get("explanation", "").strip()
+
+                                print(f"[DEBUG] Parsed JSON: score={score}, explanation={explanation[:60]}")
+
+                                result_entry = {
+                                    "response_idx": i,
+                                    "aspect": aspect,
+                                    "score": score,
+                                    "explanation": explanation
+                                }
+                                entry[output_key].append(result_entry)
+                                break  # Exit retry loop on success
+                            else:
+                                print(f"[WARN] No valid JSON found. Output snippet:\n{result[:200]}")
+                        except Exception as e:
+                            print(f"[WARN] Failed to parse JSON: {e}\nOutput:\n{result[:200]}")
+
+                    else:
+                        print(f"[ERROR] Failed to evaluate aspect '{aspect}' for {label} after {max_retries} retries.")
+
+                response_count += 1  # Count all evaluated responses, including gpt_response
+
 
 
 def load_judge_model(model_name):
@@ -161,7 +216,7 @@ def main():
     )
 
     save_data(data, args.data_file)
-    print("[✅] Judging complete.")
+    print("Judging complete.")
 
 
 if __name__ == "__main__":

@@ -47,19 +47,21 @@ for temp in "${temps[@]}"; do
 done
 
 # Merge and clean
-python /playpen-ssd/smerrill/llm_decisions/tools/merge_agent_responses.py
+python /playpen-ssd/smerrill/llm_decisions/tools/merge_agent_responses.py --input_dir "$RESULT_DIR" --delete_original
 
 # Judge and compare for each merged file
 for merged_file in "${RESULT_DIR}"/test_responses_T*.json; do
-  echo "⚖️  Judging: $merged_file"
+  # pairwise comparison first, then judging
+  echo "Pairwise comparison: $merged_file"
+  accelerate launch --main_process_port 0 --num_processes 1 /playpen-ssd/smerrill/llm_decisions/completion_pairwise_comparison.py \
+    --data_file "$merged_file" \
+    --overwrite \
+    --max_responses "$MAX_RESPONSES"
+
+  echo "Judging: $merged_file"
   accelerate launch --main_process_port 0 --num_processes 1 /playpen-ssd/smerrill/llm_decisions/judge_completion_response.py \
     --data_file "$merged_file" \
     --overwrite \
     --max_responses "$MAX_RESPONSES"
 
-  echo "📊 Pairwise comparison: $merged_file"
-  accelerate launch --main_process_port 0 --num_processes 1 /playpen-ssd/smerrill/llm_decisions/pairwise_comparison.py \
-    --data_file "$merged_file" \
-    --overwrite \
-    --max_responses "$MAX_RESPONSES"
 done

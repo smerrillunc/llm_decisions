@@ -120,6 +120,11 @@ if __name__ == "__main__":
             "model_responses": responses
         })
 
+    # Ensure output directory exists
+    output_dir = os.path.dirname(args.output_file)
+    if output_dir:  # This avoids errors if output_file is just a filename (no dir)
+        os.makedirs(output_dir, exist_ok=True)
+
     with open(args.output_file, 'w', encoding='utf-8') as f:
         json.dump(results, f, indent=2, ensure_ascii=False)
 
