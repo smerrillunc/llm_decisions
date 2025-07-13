@@ -13,7 +13,7 @@ app = FastAPI()
 templates = Jinja2Templates(directory="/playpen-ssd/smerrill/llm_decisions/templates")
 
 model_name = "meta-llama/Meta-Llama-3-70B-Instruct"
-
+model_name = '/playpen-ssd/smerrill/trained_models/meta-llama/Meta-Llama-3-70B-Instruct/jonnoalcaro_12_0.2'
 # Load tokenizer
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 if tokenizer.pad_token is None:
@@ -35,7 +35,7 @@ async def generate(request: Request, prompt: str = Form(...)):
     inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
     outputs = model.generate(
         **inputs,
-        max_new_tokens=100,
+        max_new_tokens=500,
         do_sample=True,
         top_p=0.95,
         temperature=0.8,

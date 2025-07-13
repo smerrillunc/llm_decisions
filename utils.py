@@ -549,3 +549,6 @@ def compute_perplexity_metrics(eval_pred):
     )
     perplexity = math.exp(loss.item())
     return {"perplexity": perplexity}
+
+def wrap_prompt(prompt, agent_name):
+    return f"<|begin_of_text|><|start_header_id|>user<|end_header_id|>\n\nunknownspeaker:{prompt}<|eot_id|>\n\n<|start_header_id|>assistant<|end_header_id|>\n\n{agent_name}:" 
