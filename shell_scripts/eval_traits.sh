@@ -6,10 +6,10 @@ SCRIPT="/playpen-ssd/smerrill/llm_decisions/generate_trait_responses.py"
 JUDGE_SCRIPT="/playpen-ssd/smerrill/llm_decisions/judge_trait_responses.py"
 
 # Parameter grid
-temperatures=(0.7 1.0)
-top_ps=(0.9 1.0)
-top_ks=(40 50)
-repetition_penalties=(1.0 1.2)
+temperatures=(0.7)
+top_ps=(0.8)
+top_ks=(50 100)
+repetition_penalties=(1.2)
 
 traits=(belief memory personality)
 agents=($(jq -r 'keys[]' "$AGENT_MODELS_JSON"))
