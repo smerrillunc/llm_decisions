@@ -122,6 +122,10 @@ def evaluate_entries(data, generator, speaker_filter=None, overwrite=False, outp
             if not overwrite and output_key in entry:
                 continue
 
+            if 'response' not in entry.keys():
+                # In case we only responded to a subset of all questions
+                continue
+            
             prompt = get_prompt(evaluation_type, entry['summary'], entry['question'], entry['response'])
             result = generator(prompt, max_new_tokens=256, do_sample=False)[0]["generated_text"]
 

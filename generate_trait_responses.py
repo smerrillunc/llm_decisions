@@ -7,7 +7,24 @@ from tqdm import tqdm
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 from accelerate import init_empty_weights, load_checkpoint_and_dispatch, infer_auto_device_map
-from utils import wrap_prompt
+
+
+def wrap_prompt(prompt, agent_name):
+    system_message = (
+        "<|begin_of_text|><|system|>\n\n"
+        "You are a school board member and will be asked a question. "
+        "Please think step by step and explain your reasoning in our response.<|eot_id|>\n\n"
+    )
+
+    
+    user_message = (
+        "<|start_header_id|>user<|end_header_id|>\n\n"
+        f"unknownspeaker: {prompt}<|eot_id|>\n\n"
+    )
+
+    assistant_header = f"<|start_header_id|>assistant<|end_header_id|>\n\n{agent_name}:"
+
+    return system_message + user_message + assistant_header
 
 
 def load_model_and_tokenizer(model_path: str):
@@ -32,7 +49,7 @@ def ask_model(
     model,
     tokenizer,
     speaker='ellenosborne',
-    max_new_tokens=250,
+    max_new_tokens=500,
     temperature=1.0,
     top_p=1.0,
     top_k=50,
@@ -103,6 +120,9 @@ def run_inference_on_data(
         entries = []
         print("no entries found for speaker:", speaker)
     print(f"\nProcessing entries for: {speaker}")
+    
+    # Limit to at most 25 questions
+    entries = entries[:25]
 
     for entry in tqdm(entries, desc=f"{speaker}", leave=False):
         question = entry.get("question", "").strip()
@@ -124,7 +144,7 @@ def run_inference_on_data(
         except Exception as e:
             print(f"Error generating response for question: {question[:60]}... — {e}")
             entry["response"] = "ERROR"
-
+        
     output_dir = os.path.dirname(output_file)
     if output_dir:
         os.makedirs(output_dir, exist_ok=True)
@@ -142,9 +162,9 @@ if __name__ == "__main__":
 
     # New generation parameters
     parser.add_argument('--temperature', type=float, default=1.0, help='Sampling temperature (default: 1.0)')
-    parser.add_argument('--top-p', type=float, default=1.0, help='Nucleus sampling probability (default: 1.0)')
-    parser.add_argument('--top-k', type=int, default=50, help='Top-k sampling cutoff (default: 50)')
-    parser.add_argument('--repetition-penalty', type=float, default=1.0, help='Repetition penalty (default: 1.0)')
+    parser.add_argument('--top_p', type=float, default=1.0, help='Nucleus sampling probability (default: 1.0)')
+    parser.add_argument('--top_k', type=int, default=50, help='Top-k sampling cutoff (default: 50)')
+    parser.add_argument('--repetition_penalty', type=float, default=1.0, help='Repetition penalty (default: 1.0)')
 
     args = parser.parse_args()
 
