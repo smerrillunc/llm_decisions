@@ -47,7 +47,14 @@ LLAMA_3_CHAT_TEMPLATE = (
 
 @dataclass
 class ScriptArguments:
-   
+    epochs: int = field(
+        default=2, metadata={"help": "Number of training epochs"}
+    )
+
+    lr: float = field(
+        default=2e-5, metadata={"help": "Learning rate"}
+    )
+
     model_name: str = field(
         default="meta-llama/Meta-Llama-3-70B-Instruct", metadata={"help": "Model Name"}
     )
@@ -83,6 +90,8 @@ def training_function(script_args, training_args, accelerator):
     output_name = f"{script_args.agent_name}_{script_args.factors}_{script_args.dropout}"
     output_dir = os.path.join(script_args.save_dir, script_args.model_name, output_name)
     training_args.output_dir = output_dir
+    training_args.num_train_epochs = script_args.epochs
+    training_args.learning_rate = script_args.lr
 
     ################
     # Dataset

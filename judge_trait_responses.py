@@ -127,7 +127,7 @@ def evaluate_entries(data, generator, speaker_filter=None, overwrite=False, outp
                 continue
             
             prompt = get_prompt(evaluation_type, entry['summary'], entry['question'], entry['response'])
-            result = generator(prompt, max_new_tokens=256, do_sample=False)[0]["generated_text"]
+            result = generator(prompt, max_new_tokens=256, do_sample=True)[0]["generated_text"]
 
             score = None
             explanation = None

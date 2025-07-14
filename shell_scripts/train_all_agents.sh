@@ -1,4 +1,19 @@
 #!/bin/bash
+
+# ================================================
+# Agent-Specific Fine-Tuning Parameters
+# -----------------------------------------------
+# | Agent            | Content Words | LoRA Factors | LoRA Dropout | Learning Rate | Train Epochs |
+# |------------------|---------------|--------------|--------------|----------------|---------------|
+# | ellenosborne     | 5,728         | 4            | 0.175        | 5e-6           | 2             |
+# | judyle           | 17,462        | 12           | 0.125        | 1e-5           | 3             |
+# | davidoberg       | 19,247        | 12           | 0.125        | 1e-5           | 3             |
+# | kateacuff        | 22,398        | 12           | 0.125        | 1e-5           | 3             |
+# | jonnoalcaro      | 31,320        | 16           | 0.125        | 4e-5           | 3             |
+# | katrinacallsen   | 41,910        | 16           | 0.075        | 2e-5           | 4             |
+# | grahampaige      | 45,121        | 16           | 0.075        | 2e-5           | 4             |
+# ================================================
+
 export ACCELERATE_LOG_LEVEL=debug
 export ACCELERATE_USE_FSDP=1
 export FSDP_CPU_RAM_EFFICIENT_LOADING=1
@@ -6,18 +21,20 @@ export CUDA_VISIBLE_DEVICES=0,7,2,3,4,5,6
 
 # Agent list (order matters!)
 AGENTS=(
-  kateacuff      # 43,457 context, 22,398 content: factors=12, dropout=0.2
-  ellenosborne   # 9,135 context, 5,728 content: factors=8,  dropout=0.4
-  grahampaige    # 88,642 context, 45,121 content: factors=16, dropout=0.1
-  katrinacallsen # 57,797 context, 41,910 content: factors=12, dropout=0.2
-  davidoberg     # 307,800 context, 19,247 content: factors=16, dropout=0.1
-  jonnoalcaro    # 49,119 context, 31,320 content: factors=12, dropout=0.2
-  judyle         # 26,806 context, 17,462 content: factors=8,  dropout=0.3
+  kateacuff
+  ellenosborne
+  grahampaige
+  katrinacallsen
+  davidoberg
+  jonnoalcaro
+  judyle
 )
 
 # Per-agent parameters (must match AGENTS order)
-FACTORS=(12 8 16 12 16 12 8)
-DROPOUTS=(0.2 0.4 0.1 0.2 0.1 0.2 0.3)
+FACTORS=(12 4 16 16 12 16 12)
+DROPOUTS=(0.125 0.175 0.075 0.075 0.125 0.125 0.125)
+LRS=(1e-5 5e-6 2e-5 2e-5 1e-5 4e-5 1e-5)
+EPOCHS=(3 2 4 4 3 3 3)
 
 SCRIPT_PATH="/playpen-ssd/smerrill/llm_decisions/train_agent_llm.py"
 MERGE_PATH="/playpen-ssd/smerrill/llm_decisions/tools/merge_lora_adapters.py"
@@ -27,14 +44,17 @@ for IDX in "${!AGENTS[@]}"; do
   AGENT="${AGENTS[$IDX]}"
   FACTOR="${FACTORS[$IDX]}"
   DROPOUT="${DROPOUTS[$IDX]}"
-  OUTPUT_DIR="/playpen-ssd/smerrill/trained_models/meta-llama/Meta-Llama-3-70B-Instruct/${AGENT}_${FACTOR}_${DROPOUT}"
+  LR="${LRS[$IDX]}"
+  EPOCH="${EPOCHS[$IDX]}"
+  OUTPUT_DIR="/playpen-ssd/smerrill/trained_models/meta-llama/Meta-Llama-3-70B-Instruct/${AGENT}_${FACTOR}_${DROPOUT}_${LR}_${EPOCH}"
 
-  # Display the parameters for clarity
   echo "---------------------------------------------"
   echo "Training agent: $AGENT"
   echo "  lora_factors: $FACTOR"
   echo "  lora_dropout: $DROPOUT"
-  echo "  Output dir:   $OUTPUT_DIR"
+  echo "  learning_rate: $LR"
+  echo "  train_epochs:  $EPOCH"
+  echo "  output_dir:    $OUTPUT_DIR"
   echo "---------------------------------------------"
 
   if [ -d "$OUTPUT_DIR" ]; then
@@ -46,13 +66,15 @@ for IDX in "${!AGENTS[@]}"; do
     --config "$CONFIG_PATH" \
     --agent_name "$AGENT" \
     --factors "$FACTOR" \
-    --dropout "$DROPOUT"
+    --dropout "$DROPOUT" \
+    --lr "$LR" \
+    --epochs "$EPOCH"
 
   echo "Attempting to merge directory"
   python "$MERGE_PATH" --output_dir "$OUTPUT_DIR"
 
   if [ $? -ne 0 ]; then
-    echo "Training or merging failed for agent: $AGENT with factor: $FACTOR and dropout: $DROPOUT. Exiting..."
+    echo "Training or merging failed for agent: $AGENT. Exiting..."
     exit 1
   fi
 done
