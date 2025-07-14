@@ -26,7 +26,7 @@ import numpy as np
 import pandas as pd
 
 import wandb
-from utils import train_test_split, compute_metrics, train_on_responses_only
+from utils import train_test_split, compute_metrics, train_on_responses_only, pad_test_data
 import evaluate
 from peft import PeftModel, PeftConfig
 from transformers import AutoModelForCausalLM
@@ -180,7 +180,8 @@ if __name__ == "__main__":
         gc.collect()
         if accelerator.is_main_process:
             print(f'Computing Perplexity for Dataset: {dataset}')
-        _, test_data, _ = train_test_split(dataset)
+        _, test_data, train_completion = train_test_split(dataset)
+        test_data = pad_test_data(test_data, train_completion, target_size=25)
         
         ppl = compute_perplexity_on_dataset_accelerate(
             model, tokenizer, test_data, accelerator, max_length=1024, batch_size=1)

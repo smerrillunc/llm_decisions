@@ -552,3 +552,14 @@ def compute_perplexity_metrics(eval_pred):
 
 def wrap_prompt(prompt, agent_name):
     return f"<|begin_of_text|><|start_header_id|>user<|end_header_id|>\n\nunknownspeaker:{prompt}<|eot_id|>\n\n<|start_header_id|>assistant<|end_header_id|>\n\n{agent_name}:" 
+
+def pad_test_data(test_data, train_completion_data, target_size=25):
+    test_data = list(test_data)
+    train_completion_data = list(train_completion_data)
+
+    if len(test_data) < target_size:
+        needed = target_size - len(test_data)
+        extra_data = train_completion_data[:needed]
+        test_data.extend(extra_data)
+
+    return np.array(test_data)
