@@ -11,7 +11,7 @@ DATASET_DIR="/playpen-ssd/smerrill/dataset"
 # Parameter grid
 temperatures=(0.7)
 top_ps=(0.8)
-top_ks=(50 100)
+top_ks=(100)
 repetition_penalties=(1.2)
 
 traits=(belief memory personality)

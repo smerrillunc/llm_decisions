@@ -12,9 +12,9 @@ RESULT_DIR="/playpen-ssd/smerrill/llm_decisions/completion_results"
 MAX_RESPONSES=20
 
 # Sweep parameters
-temps=(0.7 1.0)
-top_ps=(0.8 1)
-top_ks=(50 100)
+temps=(0.7)
+top_ps=(0.8)
+top_ks=(100)
 reps=(1.2)
 
 # Read agent keys from JSON

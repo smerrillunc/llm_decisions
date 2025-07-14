@@ -87,7 +87,7 @@ class ScriptArguments:
     )
 
 def training_function(script_args, training_args, accelerator):
-    output_name = f"{script_args.agent_name}_{script_args.factors}_{script_args.dropout}"
+    output_name = f"{script_args.agent_name}_{script_args.factors}_{script_args.dropout}_{script_args.lr}_{script_args.epochs}"
     output_dir = os.path.join(script_args.save_dir, script_args.model_name, output_name)
     training_args.output_dir = output_dir
     training_args.num_train_epochs = script_args.epochs
