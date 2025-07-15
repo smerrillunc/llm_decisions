@@ -39,7 +39,8 @@ for temp in "${temps[@]}"; do
             --top_p "$top_p" \
             --top_k "$top_k" \
             --repetition_penalty "$rep" \
-            --max_prompts "$MAX_RESPONSES"
+            --max_prompts "$MAX_RESPONSES" \
+            --cot
         done
       done
     done
