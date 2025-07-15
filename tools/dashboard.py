@@ -760,7 +760,90 @@ with tabs[4]:
 # --- Tab 6: Config ---
 with tabs[5]:
     st.header("Dashboard Configuration")
-    st.markdown("Specify the paths for your data sources. These will be used in all tabs.")
+    st.markdown("Select a results date to automatically configure all data source paths, or manually override below.")
+    results_root = '/playpen-ssd/smerrill/llm_decisions/results'
+    try:
+        date_folders = [d for d in os.listdir(results_root) if os.path.isdir(os.path.join(results_root, d))]
+        date_folders = sorted(date_folders, reverse=True)
+    except (FileNotFoundError, OSError):
+        date_folders = []
+    # Set default config_paths to first available date if not already set to a results date
+    if date_folders:
+        first_date = date_folders[0]
+        auto_alignment_results = os.path.join(results_root, first_date, 'alignment_results')
+        auto_completion_results = os.path.join(results_root, first_date, 'completion_results')
+        auto_monologue_results = os.path.join(results_root, first_date, 'monologue_results')
+        auto_models_json = os.path.join(results_root, first_date, 'models.json')
+        # Only update if config_paths is still at the hardcoded default
+        default_paths = {
+            'alignment_results': '/playpen-ssd/smerrill/llm_decisions/alignment_results',
+            'completion_results': '/playpen-ssd/smerrill/llm_decisions/completion_results',
+            'monologue_results': '/playpen-ssd/smerrill/llm_decisions/monologue_results',
+            'models_json': '/playpen-ssd/smerrill/llm_decisions/configs/models.json'
+        }
+        if st.session_state['config_paths'] == default_paths:
+            st.session_state['config_paths'] = {
+                'alignment_results': auto_alignment_results,
+                'completion_results': auto_completion_results,
+                'monologue_results': auto_monologue_results,
+                'models_json': auto_models_json
+            }
+        selected_date = st.selectbox("Select Results Date", date_folders, index=0)
+        auto_alignment_results = os.path.join(results_root, selected_date, 'alignment_results')
+        auto_completion_results = os.path.join(results_root, selected_date, 'completion_results')
+        auto_monologue_results = os.path.join(results_root, selected_date, 'monologue_results')
+        auto_models_json = os.path.join(results_root, selected_date, 'models.json')
+        st.markdown(f"**Auto-configured paths for {selected_date}:**")
+        st.text(f"Alignment Results: {auto_alignment_results}")
+        st.text(f"Completion Results: {auto_completion_results}")
+        st.text(f"Monologue Results: {auto_monologue_results}")
+        st.text(f"Models JSON: {auto_models_json}")
+        if st.button("Use Selected Date Paths", key="use_date_paths"):
+            st.session_state['config_paths'] = {
+                'alignment_results': auto_alignment_results,
+                'completion_results': auto_completion_results,
+                'monologue_results': auto_monologue_results,
+                'models_json': auto_models_json
+            }
+            st.success(f"Paths updated to {selected_date}! Switch tabs to reload data.")
+    else:
+        st.warning(f"No results folders found in {results_root}")
+    st.markdown("---")
+    st.markdown("**Models in Current Config:**")
+    models_json_path = st.session_state['config_paths']['models_json']
+    import pandas as pd
+    import re
+    try:
+        with open(models_json_path, 'r') as f:
+            models_config = json.load(f)
+        rows = []
+        for agent, path in models_config.items():
+            # Extract the config string from the path
+            match = re.search(r'/([^/]+?)(_\d+_\d*\.?\d*_\d*e-\d+_\d+)?/merged$', path)
+            if match:
+                config_str = match.group(1) + (match.group(2) if match.group(2) else '')
+            else:
+                config_str = agent
+            parts = config_str.split('_')
+            # Defaults
+            lora_factors = parts[1] if len(parts) > 1 else ''
+            lora_dropout = parts[2] if len(parts) > 2 else ''
+            learning_rate = parts[3] if len(parts) > 3 else '1e-5'
+            train_epochs = parts[4] if len(parts) > 4 else '2'
+            rows.append({
+                'Agent': agent,
+                'LORA_FACTORS': lora_factors,
+                'LORA_DROPOUT': lora_dropout,
+                'LEARNING_RATE': learning_rate,
+                'TRAIN_EPOCHS': train_epochs,
+                'Model Path': path
+            })
+        df_models = pd.DataFrame(rows)
+        st.dataframe(df_models, use_container_width=True)
+    except Exception as e:
+        st.warning(f"Could not load models config from {models_json_path}: {e}")
+    st.markdown("---")
+    st.markdown("**Manual override:**")
     alignment_results = st.text_input("Alignment Results Directory", value=config_paths['alignment_results'])
     completion_results = st.text_input("Completion Results Directory", value=config_paths['completion_results'])
     monologue_results = st.text_input("Monologue Results Directory", value=config_paths['monologue_results'])
