@@ -5,7 +5,7 @@ from typing import Dict, List
 from tqdm import tqdm
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
-from utils import wrap_prompt
+from utils import wrap_prompt, add_system_message
 
 def load_model_and_tokenizer(model_path: str):
     tokenizer_path = model_path.replace('/merged', '')
@@ -74,6 +74,8 @@ if __name__ == "__main__":
     parser.add_argument('--top_k', type=int, default=50)
     parser.add_argument('--repetition_penalty', type=float, default=1.0)
 
+    parser.add_argument("--cot", action="store_true", help="Use CoT Reasoning.")
+
     args = parser.parse_args()
 
     print(f"🔄 Loading reverse prompts from {args.prompts_file}")
@@ -88,11 +90,15 @@ if __name__ == "__main__":
     print(f"Loaded {len(prompts)} prompts for speaker {args.speaker}")
 
     model, tokenizer = load_model_and_tokenizer(args.model_path)
+    system_message =  f"You are a school board member named '{args.speaker}' and will be asked a question. Please think step by step and explain your reasoning in our response."
 
     results = []
     for i, item in enumerate(tqdm(prompts)):
         prompt = wrap_prompt(item['prompt'], agent_name=args.speaker)
         monologue = item['completion']
+
+        if args.cot:
+            prompt = add_system_message(prompt, system_message)
 
         print(f"\n--- [{i + 1}/{len(prompts)}] ---")
         print("Prompt:", prompt)

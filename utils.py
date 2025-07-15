@@ -563,3 +563,7 @@ def pad_test_data(test_data, train_completion_data, target_size=25):
         test_data.extend(extra_data)
 
     return np.array(test_data)
+
+def add_system_message(prompt, system_message):
+    system_message = f"<|begin_of_text|><|system|>\n\n{system_message}<|eot_id|>\n\n"
+    return system_message + prompt

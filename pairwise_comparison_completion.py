@@ -72,7 +72,7 @@ No extra text. Output the JSON below:
 
 def build_generation_prompt(context, persona_key, personas):
     info = personas.get(persona_key,"")
-    return f"You are a helpful assistant. Persona:\n{info}\n\nContext:\n\"{context}\"\n\nRespond:\n"
+    return f"You are a school board member.  You will be provided a persona and tasked with responding to the context with according to this persona . Persona:\n{info}\n\nContext:\n\"{context}\"\n\nRespond:\n"
 
 
 def build_comparison_prompt(reference, response_a, response_b):

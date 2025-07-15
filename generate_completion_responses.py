@@ -6,8 +6,7 @@ from tqdm import tqdm
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from accelerate import init_empty_weights, load_checkpoint_and_dispatch, infer_auto_device_map
-from utils import train_test_split
-
+from utils import train_test_split, add_system_message
 
 def load_model_and_tokenizer(model_path: str):
     tokenizer_path = model_path.replace('/merged', '')
@@ -69,19 +68,21 @@ if __name__ == "__main__":
     parser.add_argument('--speaker', '-s', required=True, help='Speaker.')
     parser.add_argument('--output_file', '-o', default='test_responses.json', help='File to save generated responses.')
     parser.add_argument('--max_prompts', '-n', type=int, default=None, help='Maximum number of prompts to process.')
-    parser.add_argument('--num_completions', '-nc', type=int, default=5, help='Number of completions per prompt.')
+    parser.add_argument('--num_completions', '-nc', type=int, default=3, help='Number of completions per prompt.')
 
     # 🔧 Added generation parameters
     parser.add_argument('--temperature', type=float, default=1.0, help='Sampling temperature (creativity).')
     parser.add_argument('--top_p', type=float, default=0.95, help='Top-p nucleus sampling.')
     parser.add_argument('--top_k', type=int, default=50, help='Top-k sampling.')
     parser.add_argument('--repetition_penalty', type=float, default=1.0, help='Repetition penalty.')
+    parser.add_argument("--cot", action="store_true", help="Use CoT Reasoning.")
 
     args = parser.parse_args()
     results = []
 
     print(f"🔄 Loading data for speaker: {args.speaker}")
     train_data, test_data, train_completion_data = train_test_split(args.speaker, data_path='/playpen-ssd/smerrill/dataset')
+    system_message = f"You are a school board member named '{args.speaker}' participating in a collaborative board discussion. Please read through the conversation and think step by step about about how '{args.speaker}' would think. Then, write what '{args.speaker}' would say next in the conversation."
 
     model, tokenizer = load_model_and_tokenizer(args.model_path)
 
@@ -92,10 +93,14 @@ if __name__ == "__main__":
         prompt = test_data[i]['prompt']
         completion = test_data[i]['completion']
 
+        if args.cot:
+            prompt = add_system_message(prompt, system_message)
         responses = []
         for j in range(args.num_completions):
             response = ask_model(
-                prompt, model, tokenizer,
+                prompt,
+                model,
+                tokenizer,
                 speaker=args.speaker,
                 max_new_tokens=150,
                 temperature=args.temperature,
