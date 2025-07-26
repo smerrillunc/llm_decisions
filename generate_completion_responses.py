@@ -6,7 +6,7 @@ from tqdm import tqdm
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from accelerate import init_empty_weights, load_checkpoint_and_dispatch, infer_auto_device_map
-from utils import train_test_split, add_system_message
+from utils import train_test_split, add_system_message, wrap_prompt
 
 def load_model_and_tokenizer(model_path: str):
     tokenizer_path = model_path.replace('/merged', '')
@@ -76,12 +76,29 @@ if __name__ == "__main__":
     parser.add_argument('--top_k', type=int, default=50, help='Top-k sampling.')
     parser.add_argument('--repetition_penalty', type=float, default=1.0, help='Repetition penalty.')
     parser.add_argument("--cot", action="store_true", help="Use CoT Reasoning.")
+    parser.add_argument("--reverse_file", action="store_true", help="Use reverse_monologues files as completion dataset.")
+    parser.add_argument("--reverse_file_path", type=str, default='/playpen-ssd/smerrill/dataset/reverse_prompt_monologues.json', help="Use reverse_monologues files as completion dataset.")
 
     args = parser.parse_args()
     results = []
 
     print(f"🔄 Loading data for speaker: {args.speaker}")
-    train_data, test_data, train_completion_data = train_test_split(args.speaker, data_path='/playpen-ssd/smerrill/dataset')
+    
+    if args.reverse_file:
+
+        with open(args.reverse_file_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+
+
+        test_data = [{'prompt': wrap_prompt(entry['prompt'], args.speaker),
+                      'completion': entry['completion']  }
+                        for entry in data[args.speaker]
+                    ]
+
+    else:
+        train_data, test_data, train_completion_data = train_test_split(args.speaker, data_path='/playpen-ssd/smerrill/dataset')
+    
+    
     system_message = f"You are a school board member named '{args.speaker}' participating in a collaborative board discussion. Please read through the conversation and think step by step about about how '{args.speaker}' would think. Then, write what '{args.speaker}' would say next in the conversation."
 
     model, tokenizer = load_model_and_tokenizer(args.model_path)
@@ -95,6 +112,7 @@ if __name__ == "__main__":
 
         if args.cot:
             prompt = add_system_message(prompt, system_message)
+            
         responses = []
         for j in range(args.num_completions):
             response = ask_model(
