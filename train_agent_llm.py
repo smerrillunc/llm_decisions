@@ -99,7 +99,7 @@ def training_function(script_args, training_args, accelerator):
     )
     
     train_data = Dataset.from_list([{"text": text} for text in train_data])
-    eval_data = preprocess_test_data(eval_data)
+    #eval_data = preprocess_test_data(eval_data)
     
     ################
     # Model & Tokenizer
@@ -129,15 +129,15 @@ def training_function(script_args, training_args, accelerator):
     #    llm_int8_has_fp16_weight=False,  # Optional, depends on your model and setup
     #)
 
-    max_memory = {i: "35GiB" for i in range(torch.cuda.device_count())}
-    max_memory["cpu"] = "200GiB"
+    #max_memory = {i: "35GiB" for i in range(torch.cuda.device_count())}
+    #max_memory["cpu"] = "200GiB"
 
     model = AutoModelForCausalLM.from_pretrained(
         script_args.model_name,
         #quantization_config=quantization_config,
         attn_implementation="sdpa", # use sdpa, alternatively use "flash_attention_2"
         torch_dtype=torch.bfloat16,  
-        max_memory=max_memory,
+        #max_memory=max_memory,
         device_map=None,  # Automatically set device map for multi-GPU
         use_cache=False if training_args.gradient_checkpointing else True,  # this is needed for gradient checkpointing
     )
@@ -170,7 +170,7 @@ def training_function(script_args, training_args, accelerator):
         model=model,
         args=training_args,
         train_dataset=train_data,
-        eval_dataset=eval_data,
+        #eval_dataset=eval_data,
         dataset_text_field="text",
         peft_config=peft_config,
         max_seq_length=script_args.max_seq_length,
@@ -180,7 +180,7 @@ def training_function(script_args, training_args, accelerator):
             "add_special_tokens": False,
             "append_concat_token": False,
         },
-        compute_metrics=compute_perplexity_metrics
+        #compute_metrics=compute_perplexity_metrics
     )
     
     trainer = train_on_responses_only(
