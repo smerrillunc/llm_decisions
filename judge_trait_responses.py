@@ -114,42 +114,53 @@ def get_prompt(evaluation_type, summary, question, response):
 
 # === Evaluation ===
 
-def evaluate_entries(data, generator, speaker_filter=None, overwrite=False, output_key="evaluation", evaluation_type="belief"):
+def evaluate_entries(
+    data,
+    generator,
+    speaker_filter=None,
+    overwrite=False,
+    output_key="evaluation",
+    evaluation_type="belief",
+    response_keys=("response","gpt_response")  # Tuple of response keys to evaluate
+):
     for speaker, entries in data.items():
         if speaker_filter and speaker != speaker_filter:
             continue
+
         for entry in tqdm(entries, desc=f"Evaluating responses for {speaker}"):
-            if not overwrite and output_key in entry:
-                continue
+            summary = entry.get("summary")
+            question = entry.get("question")
 
-            if 'response' not in entry.keys():
-                # In case we only responded to a subset of all questions
-                continue
-            
-            prompt = get_prompt(evaluation_type, entry['summary'], entry['question'], entry['response'])
-            result = generator(prompt, max_new_tokens=256, do_sample=True)[0]["generated_text"]
+            for response_key in response_keys:
+                output_field = f"{output_key}_{response_key}"
 
-            score = None
-            explanation = None
+                if not overwrite and output_field in entry:
+                    continue
+                if response_key not in entry:
+                    continue
 
-            try:
-                # Find the last { ... } block that looks like JSON
-                json_candidates = re.findall(r"\{.*?\"score\"\s*:\s*\d+.*?\}", result, re.DOTALL)
-                if json_candidates:
-                    parsed = json.loads(json_candidates[-1])
-                    score = int(parsed.get("score", None))
-                    explanation = parsed.get("explanation", "").strip()
-                else:
-                    print(f"[Warning] No JSON object found in output:\n{result}")
-            except Exception as e:
-                print(f"[Warning] Failed to parse JSON: {e}\nOutput:\n{result}")
+                prompt = get_prompt(evaluation_type, summary, question, entry[response_key])
+                result = generator(prompt, max_new_tokens=256, do_sample=True)[0]["generated_text"]
 
+                score = None
+                explanation = None
 
-            entry[output_key] = {
-                "score": score,
-                "explanation": explanation,
-                "raw_output": result.strip()
-            }
+                try:
+                    json_candidates = re.findall(r"\{.*?\"score\"\s*:\s*\d+.*?\}", result, re.DOTALL)
+                    if json_candidates:
+                        parsed = json.loads(json_candidates[-1])
+                        score = int(parsed.get("score", None))
+                        explanation = parsed.get("explanation", "").strip()
+                    else:
+                        print(f"[Warning] No JSON object found in output:\n{result}")
+                except Exception as e:
+                    print(f"[Warning] Failed to parse JSON: {e}\nOutput:\n{result}")
+
+                entry[output_field] = {
+                    "score": score,
+                    "explanation": explanation,
+                    "raw_output": result.strip()
+                }
 
 # === Model Loading ===
 
