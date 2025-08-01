@@ -85,7 +85,7 @@ if __name__ == "__main__":
     print(f"🔄 Loading data for speaker: {args.speaker}")
     
     if args.reverse_file:
-
+        print("USING REVERSE FILE")
         with open(args.reverse_file_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
 

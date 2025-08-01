@@ -250,43 +250,42 @@ def evaluate(data, judge_pipe, gen_pipe, tokenizer, max_input, sample_limit, ove
         "return_full_text": False
     }
 
-    for agent_block in data:
-        for agent, entries in agent_block.items():
-            print(f"[INFO] Agent: {agent}")
-            for entry in tqdm(entries[:sample_limit], desc=agent):
-                summary = entry.get("summary", "")
-                question = entry.get("question", "")
-                existing_response = entry.get("response", "")
+    for agent, entries in data.items():
+        print(f"[INFO] Agent: {agent}")
+        for entry in tqdm(entries[:sample_limit], desc=agent):
+            summary = entry.get("summary", "")
+            question = entry.get("question", "")
+            existing_response = entry.get("response", "")
 
-                # Generate GPT response if missing or overwrite
-                if overwrite or "gpt_response" not in entry:
-                    gen_prompt = build_generation_prompt(question)  # assumes you adapted this to just question
-                    try:
-                        out = gen_pipe(
-                            safe_truncate(gen_prompt, tokenizer, max_input) + "\n",
-                            **sample_kwargs
-                        )[0]["generated_text"]
-                        entry["gpt_response"] = out.strip()
-                    except Exception as e:
-                        print(f"[ERROR] generator failed: {e}")
-                        traceback.print_exc()
-                        entry["gpt_response"] = ""
+            # Generate GPT response if missing or overwrite
+            if overwrite or "gpt_response" not in entry:
+                gen_prompt = build_generation_prompt(question)  # assumes you adapted this to just question
+                try:
+                    out = gen_pipe(
+                        safe_truncate(gen_prompt, tokenizer, max_input) + "\n",
+                        **sample_kwargs
+                    )[0]["generated_text"]
+                    entry["gpt_response"] = out.strip()
+                except Exception as e:
+                    print(f"[ERROR] generator failed: {e}")
+                    traceback.print_exc()
+                    entry["gpt_response"] = ""
 
-                # Run comparison with chosen evaluation type prompt
-                if overwrite or "final_comparison" not in entry:
-                    cmp_prompt = get_prompt(
-                        evaluation_type,
-                        summary,
-                        question,
-                        existing_response,
-                        entry.get("gpt_response", "")
-                    )
-                    cmp = attempt_generation(judge_pipe, cmp_prompt, "comparison",
-                                             tokenizer, max_input, sample_kwargs, greedy_kwargs)
-                    entry["final_comparison"] = cmp or {
-                        "winner": "Unknown",
-                        "justification": "parse failure"
-                    }
+            # Run comparison with chosen evaluation type prompt
+            if overwrite or "final_comparison" not in entry:
+                cmp_prompt = get_prompt(
+                    evaluation_type,
+                    summary,
+                    question,
+                    existing_response,
+                    entry.get("gpt_response", "")
+                )
+                cmp = attempt_generation(judge_pipe, cmp_prompt, "comparison",
+                                            tokenizer, max_input, sample_kwargs, greedy_kwargs)
+                entry["final_comparison"] = cmp or {
+                    "winner": "Unknown",
+                    "justification": "parse failure"
+                }
 def load_model(model_name):
     print(f"[INFO] Loading model: {model_name}")
     tok = AutoTokenizer.from_pretrained(model_name, use_fast=True)
@@ -315,7 +314,7 @@ def main():
     max_input = MODEL_CONTEXT_LIMITS.get(args.judge_model, 4096) - 512
 
     evaluate(data, judge_pipe, gen_pipe, tokenizer, max_input,
-             args.max_responses, args.overwrite)
+             args.max_responses, args.overwrite, args.evaluation_type)
     save_data(data, args.data_file)
 
 if __name__ == "__main__":
