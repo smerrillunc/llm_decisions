@@ -1,6 +1,6 @@
 #!/bin/bash
-export CUDA_VISIBLE_DEVICES=0,7,2,3,4,5,6
-export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+#export CUDA_VISIBLE_DEVICES=0,1,2,5,6,7
+#export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 AGENT_MODELS_JSON="/playpen-ssd/smerrill/llm_decisions/configs/models.json"
 SCRIPT=/playpen-ssd/smerrill/llm_decisions/evaluate_votes.py
 

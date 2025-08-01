@@ -14,10 +14,14 @@
 # | grahampaige      | 45,121        | 16           | 0.075        | 2e-5           | 4             |
 # ================================================
 
-export ACCELERATE_LOG_LEVEL=debug
-export ACCELERATE_USE_FSDP=1
-export FSDP_CPU_RAM_EFFICIENT_LOADING=1
-export CUDA_VISIBLE_DEVICES=0,7,2,3,4,5,6
+#export ACCELERATE_LOG_LEVEL=debug
+#export ACCELERATE_USE_FSDP=1
+#export FSDP_CPU_RAM_EFFICIENT_LOADING=1
+#export CUDA_VISIBLE_DEVICES=0,1,2,5,6,7
+#export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+
+NUM_GPUS=$(echo "$CUDA_VISIBLE_DEVICES" | awk -F',' '{print NF}')
+echo "Detected $NUM_GPUS visible GPUs: $CUDA_VISIBLE_DEVICES"
 
 AGENTS=(
   kateacuff
@@ -31,8 +35,8 @@ AGENTS=(
 
 FACTORS=(12 4 16 16 12 16 12)
 DROPOUTS=(0.125 0.175 0.075 0.075 0.125 0.125 0.125)
-LRS=(1e-5 5e-6 2e-5 2e-5 1e-5 4e-5 1e-5)
-EPOCHS=(3 2 4 4 3 3 3)
+LRS=(2e-5 2e-5 2e-5 2e-5 2e-5 2e-5 1e-5)
+EPOCHS=(3 3 3 3 3 3 3)
 
 SCRIPT_PATH="/playpen-ssd/smerrill/llm_decisions/train_agent_llm.py"
 MERGE_PATH="/playpen-ssd/smerrill/llm_decisions/tools/merge_lora_adapters.py"
@@ -61,23 +65,23 @@ for IDX in "${!AGENTS[@]}"; do
   echo "  output_dir:    $OUTPUT_DIR"
   echo "---------------------------------------------"
 
-  if [ -d "$OUTPUT_DIR" ]; then
-    echo "Skipping: $OUTPUT_DIR already exists."
-  else
-    accelerate launch --num_processes 7 "$SCRIPT_PATH" \
-      --config "$CONFIG_PATH" \
-      --agent_name "$AGENT" \
-      --factors "$FACTOR" \
-      --dropout "$DROPOUT" \
-      --lr "$LR" \
-      --epochs "$EPOCH" \
-      --save_dir "$OUTPUT_DIR"
+  #if [ -d "$OUTPUT_DIR" ]; then
+  #  echo "Skipping: $OUTPUT_DIR already exists."
+  #else
+  accelerate launch --num_processes "$NUM_GPUS" "$SCRIPT_PATH" \
+    --config "$CONFIG_PATH" \
+    --agent_name "$AGENT" \
+    --factors "$FACTOR" \
+    --dropout "$DROPOUT" \
+    --lr "$LR" \
+    --epochs "$EPOCH" \
+    --save_dir "$OUTPUT_DIR"
 
-    if [ $? -ne 0 ]; then
-      echo "Training failed for agent: $AGENT. Exiting..."
-      exit 1
-    fi
+  if [ $? -ne 0 ]; then
+    echo "Training failed for agent: $AGENT. Exiting..."
+    exit 1
   fi
+  #fi
 
   echo "Attempting to merge directory"
   python "$MERGE_PATH" --output_dir "$OUTPUT_DIR"

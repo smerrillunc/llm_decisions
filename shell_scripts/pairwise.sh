@@ -2,7 +2,7 @@
 
 # --- Configuration ---
 # Set visible CUDA devices. Adjust as needed for your system.
-export CUDA_VISIBLE_DEVICES="0,7,2,3,4,5,6"
+#sexport CUDA_VISIBLE_DEVICES=0,1,2,5,6,7
 
 # Maximum number of responses to process per file
 MAX_RESPONSES=20
@@ -32,7 +32,7 @@ for data_file in "${DATA_BASE_DIR}"/test_responses_*.json; do
     # Run the Python script with accelerate launch
     # --main_process_port 0: Specifies the port for the main process (can be changed if needed)
     # --num_processes 1: Runs the script using a single process (as per your example)
-    accelerate launch --main_process_port 0 --num_processes 1 "$PYTHON_SCRIPT" \
+    CUDA_VISIBLE_DEVICES=0,1,2,5,6,7 accelerate launch --main_process_port 0 --num_processes 1 "$PYTHON_SCRIPT" \
       --data_file "$data_file" \
       --overwrite \
       --max_responses "$MAX_RESPONSES"
