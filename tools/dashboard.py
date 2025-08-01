@@ -1,858 +1,574 @@
 import streamlit as st
-import pandas as pd
 import os
 import json
-import seaborn as sns
-import matplotlib.pyplot as plt
-import re
-from functools import lru_cache
+from PIL import Image
+import streamlit.components.v1 as components
+import base64
+import pandas as pd
 
-st.set_page_config(page_title="LLM Decisions Dashboard", layout="wide")
+# --- CONFIG ---
+BASE_DIR = "results"
+FIGURES_DIR = os.path.join(BASE_DIR, 'figures')
+EVALS_DIR = os.path.join(BASE_DIR, 'evals')
 
-# --- Configurable paths (defaults) ---
-if 'config_paths' not in st.session_state:
-    st.session_state['config_paths'] = {
-        'alignment_results': '/playpen-ssd/smerrill/llm_decisions/alignment_results',
-        'completion_results': '/playpen-ssd/smerrill/llm_decisions/completion_results',
-        'monologue_results': '/playpen-ssd/smerrill/llm_decisions/monologue_results',
-        'models_json': '/playpen-ssd/smerrill/llm_decisions/configs/models.json'
-    }
-config_paths = st.session_state['config_paths']
 
-# --- Utility Functions ---
-def compute_agent_win_rates(df):
-    # Create a win column: 1 if winner is 'A', 0 if 'B'
-    df = df.copy()
-    df['win'] = df['winner'] == 'A'
+# 1. Define a specific captions dictionary (put this at the module level)
+# Captions for Completion Experiments
+completion_image_captions = {
+    "completion_agent_win_rate.png": "Per-agent win rates showing how often each model's response is preferred over LLaMA‑70B in completion tasks.",
+    "completion_overall_win_rate.png": "Aggregate win rate across all prompts, indicating how often each model is preferred over LLaMA‑70B.",
+    "agent_violin.png": "Distribution of 1–5 judge scores per agent, illustrating variation in response quality across models.",
+    "model_win_rate.png": "Breakdown of how frequently each model's responses are selected as best over LLaMA‑70B.",
+    "violin_compare.png": "Comparison of 1–5 score distributions between fine-tuned models and LLaMA‑70B, showing differences in output quality.",
+}
+
+# Captions for Monologue Experiments
+monologue_image_captions = {
+    "monologue_agent_win_rate.png": "Per-agent win rates showing how often the fine-tuned model outperforms LLaMA‑70B on monologue prompts.",
+    "monologue_overall_win_rate.png": "Overall model preference rate across all monologue prompts, based on comparisons with LLaMA‑70B.",
+    "agent_violin.png": "Judge score distributions (1–5 scale) for each model, indicating variation in style fidelity and response quality.",
+    "violin_compare.png": "Side-by-side distribution comparison of 1–5 judge scores for fine-tuned vs LLaMA‑70B models on monologue completions.",
+}
+
+# Captions for Alignment Experiments
+alignment_image_captions = {
+    "memory_overall_win_rate.png": "Overall win rate showing how well fine-tuned models recall agent-specific memories compared to LLaMA‑70B.",
+    "memory_agent_win_rate.png": "Per-agent win rates for memory alignment, reflecting how well fine-tuned models retrieve specific facts over LLaMA‑70B.",
+    "belief_overall_win_rate.png": "Overall model preference rate on belief-alignment tasks versus LLaMA‑70B, assessing alignment with speaker values.",
+    "belief_agent_win_rate.png": "Per-agent win rates showing how well fine-tuned models reflect speaker beliefs compared to LLaMA‑70B.",
+    "personality_agent_win_rate.png": "Per-agent win rates evaluating how well the model reflects speaker personality traits versus LLaMA‑70B.",
+    "personality_overall_win_rate.png": "Aggregate win rate on personality-alignment prompts, showing fine-tuned model performance relative to LLaMA‑70B.",
+    "agent_violin.png": "Judge score distributions (1–5 scale) across agents and alignment dimensions, showing variation in trait alignment.",
+    "violin_compare.png": "Comparison of 1–5 alignment scores between fine-tuned models and LLaMA‑70B across all traits.",
+}
+
+# Captions for Vote Prediction Experiments
+votes_image_captions = {
+    "votes_accuracy_pie.png": "Overall distribution of correct vs incorrect vote predictions across all board members.",
+    "votes_accuracy_by_agent.png": "Prediction accuracy by school board member, showing per-agent vote prediction performance.",
+    "votes_confusion_matrix.png": "Confusion matrix showing patterns of misclassified Aye, Naye, and Unknown votes by the model.",
+}
+
+# Captions for Single-Speaker Fool Rate Experiments
+single_speaker_image_captions = {
+    "completion_fool_rates.png": "Fool rates for completion data, showing how often model outputs are mistaken for real speaker utterances by binary classifiers.",
+    "belief_fool_rates.png": "Fool rates on belief-alignment data, reflecting how convincingly the model mimics speaker beliefs.",
+    "personality_fool_rates.png": "Fool rates on personality-aligned completions, measuring how well models imitate speaker personality traits.",
+    "fool_rates_by_agent.png": "Per-agent fool rates across datasets, indicating how successfully each model mimics individual speakers.",
+    "monologue_fool_rates.png": "Fool rates on monologue completions, assessing realism of long-form generated speech.",
+    "memory_fool_rates.png": "Fool rates on memory-alignment data, evaluating whether models capture and reflect speaker-specific facts.",
+    "fool_rates_by_dataset.png": "Aggregated fool rates across all datasets and evaluation subsets, showing overall speaker mimicry strength.",
+}
+
+# Captions for Multi-Speaker Classification Experiments
+multi_speaker_image_captions = {
+    "beliefs.png": "Speaker classification accuracy by agent on belief-alignment completions, reflecting distinctiveness in expressed views.",
+    "personality.png": "Classification accuracy by agent on personality-aligned completions, assessing stylistic fidelity.",
+    "memory.png": "Classifier accuracy on memory-aligned content, evaluating reproduction of speaker-specific references.",
+    "monologues.png": "Speaker classification accuracy by agent on monologue completions, indicating long-form voice consistency.",
+    "completions.png": "Speaker classification accuracy for general completions, measuring baseline speaker imitation quality.",
+    "all.png": "Overall speaker classification accuracy aggregated across all datasets, summarizing model voice fidelity.",
+    "comparison.png": "Comparison of classification accuracies across datasets and agents, highlighting relative model fidelity by domain.",
+}
+
+# --- GENERIC TAB MARKDOWNS ---
     
-    # Group by agent and calculate total games and wins
-    summary = df.groupby('agent').agg(
-        total_comparisons=('agent', 'count'),
-        wins=('win', 'sum')
-    )
-    
-    # Calculate win rate
-    summary['win_rate'] = summary['wins'] / summary['total_comparisons']
-    
-    return summary.sort_values('win_rate', ascending=False)
+EXPERIMENT_DESCRIPTIONS = {
+    "completion": """
+### Completion Dataset
+- **Dataset**: The completion dataset consists of chat-completions from a held outset of meeting transcriptions.  Evaluates dialogue completion quality using real conversational prompts and ground truth continuations.
+- **Setup**: Both fine-tuned and baseline (LLaMA‑70B with in-context persona) models generate completions for the same prompt. 
+- **Evaluation**:
+  - **Win Rate vs LLaMA‑70B**: A LLaMA‑70B judge decides produces a response more aligned with the ground of truth in terms of tone, sentiment, and vocabulary.
+  - **Judge Scores (1–5)**: LLaMA‑70B scores each response for content alignment and quality.
+- **Output Metrics**: Overall and dimension-wise win rates, score distributions, and qualitative themes from judge justifications.
+""",
+
+    "monologue": """
+### Monologue Dataset
+- **Dataset**:  Long speaker monologues (greater than 150 words) from transcripts are reverse-prompted into questions.  We ask LLaMA-70B to come up with a question that generated this monologue.  The completion dataset comprises of some short completions which can introduce some noise.  These longer form monolgues encourage longer answers and allow us to better study response tone and style.
+- **Setup**: Both fine-tuned and baseline (LLaMA‑70B with in-context persona) models generate responses to the monologue question.
+- **Evaluation**:
+  - **Win Rate vs LLaMA‑70B**: A LLaMA‑70B judge decides produces a response more aligned with the ground of truth.
+  - **Judge Scores (1–5)**: LLaMA‑70B scores each resopnse for quality, personality fit, and relevance.
+- **Output Metrics**: Win rate, score distributions, and qualitative analysis of response preferences.
+""",
+
+    "alignment": """
+### Alignment Dataset
+
+- **Dataset**: Meeting transcripts are scraped for instances where speakers discuss their beliefs, memories, or personality traits.  LLaMA-70B is then used to come up with questions to ask the LLMs to express beliefs, recall memories and reveal personallity traits.
+- **Setup**: LongBoth fine-tuned and baseline (LLaMA‑70B with in-context persona) models generate responses to the alignment questions.
+- **Evaluation**:
+  - **Win Rate vs LLaMA‑70B**: Judged on trait reflection accuracy.
+  - **Judge Scores (1–5)**: Ratings based on alignment strength.
+- **Output Metrics**: Win rates per trait, overall alignment accuracy, and score distributions.
+""",
+
+    "votes": """
+### Vote Prediction Evaluation
+
+- **Dataset**: Historical school board votes from meeting minutes were scraped and turned into yes/no questions.  Fine-tuned models predict each member's vote.
+- **Evaluation**:
+  - **Correctness**: Prediction compared to actual vote.
+- **Output Metrics**: Overall accuracy, per-agent accuracy, and confusion matrices highlighting prediction errors.
+""",
+
+    "multi-speaker": """
+### Multi-Speaker Classificaiton Evaluation
+
+- **Datasets**: Completion, Monologue and Alignment (beliefs, memory and personality questions)
+- **Setup**: A 7-way classifier trained on real utterances from transcripts is used to label completions generated by each fine-tuned model.  We assess if this classifier can associate the correct labels to the fine-tuned model the generated an utterance.
+- **Evaluation**:
+  - **Accuracy**: Whether the classifier correctly identifies the intended speaker.
+- **Output Metrics**: Accuracy by dataset and by speaker, illustrating model fidelity across multiple linguistic dimensions.
+""",
+
+    "single-speaker": """
+### Single-Speaker Experiments
+
+- **Datasets**: Completion, Monologue and Alignment (beliefs, memory and personality questions)
+- **Setup**: One-vs-all classifiers are trained for each speaker to identify if an utterance is from that speaker or some other speaker.  These classifiers then label the fine-tuned model completions.
+- **Evaluation**:
+  - **Fool Rate**: Percentage off fine-tuned model utterancess that successfully pass as real to the classifier.
+- **Output Metrics**: Fool rates by agent, by dataset, and by alignment dimensions (beliefs, personality, memory).
+""",
+
+    "Prediction Model Evals": """
+### Prediction Model Evaluations
+
+This section summarizes test set validation performance of the Single-Speaker and Multi-Speaker Classificaiton models.
+
+- **Evaluation**: Aggregates confusion matrices, score distributions, and classifier performance across all speaker modeling experiments.
+""",
+}
+
+# --- GENERIC IMAGE CAPTIONS ---
+# Fills with placeholder captions by default.
+# 2. Use generic captions as fallback for images not covered above
+def get_caption(img_name):
+    lower = img_name.lower()
+    # Try for a specific caption first
+    if img_name in completion_image_captions:
+        return completion_image_captions[img_name]
+    if img_name in monologue_image_captions:
+        return monologue_image_captions[img_name]
+    if img_name in alignment_image_captions:
+        return alignment_image_captions[img_name]
+    if img_name in votes_image_captions:
+        return votes_image_captions[img_name]
+    if img_name in single_speaker_image_captions:
+        return single_speaker_image_captions[img_name]
+    if img_name in multi_speaker_image_captions:
+        return multi_speaker_image_captions[img_name]
+
+    # Generic fallback logic (from your previous function)
+    if "win_rate" in lower:
+        return "Illustrates model win rates across evaluation conditions."
+    if "violin" in lower or "distribution" in lower or "compare" in lower:
+        return "Shows the distribution of scores or comparative results for the models."
+    if "confusion" in lower or "cm" in lower:
+        return "Confusion matrix summarizing classification performance."
+    if "scores" in lower:
+        return "Model prediction score/certainty distribution."
+    if "pie" in lower:
+        return "Pie chart summarizing evaluation results within this category."
+    if "fool" in lower:
+        return "Displays 'fool rate' statistics, indicating misclassification rates."
+    return "Figure relevant to this experiment category."
 
 
-def extract_params_from_filenames(directory):
-    temperature_set = set()
-    top_p_set = set()
-    top_k_set = set()
-    r_set = set()
 
-    pattern = re.compile(r'_T([0-9.]+)_P([0-9.]+)_K([0-9]+)(?:_R([0-9.]+))?')
 
-    try:
-        for fname in os.listdir(directory):
-            if not fname.endswith('.json'):
+# --- HELPERS ---
+@st.cache_data
+def get_param_sets(figures_dir):
+    if os.path.exists(figures_dir):
+        return sorted([d for d in os.listdir(figures_dir) if os.path.isdir(os.path.join(figures_dir, d))])
+    return []
+
+def get_categories(param_set):
+    desired_order = [ "completion", "monologue", "alignment", "votes", "multi-speaker", "single-speaker"
+    ]
+    path = os.path.join(FIGURES_DIR, param_set)
+    existing = [d for d in os.listdir(path) if os.path.isdir(os.path.join(path, d))]
+    return ['overview'] + [d for d in desired_order if d in existing]
+
+def get_image_files(param_set, category):
+    folder = os.path.join(FIGURES_DIR, param_set, category)
+    return [
+        (f, os.path.join(folder, f))
+        for f in sorted(os.listdir(folder))
+        if f.lower().endswith((".png", ".jpg", ".jpeg", ".gif"))
+    ]
+
+def load_layout(param_set, category):
+    path = os.path.join(LAYOUT_DIR, f"{param_set}_{category}.json")
+    if os.path.exists(path):
+        with open(path, "r") as f:
+            data = json.load(f)
+        if isinstance(data, list):
+            return {"order": data}
+        elif isinstance(data, dict):
+            return data
+    return None
+
+def display_carousel(image_paths, tab_key):
+    if tab_key not in st.session_state:
+        st.session_state[tab_key] = 0
+
+    index = st.session_state[tab_key]
+    max_index = len(image_paths) - 1
+
+    img_path = image_paths[index]
+    img_name = os.path.basename(img_path)
+    st.markdown(f"**{img_name}** ({index + 1}/{len(image_paths)})")
+
+    with open(img_path, "rb") as f:
+        img_bytes = f.read()
+    encoded = base64.b64encode(img_bytes).decode()
+    image_html = f"""
+    <div style="text-align:center;">
+        <img src="data:image/png;base64,{encoded}"
+             style="max-width:750px; width:100%; height:auto; border:1px solid #ddd; border-radius:4px; padding:5px;">
+    </div>
+    """
+    components.html(image_html, height=650)
+
+    description = get_caption(img_name)
+    if description:
+        st.markdown(f'''
+            <p style="
+                font-size:18px;
+                line-height:1.5;
+                margin-top:10px;
+                margin-bottom:24px;
+                color:#333333;
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            ">
+                {description}
+            </p>
+        ''', unsafe_allow_html=True)
+
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col1:
+        if st.button("⬅️ Previous", key=f"prev_{tab_key}"):
+            st.session_state[tab_key] = max_index if index == 0 else index - 1
+    with col3:
+        if st.button("➡️ Next", key=f"next_{tab_key}"):
+            st.session_state[tab_key] = 0 if index == max_index else index + 1
+
+# --- UI START ---
+st.set_page_config(page_title="Results Dashboard", layout="wide")
+st.title("Fine-Tuned Agent Dashboard")
+
+exp_names = [d for d in os.listdir(BASE_DIR) if os.path.isdir(os.path.join(BASE_DIR, d)) if 'evals' not in d]
+selected_experiment = st.selectbox("Select Experiment", exp_names, key="experiment_selector")
+
+# Redefine FIGURES_DIR dynamically based on selected experiment
+FIGURES_DIR = os.path.join(BASE_DIR, selected_experiment, 'figures')
+
+param_sets = get_param_sets(FIGURES_DIR)
+selected_param = st.selectbox("Select Parameter Set", param_sets)
+
+# Explanation block
+st.markdown("""
+##### Parameter Descriptions
+- **T (Temperature)**: Controls the randomness of the model's output. Lower values (e.g., 0.2) make responses more focused and deterministic; higher values (e.g., 0.8) increase creativity and diversity.
+- **P (Top-p / Nucleus Sampling)**: Limits sampling to the smallest possible set of tokens whose cumulative probability is ≥ *p*. Helps balance randomness and relevance (e.g., p=0.9 means sampling from the top 90% of probability mass).
+- **K (Top-k Sampling)**: Restricts the model to sampling from the top *k* most likely next tokens. Smaller *k* reduces randomness; larger *k* allows more variation.
+- **R (Repetition Penalty)**: Penalizes tokens that have already been generated to reduce repetition. Values >1 discourage repetition (e.g., 1.2); values close to 1 have little effect.
+""")
+
+categories = get_categories(selected_param)
+categories.append("Prediction Model Evals")
+tabs = st.tabs(categories)
+
+for tab, category in zip(tabs, categories):
+    with tab:
+        if category =='overview':
+            st.markdown("### Experiment Overview")
+
+            # Direct DataFrame rendering (preferred)
+            st.markdown("### Model Summary")
+            with open(os.path.join(BASE_DIR, selected_experiment, "model_summary.md"), "r") as f:
+                st.markdown(f.read())
+
+            st.markdown("### Perplexity Results")
+            img_path = os.path.join(BASE_DIR, selected_experiment, 'perplexity.png')
+            st.image(img_path, caption="Perplexity", use_container_width=True)
+            continue
+
+        # Insert generic experiment description per tab
+        st.markdown(EXPERIMENT_DESCRIPTIONS.get(category, f"**Experiment Overview: {category.capitalize()}**"))
+
+        # "completion", "monologue", etc.
+        if category in ["completion",  "monologue", "alignment", "multi-speaker", "single-speaker", "votes"]:
+            images = get_image_files(selected_param, category)
+            if not images:
+                st.info("No images available for this category.")
                 continue
-            match = pattern.search(fname)
-            if match:
-                temperature_set.add(float(match.group(1)))
-                top_p_set.add(float(match.group(2)))
-                top_k_set.add(int(match.group(3)))
-                r_val = match.group(4)
-                if r_val:
-                    r_val = r_val.rstrip('.')
-                    try:
-                        r_set.add(float(r_val))
-                    except ValueError:
-                        pass
-    except (FileNotFoundError, OSError):
-        return {
-            "temperature": [],
-            "top_p": [],
-            "top_k": [],
-            "repetition_penalty": []
-        }
+            image_paths = [img_path for _, img_path in images]
+            display_carousel(image_paths, f"{selected_param}_{category}")
 
-    return {
-        "temperature": sorted(temperature_set),
-        "top_p": sorted(top_p_set),
-        "top_k": sorted(top_k_set),
-        "repetition_penalty": sorted(r_set) if r_set else None
-    }
 
-def get_dfs(file_name):
-    try:
-        with open(file_name, 'r') as file:
-            data = json.load(file)
-    except (FileNotFoundError, OSError, json.JSONDecodeError):
-        return pd.DataFrame(), pd.DataFrame()
-    comparison_df = pd.DataFrame()
-    judgment_df = pd.DataFrame()
-    for agent in data.keys():
-        tmp = pd.DataFrame()
-        tmp2 = pd.DataFrame()
-        for i, entry in enumerate(data[agent]):
-            try:
-                tmp = pd.concat([tmp,  pd.DataFrame([data[agent][i]['final_comparison']])])
-                tmp3 = pd.DataFrame(data[agent][i]['gpt_judgment'])
-                tmp3['example_idx'] = i
-                tmp2 = pd.concat([tmp2, tmp3])
-            except:
-                continue
-        tmp['agent'] = agent
-        tmp2['agent'] = agent
-        comparison_df = pd.concat([comparison_df, tmp], ignore_index=True)    
-        judgment_df = pd.concat([judgment_df, tmp2], ignore_index=True)
-    comparison_df = comparison_df[comparison_df.winner.isin(['A', 'B'])]
-    judgment_df = judgment_df[judgment_df.score.isin(range(1, 6))]
-    return comparison_df, judgment_df
 
-@st.cache_data(show_spinner=False)
-def cached_completion_plots(file_name):
-    comparison_df, judgment_df = get_dfs(file_name)
-    if comparison_df.empty or judgment_df.empty:
-        return None, None, None, comparison_df, judgment_df
-    # Win Rate Pie
-    fig_pie = plot_win_rate_pie_fig(comparison_df)
-    # Agent Win Rates
-    fig_agent = plot_agent_win_rates_fig(comparison_df)
-    # Score Distributions
-    fig_score = plot_score_distributions_fig(judgment_df)
-    return fig_pie, fig_agent, fig_score, comparison_df, judgment_df
+             ########### Completion TAB Manual Review ##############
+            if category == "completion":
+                # --- Manual Review Section for Alignment ---
+                st.markdown("---")
+                st.subheader("Manual Review: Completion Data")
 
-@st.cache_data(show_spinner=False)
-def cached_monologue_plots(file_name):
-    comparison_df, judgment_df = get_dfs(file_name)
-    if comparison_df.empty or judgment_df.empty:
-        return None, None, None, comparison_df, judgment_df
-    fig_pie = plot_win_rate_pie_fig(comparison_df)
-    fig_agent = plot_agent_win_rates_fig(comparison_df)
-    fig_score = plot_score_distributions_fig(judgment_df)
-    return fig_pie, fig_agent, fig_score, comparison_df, judgment_df
+                completion_path = os.path.join(BASE_DIR, selected_experiment, "completion_results", f"test_responses_{selected_param}.json")
 
-@st.cache_data(show_spinner=False)
-def cached_alignment_plots(df):
-    if df.empty:
-        return None
-    agents = df['agent'].unique()
-    ncols = 3
-    nrows = (len(agents) + ncols - 1) // ncols
-    fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=(7 * ncols, 8 * nrows), sharey=True)
-    axes = axes.flatten()
-    for i, agent in enumerate(agents):
-        ax = axes[i]
-        agent_data = df[df['agent'] == agent]
-        sns.violinplot(
-            data=agent_data,
-            x='alignment',
-            y='eval_score',
-            ax=ax,
-            palette='pastel',
-            inner='box'
-        )
-        ax.set_title(f'Score Distribution: {agent}', fontsize=16)
-        ax.set_ylim(0, 5)
-        ax.set_xlabel('Alignment', fontsize=12)
-        ax.set_ylabel('Score', fontsize=12)
-        ax.tick_params(axis='x', labelsize=10)
-        ax.tick_params(axis='y', labelsize=10)
-    for j in range(len(agents), len(axes)):
-        axes[j].axis('off')
-    plt.tight_layout(rect=[0, 0, 1, 0.95])
-    return fig
+                if os.path.exists(completion_path):
+                    with open(completion_path, "r") as f:
+                        completion_data = json.load(f)
 
-# Helper functions to return figures only
+                    speaker_names = list(completion_data.keys())
+                    selected_speaker = st.selectbox("Select Agent", speaker_names, key="completion_agent")
 
-def plot_win_rate_pie_fig(comparison_df):
-    model_win, gpt_win = (comparison_df.groupby('winner').count()/len(comparison_df)).values[:, 0]
-    total = model_win + gpt_win
-    sizes = [model_win / total, gpt_win / total]
-    labels = ['Fine-tuned Model', 'GPT']
-    colors = ['#4CAF50', '#007ACC']
-    explode = (0.07, 0.07)
-    fig, ax = plt.subplots(figsize=(7.5, 6), dpi=120)
-    wedges, texts, autotexts = ax.pie(
-        sizes,
-        explode=explode,
-        labels=labels,
-        colors=colors,
-        autopct='%1.1f%%',
-        startangle=120,
-        pctdistance=0.8,
-        shadow=False,
-        wedgeprops={'linewidth': 1, 'edgecolor': 'white'}
-    )
-    for text in texts:
-        text.set_fontsize(12)
-    for autotext in autotexts:
-        autotext.set_fontsize(11)
-        autotext.set_color("white")
-        autotext.set_weight("bold")
-    centre_circle = plt.Circle((0, 0), 0.65, fc='white')
-    fig.gca().add_artist(centre_circle)
-    ax.set_title("Win Rate vs. GPT", fontsize=18, weight='bold', pad=30)
-    ax.axis('equal')
-    plt.subplots_adjust(top=0.88, bottom=0.1)
-    return fig
+                    speaker_data = completion_data[selected_speaker]
 
-def plot_agent_win_rates_fig(comparison_df):
-    summary = compute_agent_win_rates(comparison_df)
-    fig, ax = plt.subplots(figsize=(10, 6))
-    sns.barplot(x=summary.index, y=summary['win_rate'], palette='viridis', ax=ax)
-    ax.set_title('Win Rate by Agent')
-    ax.set_xlabel('Agent')
-    ax.set_ylabel('Win Rate')
-    ax.set_ylim(0, 1)
-    plt.xticks(rotation=45)
-    plt.tight_layout()
-    return fig
+                    comp_idx_key = f'comp_index_{selected_param}_{selected_speaker}'
+                    comp_prev_key = f'comp_prev_speaker_{selected_param}'
 
-def plot_score_distributions_fig(judgment_df):
-    df = judgment_df.copy()
-    df = df[df.response_idx != 'gpt']
-    agents = df['agent'].unique()
-    num_agents = len(agents)
-    ncols = 3
-    nrows = (num_agents + 1 + ncols - 1) // ncols
-    fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=(7 * ncols, 8 * nrows), sharey=True)
-    axes = axes.flatten()
-    for i, agent in enumerate(agents):
-        ax = axes[i]
-        agent_data = df[df['agent'] == agent]
-        sns.violinplot(
-            data=agent_data,
-            x='aspect',
-            y='score',
-            ax=ax,
-            palette='pastel'
-        )
-        ax.set_title(f'Score Distribution: {agent}', fontsize=16)
-        ax.set_ylim(0, 6)
-        ax.set_xlabel('Aspect', fontsize=12)
-        ax.set_ylabel('Score', fontsize=12)
-        ax.tick_params(axis='x', labelsize=10)
-        ax.tick_params(axis='y', labelsize=10)
-    ax = axes[num_agents]
-    gpt_data = judgment_df[judgment_df.response_idx == 'gpt']
-    sns.violinplot(
-        data=gpt_data,
-        x='aspect',
-        y='score',
-        ax=ax,
-        palette='pastel'
-    )
-    ax.set_title(f'Score Distribution: GPT', fontsize=16)
-    ax.set_ylim(0, 6)
-    ax.set_xlabel('Aspect', fontsize=12)
-    ax.set_ylabel('Score', fontsize=12)
-    ax.tick_params(axis='x', labelsize=10)
-    ax.tick_params(axis='y', labelsize=10)
-    for j in range(num_agents + 1, len(axes)):
-        axes[j].axis('off')
-    plt.tight_layout(rect=[0, 0, 1, 0.95])
-    return fig
+                    if comp_idx_key not in st.session_state:
+                        st.session_state[comp_idx_key] = 0
+                    if comp_prev_key not in st.session_state:
+                        st.session_state[comp_prev_key] = None
+                    if st.session_state[comp_prev_key] != selected_speaker:
+                        st.session_state[comp_idx_key] = 0
+                        st.session_state[comp_prev_key] = selected_speaker
 
-# --- Tabs ---
-tabs = st.tabs(["1. Perplexity", "2. Completion Data", "3. Monologue Data", "4. Alignment Analysis", "5. Votes Analysis", "6. Config"])
-
-# --- Tab 1: Perplexity ---
-with tabs[0]:
-    st.header("Perplexity")
-    models_json_path = config_paths['models_json']
-    try:
-        if 'perplexity_loaded' not in st.session_state or not st.session_state['perplexity_loaded'] or st.session_state.get('perplexity_models_json_path') != models_json_path:
-            if not os.path.exists(models_json_path):
-                st.session_state['perplexity_figs'] = None
-                st.session_state['perplexity_loaded'] = True
-                st.session_state['perplexity_warning'] = f"Models JSON not found: {models_json_path}"
-            else:
-                with open(models_json_path, "r", encoding="utf-8") as f:
-                    models_config = json.load(f)
-                st.session_state['perplexity_models_json_path'] = models_json_path
-                model_dirs = list(models_config.values())
-                all_dfs = []
-                for path in model_dirs + ['/playpen-ssd/smerrill/trained_models/meta-llama/Meta-Llama-3-70B-Instruct/baseline']:
-                    csv_path = os.path.join(path.replace('/merged',''), "perplexity_results.csv")
-                    if os.path.exists(csv_path):
-                        try:
-                            df = pd.read_csv(csv_path)
-                            df["model_path"] = path
-                            all_dfs.append(df)
-                        except Exception:
-                            continue
-                if all_dfs:
-                    combined_df = pd.concat(all_dfs, ignore_index=True)
-                    combined_df.model = combined_df.model.apply(lambda x: x.split("/")[-1])
-                    combined_df.sort_values('perplexity', inplace=True)
-                    ppl_matrix = combined_df.pivot_table(
-                        index="dataset",
-                        columns="model",
-                        values="perplexity"
-                    )
-                    baseline_col = 'baseline'
-                    if baseline_col in ppl_matrix.columns:
-                        baseline_ppl = ppl_matrix[baseline_col]
-                        other_ppl = ppl_matrix.drop(columns=[baseline_col])
-                        other_ppl = other_ppl.sort_index()
-                        baseline_ppl = baseline_ppl.sort_index()
-                        other_ppl.columns = other_ppl.columns.astype(str)
-                        other_ppl = other_ppl[sorted(other_ppl.columns, key=lambda x: x.lower())]
-                        normalized_ppl = other_ppl.apply(lambda col: (col - col.min()) / (col.max() - col.min()), axis=0)
-                        fig1, ax1 = plt.subplots(figsize=(10, 6))
-                        sns.heatmap(normalized_ppl, annot=other_ppl.round(2), fmt=".2f", cmap="coolwarm", cbar_kws={'label': 'Normalized Perplexity'}, ax=ax1)
-                        ax1.set_title("Perplexity of Each Model (Excl. Baseline)")
-                        ax1.set_ylabel("Dataset")
-                        ax1.set_xlabel("Model")
-                        plt.tight_layout()
-                        fig2, ax2 = plt.subplots(figsize=(10, 1.5))
-                        sns.heatmap(baseline_ppl.to_frame().T, annot=baseline_ppl.to_frame().T.round(2), fmt=".2f",
-                                    cmap="Blues", cbar_kws={'label': 'Baseline Perplexity'}, ax=ax2)
-                        ax2.set_title("Baseline Perplexity")
-                        ax2.set_ylabel("")
-                        ax2.set_xlabel("Dataset")
-                        plt.yticks(rotation=0)
-                        plt.tight_layout()
-                        st.session_state['perplexity_figs'] = (fig1, fig2)
-                        st.session_state['perplexity_loaded'] = True
-                        st.session_state['perplexity_warning'] = None
-                    else:
-                        st.session_state['perplexity_figs'] = None
-                        st.session_state['perplexity_loaded'] = True
-                        st.session_state['perplexity_warning'] = "No baseline column found in perplexity results."
-                else:
-                    st.session_state['perplexity_figs'] = None
-                    st.session_state['perplexity_loaded'] = True
-                    st.session_state['perplexity_warning'] = "No perplexity results found."
-    except (FileNotFoundError, OSError, json.JSONDecodeError):
-        st.session_state['perplexity_figs'] = None
-        st.session_state['perplexity_loaded'] = True
-        st.session_state['perplexity_warning'] = f"Could not load models config or perplexity results from {models_json_path}."
-    # Display cached figures or warning
-    if st.session_state.get('perplexity_figs'):
-        fig1, fig2 = st.session_state['perplexity_figs']
-        st.pyplot(fig1)
-        st.pyplot(fig2)
-    elif st.session_state.get('perplexity_warning'):
-        st.warning(st.session_state['perplexity_warning'])
-
-# --- Tab 2: Completion Data ---
-with tabs[1]:
-    st.header("Completion Data")
-    completion_dir = config_paths['completion_results']
-    param_dict = extract_params_from_filenames(completion_dir)
-    if not param_dict['temperature'] or not param_dict['top_p'] or not param_dict['top_k'] or not param_dict['repetition_penalty']:
-        st.warning(f"No valid completion data found in directory: {completion_dir}")
-    else:
-        temperature = st.selectbox("Temperature", param_dict['temperature'])
-        top_p = st.selectbox("Top-p", param_dict['top_p'])
-        top_k = st.selectbox("Top-k", param_dict['top_k'])
-        r = st.selectbox("Repetition Penalty", param_dict['repetition_penalty'])
-        file_name = f'{completion_dir}/test_responses_T{temperature}_P{top_p}_K{top_k}_R{r}.json'
-        if 'show_comp_plots' not in st.session_state:
-            st.session_state['show_comp_plots'] = True
-        show_plots = st.checkbox("Show Plots", value=st.session_state['show_comp_plots'], key="comp_show_plots")
-        st.session_state['show_comp_plots'] = show_plots
-        plot_key = f"comp_plot_{temperature}_{top_p}_{top_k}_{r}"
-        # Only load/cache when tab is active
-        if plot_key not in st.session_state:
-            if os.path.exists(file_name):
-                fig_pie, fig_agent, fig_score, comparison_df, judgment_df = cached_completion_plots(file_name)
-                st.session_state[plot_key] = {
-                    "fig_pie": fig_pie,
-                    "fig_agent": fig_agent,
-                    "fig_score": fig_score,
-                    "comparison_df": comparison_df,
-                    "judgment_df": judgment_df,
-                    "file_name": file_name
-                }
-            else:
-                st.session_state[plot_key] = None
-        plot_data = st.session_state.get(plot_key)
-        plot_container = st.container()
-        with plot_container:
-            if show_plots:
-                if plot_data and plot_data["fig_pie"]:
-                    st.subheader("Win Rate Pie Chart")
-                    st.pyplot(plot_data["fig_pie"])
-                    st.subheader("Agent Win Rates")
-                    st.pyplot(plot_data["fig_agent"])
-                    st.subheader("Score Distributions")
-                    st.pyplot(plot_data["fig_score"])
-                else:
-                    st.warning(f"No completion data found for selected parameters: {file_name}")
-        review_container = st.container()
-        with review_container:
-            st.markdown("---")
-            st.subheader("Manual Review: Completion Data")
-            if plot_data and plot_data["file_name"] and os.path.exists(plot_data["file_name"]):
-                try:
-                    with open(file_name, 'r') as f:
-                        data = json.load(f)
-                except (FileNotFoundError, OSError, json.JSONDecodeError):
-                    st.warning(f"Could not load completion data for manual review: {file_name}")
-                    data = None
-                if data:
-                    speaker_names = list(data.keys())
-                    selected_speaker = st.selectbox("Select a speaker for review", speaker_names, key="comp_speaker")
-                    speaker_data = data[selected_speaker]
-                    if 'comp_index' not in st.session_state:
-                        st.session_state.comp_index = 0
-                    if 'comp_prev_speaker' not in st.session_state:
-                        st.session_state.comp_prev_speaker = None
-                    if st.session_state.comp_prev_speaker != selected_speaker:
-                        st.session_state.comp_index = 0
-                        st.session_state.comp_prev_speaker = selected_speaker
                     def comp_go_prev():
-                        st.session_state.comp_index = (st.session_state.comp_index - 1) % len(speaker_data)
+                        st.session_state[comp_idx_key] = (st.session_state[comp_idx_key] - 1) % len(speaker_data)
+
                     def comp_go_next():
-                        st.session_state.comp_index = (st.session_state.comp_index + 1) % len(speaker_data)
+                        st.session_state[comp_idx_key] = (st.session_state[comp_idx_key] + 1) % len(speaker_data)
+
                     col1, col2, col3 = st.columns([1, 2, 1])
                     with col1:
-                        st.button("Previous", on_click=comp_go_prev, key="comp_prev_button", use_container_width=True)
+                        st.button("⬅️ Previous", on_click=comp_go_prev, key=f"comp_prev_button_{selected_param}")
                     with col2:
-                        st.markdown(f"### Prompt {st.session_state.comp_index + 1} of {len(speaker_data)}")
+                        st.markdown(f"### Example {st.session_state[comp_idx_key] + 1} of {len(speaker_data)}")
                     with col3:
-                        st.button("Next", on_click=comp_go_next, key="comp_next_button", use_container_width=True)
-                    item = speaker_data[st.session_state.comp_index]
-                    st.markdown("#### Prompt")
-                    st.text_area("Prompt", item.get("prompt", ""), height=150)
-                    st.markdown("#### Reference Completion")
-                    st.text_area("True Completion", item.get("true_completion", ""), height=100)
-                    st.markdown("#### Model Responses")
-                    responses = item.get("model_responses", [])
-                    for i, r in enumerate(responses):
-                        st.text_area(f"Response {i+1}", r, height=100, key=f"comp_response_{selected_speaker}_{i}_{st.session_state.comp_index}")
-                    gpt_response = item.get("gpt_response")
-                    if gpt_response:
-                        st.markdown("#### GPT Response")
-                        st.text_area("GPT Response", gpt_response, height=80, key=f"comp_gpt_response_{st.session_state.comp_index}")
-                    final_comparison = item.get("final_comparison", {})
-                    if final_comparison:
-                        st.markdown("#### Final Comparison")
-                        st.write(f"**Winner:** Response {final_comparison.get('winner', '')}")
-                        st.markdown("**Justification:**")
-                        st.write(final_comparison.get("justification", ""))
-                    st.markdown("---")
-            else:
-                st.warning(f"No completion data found for selected parameters: {file_name}")
+                        st.button("➡️ Next", on_click=comp_go_next, key=f"comp_next_button_{selected_param}")
 
-# --- Tab 3: Monologue Data ---
-with tabs[2]:
-    st.header("Monologue Data")
-    monologue_dir = config_paths['monologue_results']
-    param_dict = extract_params_from_filenames(monologue_dir)
-    if not param_dict['temperature'] or not param_dict['top_p'] or not param_dict['top_k'] or not param_dict['repetition_penalty']:
-        st.warning(f"No valid monologue data found in directory: {monologue_dir}")
-    else:
-        temperature = st.selectbox("Temperature", param_dict['temperature'], key="mono_temp")
-        top_p = st.selectbox("Top-p", param_dict['top_p'], key="mono_top_p")
-        top_k = st.selectbox("Top-k", param_dict['top_k'], key="mono_top_k")
-        r = st.selectbox("Repetition Penalty", param_dict['repetition_penalty'], key="mono_r")
-        file_name = f'{monologue_dir}/test_responses_T{temperature}_P{top_p}_K{top_k}_R{r}.json'
-        if 'show_mono_plots' not in st.session_state:
-            st.session_state['show_mono_plots'] = True
-        show_plots = st.checkbox("Show Plots", value=st.session_state['show_mono_plots'], key="mono_show_plots")
-        st.session_state['show_mono_plots'] = show_plots
-        cache_key = f"mono_plots_{temperature}_{top_p}_{top_k}_{r}"
-        # Only load/cache when tab is active
-        if cache_key not in st.session_state:
-            if os.path.exists(file_name):
-                figs = cached_monologue_plots(file_name)
-                st.session_state[cache_key] = figs
-            else:
-                st.session_state[cache_key] = None
-        figs = st.session_state.get(cache_key)
-        plot_container = st.container()
-        review_container = st.container()
-        if os.path.exists(file_name) and figs and figs[0]:
-            fig_pie, fig_agent, fig_score, comparison_df, judgment_df = figs
-            with plot_container:
-                if show_plots:
-                    st.subheader("Win Rate Pie Chart")
-                    st.pyplot(fig_pie)
-                    st.subheader("Agent Win Rates")
-                    st.pyplot(fig_agent)
-                    st.subheader("Score Distributions")
-                    st.pyplot(fig_score)
-            # --- Manual Review ---
-            with review_container:
+                    item = speaker_data[st.session_state[comp_idx_key]]
+
+                    st.markdown("#### Prompt")
+                    st.text_area("Prompt", item.get("prompt", ""), height=80)
+
+                    st.markdown("#### True Completion")
+                    st.text_area("True Completion", item.get("true_completion", ""), height=80)
+
+
+                    st.markdown("#### A. Agent Response")
+                    st.text_area("Agent Response", item.get("model_responses", "")[0], height=80)
+
+                    st.markdown("#### B. LLaMA‑70B Response")
+                    st.text_area("LLaMA‑70B Response", item.get("gpt_response", ""), height=80)
+
+                    st.markdown("#### Scores")
+                    
+                    judgement = pd.DataFrame(item.get('gpt_judgment'))
+                    filtered_df = judgement[judgement['response_idx'].isin([0, 'gpt'])]
+
+                    def create_markdown_table(df):
+                        md = "| Aspect | Score | Explanation |\n"
+                        md += "|--------|-------|-------------|\n"
+                        for _, row in df.iterrows():
+                            md += f"| **{row['aspect']}** | {row['score']} | {row['explanation']} |\n"
+                        return md
+                    
+                    judgement = pd.DataFrame(item.get('gpt_judgment'))
+                    # Group by response_idx and display each separately
+                    for idx in [0, 'gpt']:
+                        if idx == 0:
+                            name = 'Model'
+                        else:
+                            name = 'LLaMA‑70B'
+
+                        st.subheader(f"{name} Response")
+                        sub_df = filtered_df[filtered_df['response_idx'] == idx]
+                        st.markdown(create_markdown_table(sub_df), unsafe_allow_html=True)
+
+                    st.markdown("#### Comparison")
+                    st.write('**Winner:**', item.get("final_comparison", {}).get('winner', 'Error parsing response'))
+                    st.write('**Justification:**', item.get("final_comparison", {}).get('justification', 'Error parsing response'))
+                else:
+                    st.warning("Could not find the completion data file.")
+
+
+             ########### Monologue TAB Manual Review ##############
+            if category == "monologue":
+                # --- Manual Review Section for Alignment ---
                 st.markdown("---")
                 st.subheader("Manual Review: Monologue Data")
-                try:
-                    with open(file_name, 'r') as f:
-                        data = json.load(f)
-                except (FileNotFoundError, OSError, json.JSONDecodeError):
-                    st.warning(f"Could not load monologue data for manual review: {file_name}")
-                    data = None
-                if data:
-                    speaker_names = list(data.keys())
-                    selected_speaker = st.selectbox("Select a speaker for review", speaker_names, key="mono_speaker")
-                    speaker_data = data[selected_speaker]
-                    if 'mono_index' not in st.session_state:
-                        st.session_state.mono_index = 0
-                    if 'mono_prev_speaker' not in st.session_state:
-                        st.session_state.mono_prev_speaker = None
-                    if st.session_state.mono_prev_speaker != selected_speaker:
-                        st.session_state.mono_index = 0
-                        st.session_state.mono_prev_speaker = selected_speaker
+
+                monologue_path = os.path.join(BASE_DIR, selected_experiment, "monologue_results", f"test_responses_{selected_param}.json")
+
+                if os.path.exists(monologue_path):
+                    with open(monologue_path, "r") as f:
+                        monologue_data = json.load(f)
+
+                    speaker_names = list(monologue_data.keys())
+                    selected_speaker = st.selectbox("Select Agent", speaker_names, key="monologue_agent")
+
+                    speaker_data = monologue_data[selected_speaker]
+
+                    mono_idx_key = f'mono_index_{selected_param}_{selected_speaker}'
+                    mono_prev_key = f'mono_prev_speaker_{selected_param}'
+
+                    if mono_idx_key not in st.session_state:
+                        st.session_state[mono_idx_key] = 0
+                    if mono_prev_key not in st.session_state:
+                        st.session_state[mono_prev_key] = None
+                    if st.session_state[mono_prev_key] != selected_speaker:
+                        st.session_state[mono_idx_key] = 0
+                        st.session_state[mono_prev_key] = selected_speaker
+
                     def mono_go_prev():
-                        st.session_state.mono_index = (st.session_state.mono_index - 1) % len(speaker_data)
+                        st.session_state[mono_idx_key] = (st.session_state[mono_idx_key] - 1) % len(speaker_data)
+
                     def mono_go_next():
-                        st.session_state.mono_index = (st.session_state.mono_index + 1) % len(speaker_data)
+                        st.session_state[mono_idx_key] = (st.session_state[mono_idx_key] + 1) % len(speaker_data)
+
                     col1, col2, col3 = st.columns([1, 2, 1])
                     with col1:
-                        st.button("Previous", on_click=mono_go_prev, key="mono_prev_button", use_container_width=True)
+                        st.button("⬅️ Previous", on_click=mono_go_prev, key=f"mono_prev_button_{selected_param}")
                     with col2:
-                        st.markdown(f"### Prompt {st.session_state.mono_index + 1} of {len(speaker_data)}")
+                        st.markdown(f"### Example {st.session_state[mono_idx_key] + 1} of {len(speaker_data)}")
                     with col3:
-                        st.button("Next", on_click=mono_go_next, key="mono_next_button", use_container_width=True)
-                    item = speaker_data[st.session_state.mono_index]
-                    st.markdown("#### Prompt")
-                    st.text_area("Prompt", item.get("prompt", ""), height=150)
-                    st.markdown("#### True Monologue")
-                    st.text_area("True Monologue", item.get("monologue", ""), height=100)
-                    st.markdown("#### Model Responses")
-                    responses = item.get("model_responses", [])
-                    for i, r in enumerate(responses):
-                        st.text_area(f"Response {i+1}", r, height=100, key=f"mono_response_{selected_speaker}_{i}_{st.session_state.mono_index}")
-                    gpt_response = item.get("gpt_response")
-                    if gpt_response:
-                        st.markdown("#### GPT Response")
-                        st.text_area("GPT Response", gpt_response, height=80, key=f"mono_gpt_response_{st.session_state.mono_index}")
-                    final_comparison = item.get("final_comparison", {})
-                    if final_comparison:
-                        st.markdown("#### Final Comparison")
-                        st.write(f"**Winner:** Response {final_comparison.get('winner', '')}")
-                        st.markdown("**Justification:**")
-                        st.write(final_comparison.get("justification", ""))
-                    st.markdown("---")
-        else:
-            st.warning(f"No monologue data found for selected parameters: {file_name}")
+                        st.button("➡️ Next", on_click=mono_go_next, key=f"mono_next_button_{selected_param}")
 
-# --- Tab 4: Alignment Analysis ---
-with tabs[3]:
-    st.header("Alignment Analysis")
-    alignment_dir = config_paths['alignment_results']
-    param_dict = extract_params_from_filenames(alignment_dir)
-    if not param_dict['temperature'] or not param_dict['top_p'] or not param_dict['top_k'] or not param_dict['repetition_penalty']:
-        st.warning(f"No valid alignment data found in directory: {alignment_dir}")
-        dfs = []
-        alignment_data = {}
-    else:
-        temperature = st.selectbox("Temperature", param_dict['temperature'], key="align_temp")
-        top_p = st.selectbox("Top-p", param_dict['top_p'], key="align_top_p")
-        top_k = st.selectbox("Top-k", param_dict['top_k'], key="align_top_k")
-        r = st.selectbox("Repetition Penalty", param_dict['repetition_penalty'], key="align_r")
-        alignments = ['belief', 'memory', 'personality']
-        dfs = []
-        alignment_data = {}
-        for alignment in alignments:
-            file_name = f'{alignment_dir}/{alignment}_results_T{temperature}_P{top_p}_K{top_k}_R{r}.json'
-            if os.path.exists(file_name):
-                try:
-                    with open(file_name, 'r') as f:
-                        data = json.load(f)
-                    alignment_data[alignment] = data
-                    for agent in data.keys():
-                        tmp = pd.DataFrame(data[agent])
-                        if 'evaluation' in tmp.columns:
-                            eval_expanded = tmp['evaluation'].apply(pd.Series)
-                            eval_expanded = eval_expanded.rename(columns={
-                                'score': 'eval_score',
-                                'explanation': 'eval_explanation',
-                                'justification': 'eval_justification'
-                            })
-                            tmp = pd.concat([tmp.drop(columns=['evaluation']), eval_expanded], axis=1)
-                        tmp['agent'] = agent
-                        tmp['alignment'] = alignment
-                        dfs.append(tmp)
-                except (FileNotFoundError, OSError, json.JSONDecodeError):
-                    continue
-    if 'show_align_plots' not in st.session_state:
-        st.session_state['show_align_plots'] = True
-    show_plots = st.checkbox("Show Plots", value=st.session_state['show_align_plots'], key="align_show_plots")
-    st.session_state['show_align_plots'] = show_plots
-    cache_key = f"align_plots_{param_dict['temperature']}_{param_dict['top_p']}_{param_dict['top_k']}_{param_dict['repetition_penalty']}"
-    # Only load/cache when tab is active
-    if dfs and cache_key not in st.session_state:
-        df = pd.concat(dfs, ignore_index=True)
-        df = df[df.eval_score.isin(range(1, 6))]
-        fig = cached_alignment_plots(df)
-        st.session_state[cache_key] = fig
-    fig = st.session_state.get(cache_key)
-    plot_container = st.container()
-    review_container = st.container()
-    if dfs and fig:
-        with plot_container:
-            if show_plots:
-                st.subheader("Score Distributions by Agent and Alignment")
-                st.pyplot(fig)
-        # --- Manual Review ---
-        with review_container:
-            st.markdown("---")
-            st.subheader("Manual Review: Alignment Data")
-            alignment_select = st.selectbox("Select Alignment Type", alignments, key="align_type")
-            if alignment_select in alignment_data:
-                data = alignment_data[alignment_select]
-                speaker_names = list(data.keys())
-                selected_speaker = st.selectbox("Select Agent", speaker_names, key="align_agent")
-                speaker_data = data[selected_speaker]
-                idx_key = f'align_index_{alignment_select}'
-                prev_key = f'align_prev_speaker_{alignment_select}'
-                if idx_key not in st.session_state:
-                    st.session_state[idx_key] = 0
-                if prev_key not in st.session_state:
-                    st.session_state[prev_key] = None
-                if st.session_state[prev_key] != selected_speaker:
-                    st.session_state[idx_key] = 0
-                    st.session_state[prev_key] = selected_speaker
-                def align_go_prev():
-                    st.session_state[idx_key] = (st.session_state[idx_key] - 1) % len(speaker_data)
-                def align_go_next():
-                    st.session_state[idx_key] = (st.session_state[idx_key] + 1) % len(speaker_data)
-                col1, col2, col3 = st.columns([1, 2, 1])
-                with col1:
-                    st.button("Previous", on_click=align_go_prev, key=f"align_prev_button_{alignment_select}")
-                with col2:
-                    st.markdown(f"### Example {st.session_state[idx_key] + 1} of {len(speaker_data)}")
-                with col3:
-                    st.button("Next", on_click=align_go_next, key=f"align_next_button_{alignment_select}")
-                item = speaker_data[st.session_state[idx_key]]
-                st.markdown("#### Input Chunk")
-                st.text_area("Chunk", item.get("chunk", ""), height=100)
-                st.markdown("#### Question")
-                st.text_area("Question", item.get("question", ""), height=80)
-                st.markdown("#### Agent Response")
-                st.text_area("Response", item.get("response", ""), height=80)
-                evaluation = item.get("evaluation", {})
-                if evaluation:
-                    st.markdown("#### GPT Score")
-                    st.write(evaluation.get("score", ""))
-                    st.markdown("#### GPT Explanation")
-                    st.write(evaluation.get("explanation", ""))
+                    item = speaker_data[st.session_state[mono_idx_key]]
+
+                    st.markdown("#### Question")
+                    question = item.get("prompt", "").split('unknownspeaker:')[1].split('<|eot_id|>')[0]
+
+                    st.text_area("Question", question, height=80)
+                    st.markdown("#### A. Agent Response")
+                    st.text_area("Agent Response", item.get("model_responses", "")[0], height=80)
+
+                    st.markdown("#### B. LLaMA‑70B Response")
+                    st.text_area("LLaMA‑70B Response", item.get("gpt_response", ""), height=80)
+
+                    st.markdown("#### Scores")
+                    
+                    judgement = pd.DataFrame(item.get('gpt_judgment'))
+                    filtered_df = judgement[judgement['response_idx'].isin([0, 'gpt'])]
+
+                    def create_markdown_table(df):
+                        md = "| Aspect | Score | Explanation |\n"
+                        md += "|--------|-------|-------------|\n"
+                        for _, row in df.iterrows():
+                            md += f"| **{row['aspect']}** | {row['score']} | {row['explanation']} |\n"
+                        return md
+                    
+                    judgement = pd.DataFrame(item.get('gpt_judgment'))
+                    # Group by response_idx and display each separately
+                    for idx in [0, 'gpt']:
+                        if idx == 0:
+                            name = "Model"
+                        else:
+                            name = 'LLaMA‑70B'
+
+                        st.subheader(f"{name} Response")
+                        sub_df = filtered_df[filtered_df['response_idx'] == idx]
+                        st.markdown(create_markdown_table(sub_df), unsafe_allow_html=True)
+
+                    st.markdown("#### Comparison")
+                    st.write('**Winner:**', item.get("final_comparison", {}).get('winner', 'Error parsing response'))
+                    st.write('**Justification:**', item.get("final_comparison", {}).get('justification', 'Error parsing response'))
                 else:
-                    st.markdown("#### GPT Score")
-                    st.write("")
-                    st.markdown("#### GPT Explanation")
-                    st.write("")
+                    st.warning("⚠️ Could not find the monologue data file.")
+
+
+
+             ########### ALIGNMENT TAB Manual Review ##############
+            if category == "alignment":
+                # --- Manual Review Section for Alignment ---
                 st.markdown("---")
-    else:
-        st.warning("No alignment data found for selected parameters.")
+                st.subheader("Manual Review: Alignment Data")
 
-# --- Tab 5: Votes Analysis ---
-with tabs[4]:
-    st.header("Votes Analysis")
-    votes_file = os.path.join(config_paths['alignment_results'], 'votes.json')
-    if 'show_votes_plots' not in st.session_state:
-        st.session_state['show_votes_plots'] = True
-    show_plots = st.checkbox("Show Plots", value=st.session_state['show_votes_plots'], key="votes_show_plots")
-    st.session_state['show_votes_plots'] = show_plots
-    votes_cache_key = 'votes_plots'
-    # Only load/cache when tab is active
-    if votes_cache_key not in st.session_state:
-        import pandas as pd
-        import matplotlib.ticker as mtick
-        import matplotlib.pyplot as plt
-        import seaborn as sns
-        import json
-        from sklearn.metrics import confusion_matrix
-        if os.path.exists(votes_file):
-            try:
-                with open(votes_file, 'r') as f:
-                    data = json.load(f)
-                df = pd.DataFrame()
-                for agent in data.keys():
-                    tmp = pd.DataFrame(data[agent])
-                    tmp['agent'] = agent
-                    df = pd.concat([df, tmp], ignore_index=True)
-                # Overall accuracy pie
-                df_acc = df.groupby('agent').aggregate({'correct':'mean','true_vote':'count'}).reset_index()
-                total_votes = df_acc['true_vote'].sum()
-                total_correct_votes = (df_acc['correct'] * df_acc['true_vote']).sum()
-                total_incorrect_votes = total_votes - total_correct_votes
-                sizes = [total_correct_votes, total_incorrect_votes]
-                labels = ['Correct', 'Incorrect']
-                colors = ['#4CAF50', '#007ACC']
-                explode = (0.07, 0.07)
-                fig_pie, ax_pie = plt.subplots(figsize=(7.5, 6), dpi=120)
-                wedges, texts, autotexts = ax_pie.pie(
-                    sizes,
-                    explode=explode,
-                    labels=labels,
-                    colors=colors,
-                    autopct='%1.1f%%',
-                    startangle=120,
-                    pctdistance=0.8,
-                    shadow=False,
-                    wedgeprops={'linewidth': 1, 'edgecolor': 'white'}
-                )
-                for text in texts:
-                    text.set_fontsize(12)
-                for autotext in autotexts:
-                    autotext.set_fontsize(11)
-                    autotext.set_color("white")
-                    autotext.set_weight("bold")
-                centre_circle = plt.Circle((0, 0), 0.65, fc='white')
-                fig_pie.gca().add_artist(centre_circle)
-                ax_pie.set_title("Overall Correct vs Incorrect Votes (All Agents)", fontsize=18, weight='bold', pad=30)
-                ax_pie.axis('equal')
-                plt.subplots_adjust(top=0.88, bottom=0.1)
-                # Agent accuracy bar plot
-                fig_bar, ax_bar = plt.subplots(figsize=(12, 7))
-                sns.barplot(
-                    data=df_acc,
-                    x='agent',
-                    y='correct',
-                    color='skyblue',
-                    edgecolor='black',
-                    ax=ax_bar
-                )
-                for i, row in df_acc.iterrows():
-                    ax_bar.text(
-                        i, row['correct'] / 2,
-                        f"{int(row['true_vote'])} votes",
-                        ha='center', va='center',
-                        fontsize=11, fontweight='bold', color='black'
-                    )
-                ax_bar.yaxis.set_major_formatter(mtick.PercentFormatter(1.0))
-                plt.ylim(0, 1.05)
-                plt.xticks(rotation=45, ha='right', fontsize=11)
-                plt.yticks(fontsize=11)
-                plt.ylabel("Correct (%)", fontsize=12)
-                plt.xlabel("Agent", fontsize=12)
-                plt.title("Accuracy of Agent Votes (Total Votes Made)", fontsize=14, fontweight='bold')
-                sns.despine()
-                plt.grid(axis='y', linestyle='--', alpha=0.6)
-                plt.tight_layout()
-                # Confusion matrix
-                true_labels = df['true_vote']
-                pred_labels = df['pred_vote']
-                classes = sorted(pd.concat([true_labels, pred_labels]).unique())
-                from sklearn.metrics import confusion_matrix
-                cm = confusion_matrix(true_labels, pred_labels, labels=classes)
-                fig_cm, ax_cm = plt.subplots(figsize=(8, 6))
-                sns.heatmap(
-                    cm, annot=True, fmt='d', cmap='Blues',
-                    xticklabels=classes, yticklabels=classes,
-                    cbar_kws={'label': 'Count'}, ax=ax_cm
-                )
-                ax_cm.set_xlabel('Predicted Vote', fontsize=12, fontweight='bold')
-                ax_cm.set_ylabel('True Vote', fontsize=12, fontweight='bold')
-                ax_cm.set_title('Confusion Matrix: True Vote vs Predicted Vote', fontsize=16, fontweight='bold')
-                plt.xticks(fontsize=11)
-                plt.yticks(fontsize=11, rotation=0)
-                plt.tight_layout()
-                st.session_state[votes_cache_key] = (fig_pie, fig_bar, fig_cm)
-            except (FileNotFoundError, OSError, json.JSONDecodeError):
-                st.session_state[votes_cache_key] = None
-        else:
-            st.session_state[votes_cache_key] = None
-    figs = st.session_state.get(votes_cache_key)
-    plot_container = st.container()
-    with plot_container:
-        if show_plots and figs and figs[0]:
-            fig_pie, fig_bar, fig_cm = figs
-            st.subheader("Overall Correct vs Incorrect Votes (All Agents)")
-            st.pyplot(fig_pie)
-            st.subheader("Accuracy of Agent Votes (Total Votes Made)")
-            st.pyplot(fig_bar)
-            st.subheader("Confusion Matrix: True Vote vs Predicted Vote")
-            st.pyplot(fig_cm)
-        elif not figs:
-            st.warning(f"No votes data found at {votes_file}")
+                alignment_json_map = {
+                    "Memory Alignment": f"memory_results_{selected_param}.json",
+                    "Belief Alignment": f"belief_results_{selected_param}.json",
+                    "Personality Alignment": f"personality_results_{selected_param}.json"
+                }
 
-# --- Tab 6: Config ---
-with tabs[5]:
-    st.header("Dashboard Configuration")
-    st.markdown("Select a results date to automatically configure all data source paths, or manually override below.")
-    results_root = '/playpen-ssd/smerrill/llm_decisions/results'
-    try:
-        date_folders = [d for d in os.listdir(results_root) if os.path.isdir(os.path.join(results_root, d))]
-        date_folders = sorted(date_folders, reverse=True)
-    except (FileNotFoundError, OSError):
-        date_folders = []
-    # Set default config_paths to first available date if not already set to a results date
-    if date_folders:
-        first_date = date_folders[0]
-        auto_alignment_results = os.path.join(results_root, first_date, 'alignment_results')
-        auto_completion_results = os.path.join(results_root, first_date, 'completion_results')
-        auto_monologue_results = os.path.join(results_root, first_date, 'monologue_results')
-        auto_models_json = os.path.join(results_root, first_date, 'models.json')
-        # Only update if config_paths is still at the hardcoded default
-        default_paths = {
-            'alignment_results': '/playpen-ssd/smerrill/llm_decisions/alignment_results',
-            'completion_results': '/playpen-ssd/smerrill/llm_decisions/completion_results',
-            'monologue_results': '/playpen-ssd/smerrill/llm_decisions/monologue_results',
-            'models_json': '/playpen-ssd/smerrill/llm_decisions/configs/models.json'
-        }
-        if st.session_state['config_paths'] == default_paths:
-            st.session_state['config_paths'] = {
-                'alignment_results': auto_alignment_results,
-                'completion_results': auto_completion_results,
-                'monologue_results': auto_monologue_results,
-                'models_json': auto_models_json
-            }
-        selected_date = st.selectbox("Select Results Date", date_folders, index=0)
-        auto_alignment_results = os.path.join(results_root, selected_date, 'alignment_results')
-        auto_completion_results = os.path.join(results_root, selected_date, 'completion_results')
-        auto_monologue_results = os.path.join(results_root, selected_date, 'monologue_results')
-        auto_models_json = os.path.join(results_root, selected_date, 'models.json')
-        st.markdown(f"**Auto-configured paths for {selected_date}:**")
-        st.text(f"Alignment Results: {auto_alignment_results}")
-        st.text(f"Completion Results: {auto_completion_results}")
-        st.text(f"Monologue Results: {auto_monologue_results}")
-        st.text(f"Models JSON: {auto_models_json}")
-        if st.button("Use Selected Date Paths", key="use_date_paths"):
-            st.session_state['config_paths'] = {
-                'alignment_results': auto_alignment_results,
-                'completion_results': auto_completion_results,
-                'monologue_results': auto_monologue_results,
-                'models_json': auto_models_json
-            }
-            st.success(f"Paths updated to {selected_date}! Switch tabs to reload data.")
-    else:
-        st.warning(f"No results folders found in {results_root}")
-    st.markdown("---")
-    st.markdown("**Models in Current Config:**")
-    models_json_path = st.session_state['config_paths']['models_json']
-    import pandas as pd
-    import re
-    try:
-        with open(models_json_path, 'r') as f:
-            models_config = json.load(f)
-        rows = []
-        for agent, path in models_config.items():
-            # Extract the config string from the path
-            match = re.search(r'/([^/]+?)(_\d+_\d*\.?\d*_\d*e-\d+_\d+)?/merged$', path)
-            if match:
-                config_str = match.group(1) + (match.group(2) if match.group(2) else '')
-            else:
-                config_str = agent
-            parts = config_str.split('_')
-            # Defaults
-            lora_factors = parts[1] if len(parts) > 1 else ''
-            lora_dropout = parts[2] if len(parts) > 2 else ''
-            learning_rate = parts[3] if len(parts) > 3 else '1e-5'
-            train_epochs = parts[4] if len(parts) > 4 else '2'
-            rows.append({
-                'Agent': agent,
-                'LORA_FACTORS': lora_factors,
-                'LORA_DROPOUT': lora_dropout,
-                'LEARNING_RATE': learning_rate,
-                'TRAIN_EPOCHS': train_epochs,
-                'Model Path': path
-            })
-        df_models = pd.DataFrame(rows)
-        st.dataframe(df_models, use_container_width=True)
-    except Exception as e:
-        st.warning(f"Could not load models config from {models_json_path}: {e}")
-    st.markdown("---")
-    st.markdown("**Manual override:**")
-    alignment_results = st.text_input("Alignment Results Directory", value=config_paths['alignment_results'])
-    completion_results = st.text_input("Completion Results Directory", value=config_paths['completion_results'])
-    monologue_results = st.text_input("Monologue Results Directory", value=config_paths['monologue_results'])
-    models_json = st.text_input("Models JSON Path", value=config_paths['models_json'])
-    if st.button("Update Paths", key="update_config_paths"):
-        st.session_state['config_paths'] = {
-            'alignment_results': alignment_results,
-            'completion_results': completion_results,
-            'monologue_results': monologue_results,
-            'models_json': models_json
-        }
-        st.success("Paths updated! Switch tabs to reload data.")
+                alignment_choice = st.selectbox("Select Alignment Dataset", list(alignment_json_map.keys()), key="alignment_dataset")
+                alignment_path = os.path.join(BASE_DIR, selected_experiment, "alignment_results", alignment_json_map[alignment_choice])
+                print(alignment_path)
+                if os.path.exists(alignment_path):
+                    with open(alignment_path, "r") as f:
+                        alignment_data = json.load(f)
+
+                    speaker_names = list(alignment_data.keys())
+                    selected_speaker = st.selectbox("Select Agent", speaker_names, key="align_agent")
+
+                    speaker_data = alignment_data[selected_speaker]
+                    idx_key = f'align_index_{alignment_choice}'
+                    prev_key = f'align_prev_speaker_{alignment_choice}'
+
+                    if idx_key not in st.session_state:
+                        st.session_state[idx_key] = 0
+                    if prev_key not in st.session_state:
+                        st.session_state[prev_key] = None
+                    if st.session_state[prev_key] != selected_speaker:
+                        st.session_state[idx_key] = 0
+                        st.session_state[prev_key] = selected_speaker
+
+                    def align_go_prev():
+                        st.session_state[idx_key] = (st.session_state[idx_key] - 1) % len(speaker_data)
+
+                    def align_go_next():
+                        st.session_state[idx_key] = (st.session_state[idx_key] + 1) % len(speaker_data)
+
+                    col1, col2, col3 = st.columns([1, 2, 1])
+                    with col1:
+                        st.button("⬅️ Previous", on_click=align_go_prev, key=f"align_prev_button_{alignment_choice}")
+                    with col2:
+                        st.markdown(f"### Example {st.session_state[idx_key] + 1} of {len(speaker_data)}")
+                    with col3:
+                        st.button("➡️ Next", on_click=align_go_next, key=f"align_next_button_{alignment_choice}")
+
+                    item = speaker_data[st.session_state[idx_key]]
+                    st.markdown("#### Question")
+                    st.text_area("Question", item.get("question", ""), height=80)
+                    st.markdown("#### A. Agent Response")
+                    st.text_area("Response", item.get("response", ""), height=80)
+                    st.markdown("#### B. LLaMA‑70B Response")
+                    st.text_area("Response", item.get("gpt_response", ""), height=80)
+
+                    st.markdown("#### Scores")
+                    st.write('**Agent response Score:** ' + str(item.get("evaluation_response", {}).get('score', '')))
+                    st.write('\n**Agent response Explanation:** ' + item.get("evaluation_response", {}).get('explanation', ''))
+
+                    st.write('\n\n**LLaMA‑70B response Score:** ' + str(item.get("evaluation_gpt_response", {}).get('score', '')))
+                    st.write('\n**LLaMA‑70B response Explanation:** ' + item.get("evaluation_gpt_response", {}).get('explanation', ''))
+
+                    st.markdown("#### Comparison")
+                    st.write('**Winner:** ' + item.get("final_comparison", {}).get('winner', 'Error parsing response'))
+                    st.write('\n**Justification:** ' + item.get("final_comparison", {}).get('justification', 'Error parsing response'))
+                else:
+                    st.warning("Could not find the selected alignment data file.")
+
+
+        elif category == "Prediction Model Evals":
+            # Example: show multi- and single-speaker model evals, generic/coverage only
+            st.subheader("Multi-Speaker Models")
+            multi_speaker_imgs = [
+                os.path.join(EVALS_DIR, "multi-speaker_scores.png"),
+                os.path.join(EVALS_DIR, "multi-speaker_cm.png"),
+            ]
+            display_carousel(multi_speaker_imgs, "multi_speaker_eval")
+            st.markdown("---")
+            st.subheader("Single-Speaker Models")
+            single_speaker_imgs = [
+                os.path.join(EVALS_DIR, "single-speaker_scores.png"),
+                os.path.join(EVALS_DIR, "single-speaker_cm.png"),
+            ]
+            display_carousel(single_speaker_imgs, "single_speaker_eval")

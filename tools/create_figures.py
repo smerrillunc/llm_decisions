@@ -11,6 +11,7 @@ from sklearn.metrics import precision_recall_fscore_support, accuracy_score, con
 from torch.utils.data import TensorDataset, DataLoader
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 import warnings
+import re
 warnings.filterwarnings('ignore')
 
 
@@ -30,7 +31,7 @@ def compute_agent_win_rates(df, min_comparisons=10):
     return summary.sort_values('win_rate', ascending=False)
 
 
-def plot_violin_scores_agent(judgement_df, save_path=None):
+def plot_violin_scores_agent(judgement_df, dataset, save_path=None):
     """
     Plots violin plots of score distributions across aspects for each agent (including GPT) in a 4x2 grid.
     Scores are clipped to the range [0, 5].
@@ -87,14 +88,14 @@ def plot_violin_scores_agent(judgement_df, save_path=None):
     for j in range(i + 1, rows * cols):
         fig.delaxes(axes[j])
 
-    fig.suptitle('Score Distributions Across Aspects by Agent', fontsize=20)
+    fig.suptitle(f'Score Distributions Across Aspects by Agent: Dataset {dataset}', fontsize=20)
     plt.tight_layout(rect=[0, 0, 1, 0.97])
 
     if save_path:
-        plt.savefig(save_path, dpi=300)
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.show()
     
-def plot_violin_scores_model_vs_gpt(judgement_df, save_path=None):
+def plot_violin_scores_model_vs_gpt(judgement_df, dataset, save_path=None):
     """
     Plots violin plots comparing aggregated model scores vs GPT scores across aspects.
     Model scores are aggregated over agents by taking max score per example and aspect.
@@ -131,7 +132,7 @@ def plot_violin_scores_model_vs_gpt(judgement_df, save_path=None):
     plt.figure(figsize=(12, 6))
     sns.violinplot(data=combined, x='aspect', y='score', hue='agent', palette='pastel', split=True, inner='quartile')
 
-    plt.title('Score Distributions by Aspect: Model Aggregate vs Llama-70B', fontsize=16)
+    plt.title(f'Score Distributions Model Aggregate vs Llama-70B: Dataset {dataset}', fontsize=16)
     plt.xlabel('Aspect', fontsize=12)
     plt.ylabel('Score', fontsize=12)
     plt.ylim(0, 5)
@@ -141,18 +142,18 @@ def plot_violin_scores_model_vs_gpt(judgement_df, save_path=None):
     plt.tight_layout()
 
     if save_path:
-        plt.savefig(save_path, dpi=300)
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
 
     plt.show()
 
 
 
-def plot_win_rate_pie(finetuned_win_rate, gpt_win_rate, save_path=None):
+def plot_win_rate_pie(finetuned_win_rate, gpt_win_rate, dataset, save_path=None):
     total = finetuned_win_rate + gpt_win_rate
     if total == 0:
         return
     sizes = [finetuned_win_rate / total, gpt_win_rate / total]
-    labels = ['Fine-tuned Model', 'GPT']
+    labels = ['Fine-tuned Model', 'Llama-70B']
     colors = ['#4CAF50', '#007ACC']
     explode = (0.07, 0.07)
     fig, ax = plt.subplots(figsize=(7.5, 6), dpi=120)
@@ -175,14 +176,14 @@ def plot_win_rate_pie(finetuned_win_rate, gpt_win_rate, save_path=None):
         autotext.set_weight("bold")
     centre_circle = plt.Circle((0, 0), 0.65, fc='white')
     fig.gca().add_artist(centre_circle)
-    ax.set_title("Win Rate vs. GPT", fontsize=18, weight='bold', pad=30)
+    ax.set_title(f"Win Rate vs. Llama-70B: Dataset {dataset}", fontsize=18, weight='bold', pad=30)
     ax.axis('equal')
     plt.subplots_adjust(top=0.88, bottom=0.1)
     if save_path:
-        plt.savefig(save_path)
+        plt.savefig(save_path, bbox_inches='tight')
     plt.close()
 
-def plot_agent_win_rates(df, save_path=None):
+def plot_agent_win_rates(df, dataset, save_path=None):
     import matplotlib.ticker as mtick
 
     summary = compute_agent_win_rates(df).reset_index()
@@ -201,7 +202,7 @@ def plot_agent_win_rates(df, save_path=None):
     plt.yticks(fontsize=11)
     plt.ylabel("Win Rate (%)", fontsize=12)
     plt.xlabel("Agent", fontsize=12)
-    plt.title("Agent Win Rates (Total Comparisons Shown)", fontsize=14, fontweight='bold')
+    plt.title(f"Agent Win Rates (Total Comparisons Shown): Dataset {dataset}", fontsize=14, fontweight='bold')
     sns.despine()
     plt.grid(axis='y', linestyle='--', alpha=0.6)
     plt.tight_layout()
@@ -461,7 +462,7 @@ def multi_speaker_comparison(metrics_df, save_path):
     plt.xlabel("Dataset")
     plt.legend(title="Metric")
     plt.tight_layout()
-    plt.savefig(save_path)
+    plt.savefig(save_path, bbox_inches='tight')
     plt.close()
     
 
@@ -505,7 +506,7 @@ def multi_speaker_comparison_agent(metrics_df, dataset_label, min_count=20, save
     plt.tight_layout()
 
     if save_path:
-        plt.savefig(save_path, dpi=300)
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.show()
 
 
@@ -541,8 +542,7 @@ def classify_batch(texts, speaker, threshold=0.5, batch_size=32):
 def evaluate_fool_rate(df, agent_name, threshold=0.5):
     available_cols = {
         "Model": "model_response",
-        "GPT": "gpt_response",
-        "TrueCompletion": "true_completion"
+        "Llama-70B": "gpt_response",
     }
     present_cols = {k: v for k, v in available_cols.items() if v in df.columns}
     if not present_cols:
@@ -564,7 +564,7 @@ def evaluate_all_fool_rates(df, target_names, threshold=0.5, min_samples=10):
     for agent in target_names:
         try:
             tmp = df[df["agent_name"] == agent]
-            available_cols = [col for col in ["model_response", "gpt_response", "true_completion"] if col in tmp.columns]
+            available_cols = [col for col in ["model_response", "gpt_response"] if col in tmp.columns]
             tmp = tmp.dropna(subset=available_cols)
             n = len(tmp)
             if n < min_samples:
@@ -720,41 +720,6 @@ def get_votes_df(file_name):
         df = pd.concat([df, tmp], ignore_index=True)
     return df
 
-def plot_win_rate_pie(finetuned_win_rate, gpt_win_rate, save_path=None):
-    total = finetuned_win_rate + gpt_win_rate
-    if total == 0:
-        return
-    sizes = [finetuned_win_rate / total, gpt_win_rate / total]
-    labels = ['Fine-tuned Model', 'GPT']
-    colors = ['#4CAF50', '#007ACC']
-    explode = (0.07, 0.07)
-    fig, ax = plt.subplots(figsize=(7.5, 6), dpi=120)
-    wedges, texts, autotexts = ax.pie(
-        sizes,
-        explode=explode,
-        labels=labels,
-        colors=colors,
-        autopct='%1.1f%%',
-        startangle=120,
-        pctdistance=0.8,
-        shadow=False,
-        wedgeprops={'linewidth': 1, 'edgecolor': 'white'}
-    )
-    for text in texts:
-        text.set_fontsize(12)
-    for autotext in autotexts:
-        autotext.set_fontsize(11)
-        autotext.set_color("white")
-        autotext.set_weight("bold")
-    centre_circle = plt.Circle((0, 0), 0.65, fc='white')
-    fig.gca().add_artist(centre_circle)
-    ax.set_title("Fine-Tuned Win Rate vs. Llama-70B", fontsize=18, weight='bold', pad=30)
-    ax.axis('equal')
-    plt.subplots_adjust(top=0.88, bottom=0.1)
-    if save_path:
-        plt.savefig(save_path)
-    plt.close()
-
 
 def plot_model_win_rates(completion_df, monologue_df, belief_df, memory_df, personality_df,
                          save_path='model_win_rates_barplot.png'):
@@ -810,7 +775,7 @@ def plot_model_win_rates(completion_df, monologue_df, belief_df, memory_df, pers
     ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda y, _: f'{y:.0%}'))
 
     plt.tight_layout()
-    plt.savefig(save_path, dpi=300)
+    plt.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.show()
 
 def evaluate_fool_rate_by_dataset(df, dataset_name, threshold=0.5, min_samples=10):
@@ -1032,9 +997,7 @@ def main():
         os.makedirs(os.path.join(param_dir, 'votes'), exist_ok=True)
         os.makedirs(os.path.join(param_dir, 'completion'), exist_ok=True)
         os.makedirs(os.path.join(param_dir, 'monologue'), exist_ok=True)
-        os.makedirs(os.path.join(param_dir, 'belief'), exist_ok=True)
-        os.makedirs(os.path.join(param_dir, 'memory'), exist_ok=True)
-        os.makedirs(os.path.join(param_dir, 'personality'), exist_ok=True)
+        os.makedirs(os.path.join(param_dir, 'alignment'), exist_ok=True)
         os.makedirs(os.path.join(param_dir, 'multi-speaker'), exist_ok=True)
         os.makedirs(os.path.join(param_dir, 'single-speaker'), exist_ok=True)
 
@@ -1059,6 +1022,14 @@ def main():
                 print(f"[ERROR] Votes accuracy by agent failed for param set {temperature},{top_p},{top_k},{r}: {e}")
 
 
+        # save to summary tab
+        try:
+            plot_model_win_rates(completion_df, monologue_df, belief_df, memory_df, personality_df,
+                                save_path=os.path.join(param_dir, 'completion', f'model_win_rate.png'))
+        except Exception as e:
+            print(f"[DEBUG] Failed to plot model win rates: {type(e).__name__}: {e}")
+
+
 
 
         # Speaker prediction models
@@ -1070,26 +1041,22 @@ def main():
         ID2SPEAKER = {v: k for k, v in SPEAKER2ID.items()}
 
         # Predict and add columns for each dataframe
-        names = ['completion', 'monologue', 'belief', 'memory', 'personality']
+        datasets = ['Completion', 'Monologue', 'Belief', 'Memory', 'Personality']
+        save_dirs = ['completion', 'monologue', 'alignment', 'alignment', 'alignment']
         for i, df in enumerate([completion_df, monologue_df, belief_df, memory_df, personality_df]):
-            name = names[i]
+            dataset = datasets[i]
+            save_dir = save_dirs[i]
             try:
                 tmp = df[df.winner.isin(['A', 'B'])].groupby('winner').count()/len(df)
                 model_win = tmp[tmp.index == 'A'].values[0,0]
                 gpt_win = tmp[tmp.index == 'B'].values[0,0]
-                plot_win_rate_pie(model_win, gpt_win, save_path=os.path.join(param_dir, name, f'overall_win_rate.png'))
+                plot_win_rate_pie(model_win, gpt_win, dataset, save_path=os.path.join(param_dir, save_dir, f'{dataset}_overall_win_rate.png'))
             except Exception as e:
-                print(f"[DEBUG][{name.upper()}][{param_dir}] Failed to plot win rate pie (model vs gpt): {type(e).__name__}: {e}")
+                print(f"[DEBUG][{dataset.upper()}][{param_dir}] Failed to plot win rate pie (model vs gpt): {type(e).__name__}: {e}")
             try:
-                plot_agent_win_rates(df, save_path=os.path.join(param_dir, name, f'agent_win_rate.png'))
+                plot_agent_win_rates(df, dataset, save_path=os.path.join(param_dir, save_dir, f'{dataset}_agent_win_rate.png'))
             except Exception as e:
-                print(f"[DEBUG][{name.upper()}][{param_dir}] Failed to plot agent win rates: {type(e).__name__}: {e}")
-            try:
-                plot_model_win_rates(completion_df, monologue_df, belief_df, memory_df, personality_df,
-                                 save_path=os.path.join(param_dir, name, f'model_win_rate.png'))
-            except Exception as e:
-                print(f"[DEBUG][{name.upper()}][{param_dir}] Failed to plot model win rates: {type(e).__name__}: {e}")
-
+                print(f"[DEBUG][{dataset.upper()}][{param_dir}] Failed to plot agent win rates: {type(e).__name__}: {e}")
             try:
                 if i > 1:
                     tmp1 = make_judgment_df(belief_df)
@@ -1101,30 +1068,28 @@ def main():
                     alignment = pd.concat([tmp1, tmp2, tmp3])
                     alignment = alignment.dropna(subset=['score'])
                     try:
-                        plot_violin_scores_agent(alignment,  save_path=os.path.join(param_dir, name, 'agent_violin.png'))
+                        plot_violin_scores_agent(alignment, dataset, save_path=os.path.join(param_dir, save_dir, 'agent_violin.png'))
                     except Exception as e2:
-                        print(f"[DEBUG][{name.upper()}][{param_dir}] Failed to plot agent violin (alignment): {type(e2).__name__}: {e2}")
+                        print(f"[DEBUG][{dataset.upper()}][{param_dir}] Failed to plot agent violin (alignment): {type(e2).__name__}: {e2}")
 
                     try:
-                        plot_violin_scores_model_vs_gpt(alignment,  save_path=os.path.join(param_dir, name, 'violin_compare.png'))
+                        plot_violin_scores_model_vs_gpt(alignment, dataset, save_path=os.path.join(param_dir, save_dir, 'violin_compare.png'))
                     except Exception as e2:
-                        print(f"[DEBUG][{name.upper()}][{param_dir}] Failed to plot violin compare (alignment): {type(e2).__name__}: {e2}")
+                        print(f"[DEBUG][{dataset.upper()}][{param_dir}] Failed to plot violin compare (alignment): {type(e2).__name__}: {e2}")
 
                 else:
                     judgement_df = make_judgment_df(df)
                     try:
-                        plot_violin_scores_agent(judgement_df, save_path=os.path.join(param_dir, name, 'agent_violin.png'))
+                        plot_violin_scores_agent(judgement_df, dataset, save_path=os.path.join(param_dir, save_dir, 'agent_violin.png'))
                     except Exception as e2:
-                        print(f"[DEBUG][{name.upper()}][{param_dir}] Failed to plot agent violin: {type(e2).__name__}: {e2}")
+                        print(f"[DEBUG][{dataset.upper()}][{param_dir}] Failed to plot agent violin: {type(e2).__name__}: {e2}")
                     try:
-                        plot_violin_scores_model_vs_gpt(judgement_df,  save_path=os.path.join(param_dir, name, 'violin_compare.png'))
+                        plot_violin_scores_model_vs_gpt(judgement_df, dataset, save_path=os.path.join(param_dir, save_dir, 'violin_compare.png'))
                     except Exception as e2:
-                        print(f"[DEBUG][{name.upper()}][{param_dir}] Failed to plot violin compare: {type(e2).__name__}: {e2}")
+                        print(f"[DEBUG][{dataset.upper()}][{param_dir}] Failed to plot violin compare: {type(e2).__name__}: {e2}")
 
             except Exception as e:
-                print(f"[DEBUG][{name.upper()}][{param_dir}] Failed to make judgment df or plot violins: {type(e).__name__}: {e}")
-            
-            
+                print(f"[DEBUG][{dataset.upper()}][{param_dir}] Failed to make judgment df or plot violins: {type(e).__name__}: {e}")
             
             
             
