@@ -603,7 +603,7 @@ def plot_fool_rates(result_df, name, output_path, min_samples=10):
     plt.legend(title="Response Type")
     plt.xticks(rotation=45)
     plt.tight_layout()
-    plt.savefig(output_path)
+    plt.savefig(output_path, bbox_inches='tight')
     plt.close()
 
 def extract_params_from_filenames(directory):
@@ -653,7 +653,7 @@ def plot_votes_accuracy_by_agent(df_, output_dir):
     sns.despine()
     plt.grid(axis='y', linestyle='--', alpha=0.6)
     plt.tight_layout()
-    plt.savefig(os.path.join(output_dir, 'votes_accuracy_by_agent.png'))
+    plt.savefig(os.path.join(output_dir, 'votes_accuracy_by_agent.png'), bbox_inches='tight')
     plt.close()
 
 def plot_votes_accuracy(df_, output_dir):
@@ -690,7 +690,7 @@ def plot_votes_accuracy(df_, output_dir):
     ax.set_title("Overall Correct vs Incorrect Votes (All Agents)", fontsize=18, weight='bold', pad=30)
     ax.axis('equal')
     plt.subplots_adjust(top=0.88, bottom=0.1)
-    plt.savefig(os.path.join(output_dir, 'votes_accuracy_pie.png'))
+    plt.savefig(os.path.join(output_dir, 'votes_accuracy_pie.png'), bbox_inches='tight')
     plt.close()
 
 def plot_votes_CM(df_, output_dir):
@@ -707,7 +707,7 @@ def plot_votes_CM(df_, output_dir):
     plt.xticks(fontsize=11)
     plt.yticks(fontsize=11, rotation=0)
     plt.tight_layout()
-    plt.savefig(os.path.join(output_dir, 'votes_confusion_matrix.png'))
+    plt.savefig(os.path.join(output_dir, 'votes_confusion_matrix.png'), bbox_inches='tight')
     plt.close()
 
 def get_votes_df(file_name):
@@ -836,7 +836,7 @@ def plot_fool_rates_by_agent(tmp_df, output_path=None):
     plt.tight_layout()
 
     if output_path:
-        plt.savefig(output_path, dpi=300)
+        plt.savefig(output_path, dpi=300, bbox_inches='tight')
     plt.show()
     
 def plot_fool_rates_by_dataset(tmp_df, output_path=None):
@@ -864,15 +864,15 @@ def plot_fool_rates_by_dataset(tmp_df, output_path=None):
         palette="Set2"
     )
     plt.ylim(0, 1)
-    plt.title("Weighted Fool Rate per Dataset")
-    plt.ylabel("Weighted Fool Rate")
+    plt.title("Fool Rate per Dataset")
+    plt.ylabel("Fool Rate")
     plt.xlabel("Dataset")
     plt.xticks(rotation=15)
     plt.legend(title="Response Type")
     plt.tight_layout()
 
     if output_path:
-        plt.savefig(output_path, dpi=300)
+        plt.savefig(output_path, dpi=300, bbox_inches='tight')
     plt.show()
 
 
@@ -1209,4 +1209,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main()    
