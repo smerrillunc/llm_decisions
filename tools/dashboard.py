@@ -141,6 +141,22 @@ This section summarizes test set validation performance of the Single-Speaker an
 
 - **Evaluation**: Aggregates confusion matrices, score distributions, and classifier performance across all speaker modeling experiments.
 """,
+'next-speaker-prediction': """
+### Next Speaker Prediction
+
+-  **Goal**: To use these fine-tuned models in a simulation setting, we need a way to decide the next speaker.  To do this we try to come up with a next speaker prediction model.
+- **Feature Set**: Includes previous k speakers, speaker turn percentages, speaker streaks, unique speaker counts, Markov transition probabilities, and recency decay weights.
+- **Models Evaluated**:
+  1. **Random Forest**: Tuned via RandomizedSearchCV; evaluated on top-K accuracy and F1 scores.
+  2. **Logistic Regression**: Class-balanced training; hyperparameter tuning; standard classification metrics.
+  3. **XGBoost**: Label encoded; handles class imbalance with sample weights; RandomizedSearchCV tuning.
+  4. **LightGBM**: Hyperparameter tuning; evaluated similarly to others.
+  5. **Order-1 Markov Model**: Learns P(next_speaker | prev_speaker); uses transition matrices; fallback to uniform distribution for unseen transitions.
+  6. **Higher-Order Markov Model**: Learns P(next_speaker | last n speakers); configurable order n; evaluated with top-K and F1.
+- **Evaluation Metrics**: Top-K accuracy, Precision, Recall, Macro/Micro/Weighted F1 scores.
+
+
+"""
 }
 
 # --- GENERIC IMAGE CAPTIONS ---
@@ -192,7 +208,7 @@ def get_categories(param_set):
     ]
     path = os.path.join(FIGURES_DIR, param_set)
     existing = [d for d in os.listdir(path) if os.path.isdir(os.path.join(path, d))]
-    return ['overview'] + [d for d in desired_order if d in existing]
+    return ['overview'] + [d for d in desired_order if d in existing] + ['next-speaker-prediction']
 
 def get_image_files(param_set, category):
     folder = os.path.join(FIGURES_DIR, param_set, category)
@@ -572,3 +588,20 @@ for tab, category in zip(tabs, categories):
                 os.path.join(EVALS_DIR, "single-speaker_cm.png"),
             ]
             display_carousel(single_speaker_imgs, "single_speaker_eval")
+
+        elif category == "next-speaker-prediction":
+            st.markdown("### Next Speaker Prediction Results")
+
+            next_pred_dir = os.path.join(BASE_DIR, "next_speaker_pred")
+            if os.path.exists(next_pred_dir):
+                images = [
+                    os.path.join(next_pred_dir, f) 
+                    for f in sorted(os.listdir(next_pred_dir)) 
+                    if f.lower().endswith((".png", ".jpg", ".jpeg", ".gif"))
+                ]
+                if not images:
+                    st.info("No images found in Next Speaker Prediction directory.")
+                else:
+                    display_carousel(images, "next_speaker_prediction")
+            else:
+                st.warning("Next Speaker Prediction images directory not found.")
