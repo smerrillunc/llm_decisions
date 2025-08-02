@@ -1,0 +1,862 @@
+{
+  "kateacuff": [
+    {
+      "question": "Do you think the Albemarle County School Board approve the purchase of property A?",
+      "true_vote": "Naye",
+      "pred_vote": "Aye",
+      "completion": "I believe that purchasing Property A would provide an opportunity to develop facilities in a growing area of the county. It's proximity to schools with overcrowding issues presents potential solutions. Nonetheless, it remains crucial for us to weigh these advantages against its environmental impact and the costs associated with site preparation, infrastructure upgrades, and construction.\n\nAfter careful consideration, it seems reasonable to pursue this option given its strategic location.\n\nFinal Vote: Aye.",
+      "correct": false,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the Albemarle County School Board institute public sector collective bargaining in accordance with Virginia Code \u00a7 40.1-57.2, as presented by the Albemarle Education Association?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "Collective bargaining can give teachers more autonomy over their working conditions and fair compensation. It's essential that educators feel supported so they may focus on providing high-quality education. Additionally, it aligns with state law, which provides us guidance and framework.\n\nHowever, I do want assurances from administration about implementation logistics, potential costs involved, and how negotiations would occur between parties.\n\nAfter considering both sides, I believe giving educators an official voice through collective bargaining ultimately strengthens our schools.\n\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think we should approve a motion to match the bus driver salary of Charlottesville City at $21/hour?",
+      "true_vote": "Naye",
+      "pred_vote": "Aye",
+      "completion": "First, I want to acknowledge that attracting quality drivers has been challenging in recent years due primarily to low wages. We've seen many resignations which negatively impact transportation services, so it's crucial that we act now.\n\nSecondly, matching Charlottesville City Schools' rate sends a clear message about valuing these vital employees. With an increased wage, we can attract more qualified candidates, retain existing staff members, improve morale, and ultimately better serve families relying on reliable transport options.\n\nHowever, there may be concerns over potential costs associated with increasing salaries without knowing how they'll affect future budgets. It would help if the administration provides some guidance regarding possible adjustments to balance out expenses elsewhere within the system.\n\nAfter considering both sides, investing in our dedicated bus drivers seems worthwhile given their significant role in maintaining safety while transporting children daily.\n\nFinal Vote: Aye.",
+      "correct": false,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the School Board should approve the recommendation of the Superintendent to move to Stage Four of the return-to-school plan, with the start date changed to March 15?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "In making my decision, I'll weigh both health concerns and educational considerations.\n\nFirstly, it's crucial that we ensure all necessary safety measures remain in place amid the ongoing pandemic.\n\nGiven recent trends indicating stabilization of case numbers, alongside continued adherence to protocols and vaccination efforts progressing satisfactorily, I believe proceeding cautiously toward full reopening seems reasonable at this point.\n\nThe revised timeline aligns well with upcoming spring breaks, allowing us an opportunity to further assess readiness prior to resuming classes fully.\n\nAfter balancing competing factors, I am convinced that moving forward under these circumstances would benefit our community while maintaining vigilance around public health risks.\n\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the school board should approve the motion to send out a student survey?",
+      "true_vote": "Naye",
+      "pred_vote": "Aye",
+      "completion": "I believe that conducting a student survey can help us better understand their perspectives, experiences, and concerns about our educational environment. This information would allow administrators to make more informed decisions when addressing areas like mental health resources, academic offerings, and extracurricular activities.\n\nI'd want assurance that any personal data collected remains confidential and anonymous responses allowed if desired. We should establish clear guidelines regarding how results will be shared with stakeholders.\n\nThe potential insights gained from engaging directly with students justify proceeding cautiously in this endeavor.\n\nFinal Vote: Aye.",
+      "correct": false,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the School Board should authorize School Board Attorney, Ross Holden, to work with the Boys and Girls Club to move the site to the preferred location of the driver's range and to come back to the Board?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "I understand that relocating the Boys and Girls Club site can benefit both parties involved. By working together, we may find an optimal solution that meets everyone's interests.\n\nHowever, it seems essential to involve other stakeholders in the decision-making process, such as parents, teachers, and local authorities. Their input would help ensure any changes align with community values and goals.\n\nAdditionally, there might be unforeseen challenges associated with moving the club to the preferred location at the driver's range. It'd be wise to assess these potential hurdles beforehand.\n\nConsidering all factors, collaborating with Mr. Holden appears reasonable if he agrees to engage various stakeholders throughout the negotiation process.\n\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think we should approve the Schematic Design of the new Southern Feeder Pattern Elementary School and direct staff to proceed to the Design Development phase?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "I believe that approving the schematic design would allow us to move forward with the project in an efficient manner.  It's been well-vetted through community input sessions and has incorporated feedback from stakeholders including parents, teachers, and administrators.  \n\nWhile there may still be some concerns regarding traffic flow at drop-off/pickup areas, these can likely be addressed during the subsequent phases without major changes.\n\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the Albemarle County School Board should move forward with the purchase of property A?",
+      "true_vote": "Naye",
+      "pred_vote": "Naye",
+      "completion": "We've had several discussions about securing more space for future growth in our district, but I still have concerns regarding accessibility and transportation at Property A compared to alternative sites. While it does meet some criteria from an infrastructure perspective, its location may not serve all parts of our community equally well.\n\nBefore making such a significant investment, I would like further analysis comparing different properties against factors that align closely with our strategic vision for facilities planning.\n\nFinal Vote: Naye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the direct staff should work towards allowing public comment to sign up at board meetings?",
+      "true_vote": "Naye",
+      "pred_vote": "Aye",
+      "completion": "Allowing community members to participate in the decision-making process can foster transparency and trust within our district. It would increase accountability while providing an opportunity for parents, teachers, and other stakeholders to voice their concerns directly.\n\nHowever, implementing such a system may require some adjustments to meeting formats and time management strategies.\n\nFinal Vote: Aye.",
+      "correct": false,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think we should approve a school board funding scenario that removes funding for school resource officers?",
+      "true_vote": "Naye",
+      "pred_vote": "Naye",
+      "completion": "I understand there may be concerns about SROs in schools. Nevertheless, they contribute significantly to maintaining safety within our institutions while fostering positive relationships with law enforcement agencies.\n\nHowever, it's crucial to weigh their value against other priorities. Considering recent incidents, I believe having trained professionals available during school hours remains essential.\n\nWe can discuss potential adjustments but completely removing them isn't justified at present.\n\nFinal Vote: Naye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the School Board should approve a modified funding scenario of $284,699,140 in Operating Funds and $28,439,082 in Special Revenue Funds in Fiscal Year 26?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "I understand that this revised budget proposal includes reductions from earlier drafts but still addresses critical areas such as staff compensation, new teacher hires, technology infrastructure upgrades, and security measures. These investments can improve overall educational experiences while acknowledging fiscal responsibility.\n\nBefore making my decision, I want to ensure that we've considered alternative scenarios and explored potential future risks associated with these allocations.\n\nAfter careful consideration, I believe this allocation provides necessary resources without overburdening taxpayers.\n\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think we should deny the petition to grant an additional year of pre-school during the 2024-2025 school year to Student A?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "This decision seems more complex than it initially appears because each case has its unique circumstances. I'd like clarification from staff members regarding both Student A's academic progress and any available resources that might address their specific requirements effectively.\n\nkateacuff: In light of information provided about Student A's growth potential with additional support in early education, my primary concern remains ensuring fair treatment across all students while not creating unintended consequences elsewhere within the system.\n\nkateacuff: While considering every angle carefully, my final verdict leans towards prioritizing equality among students over granting special exceptions without broader policy changes.\n\nkateacuff: Final Vote: Naye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the word \"classroom\" should be inserted in front of \"practices\" in the first SMART Goal?",
+      "true_vote": "Naye",
+      "pred_vote": "Aye",
+      "completion": "In reviewing that goal, I believe adding 'classroom' clarifies how instructional strategies align with district standards.\n\nThis change provides more specificity regarding teacher practices within classroom settings.\n\nFinal Vote: Aye.",
+      "correct": false,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think we should use money earmarked for bond referendum projects to fund the construction of parking spaces at Western Albemarle, a project not included in the original bond referendum?",
+      "true_vote": "Aye",
+      "pred_vote": "Naye",
+      "completion": "Using the bond referendum funding would divert monies from other approved capital improvement initiatives that voters were led to believe their tax dollars supported when they voted affirmatively on the referendum. We must respect voter intent. \n\nMoreover, adding an unapproved item may undermine trust between our constituents and us. In times of financial constraint, it's essential to prioritize and honor commitments made during the initial campaign process.\n\nThe addition of parking spots might serve local interests but could compromise credibility with taxpayers if done without proper public input, discussion, and consent. It seems more suitable for consideration within regular operating budgets rather than reallocating specific bond funds designated for particular purposes.\n\nFinal Vote: Naye.",
+      "correct": false,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think we should adopt the Superintendent\u2019s recommendation for redistricting and discuss grandfathering separately?",
+      "true_vote": "Aye",
+      "pred_vote": "Naye",
+      "completion": "Before making any decisions about adopting the superintendent's proposal, I want to review more data regarding how it would impact our schools in terms of demographics and class size distribution. Additionally, discussing grandfathering options without knowing what boundaries they apply to may lead to confusion.\n\nI propose that these two issues be discussed together so that all stakeholders understand both aspects clearly.\n\nFinal Vote: Naye.",
+      "correct": false,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think we should approve the proposed fiscal year 17-18 one-time funding in the amount of $1.39 million?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "I understand that approving such an allocation requires careful consideration. While it may put pressure on future budgets, these funds would allow us to implement valuable initiatives like teacher training, security upgrades, and infrastructure improvements.\n\nI believe investing in education now can yield positive returns over time through enhanced educational outcomes and increased property values.\n\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the salary for School Board members for 2018-2019 should be set at $6,752 with a chairman stipend of $1,800 per year and a vice-chairman stipend?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "Before making my decision, I would like more information about how these figures were arrived at and if they align with regional standards. It's crucial that compensation reflects their responsibilities without overburdening taxpayers. \n\nI believe in fair pay but fiscal responsibility too; however, given no other alternatives presented, it seems reasonable based upon what has been shared so far. \n\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the motion to reconsider the motion on resolution for ratification of purchases be approved?",
+      "true_vote": "Aye",
+      "pred_vote": "Naye",
+      "completion": "In order to make an informed decision here, I would like more information about what specific purchase resolutions were previously ratified that now require reevaluation.\n\nkateacuff: If there has been no new data presented since their initial approval, then it seems unnecessary to reopen these matters at present time. On the other hand, if some unforeseen issue has arisen related to those items, then maybe further discussion should take place.\n\nkateacuff: There isn't enough context provided to fully understand the implications behind reopening previous approvals.\n\nkateacuff: Therefore, based upon my lack of understanding regarding any changes in circumstances surrounding the original decisions, I do not see value in revisiting them without substantial cause.\n\nkateacuff: Final Vote: Naye.",
+      "correct": false,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the school board should hold a public hearing on May 25, 2017 to receive public comment regarding the consolidation of schools and options available regarding the operation of Benjamin F. Yancey Elementary School?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "As we discuss consolidating schools, it's essential that we hear directly from members of the community - especially those impacted by potential changes at Benjamin F. Yancey Elementary School. \n\nHolding a public hearing would allow us to engage in open dialogue with stakeholders, address concerns, gather feedback, and explore viable solutions together. Transparency and collaboration are crucial during times of change.\n\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the school board should consolidate Yancey Elementary School into Red Hill and Scottsville Elementary Schools effective at the end of the 2016-2017 school year, with Yancey students?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "Consolidating schools always presents challenges; however, there may not be any other option due to declining enrollment numbers in recent years. In such cases, it's crucial that decisions prioritize both financial prudence and what's best for all stakeholders involved - including teachers, parents, and most importantly, children.\n\nWe've heard concerns about maintaining community identity tied closely to individual elementary institutions. I'm sensitive towards these sentiments but cannot disregard fiscal realities and potential academic gains from consolidation. It appears necessary steps would ensure a seamless transition for affected families while preserving valuable resources.\n\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the school board should approve the motion to modernize the four existing high schools and build two new high school centers in a phased manner, while continuing to monitor population growth in the County?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "I understand that updating infrastructure and accommodating growing populations can significantly impact educational experiences. It's essential to assess if our facilities align with the changing demographics within our district.\n\nOur analysis indicates an expected 20% increase over five years; thus, it would make sense to proactively plan ahead rather than waiting until overcrowding becomes more critical.\n\nHowever, phasing out construction projects may lead to some logistical challenges and potential inconsistencies across different campuses during transition periods.\n\nOn balance, investing now in modernizing facilities ultimately serves both short- and long-term interests.\n\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the school board should adopt an operational budget for fiscal year 2016/17 of $172,672,938 and a special revenue fund budget of $17,946,303?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "Before I make my decision, let me review these figures in context with last year's budgets. We've seen a modest increase from FY15-16, which suggests that administrative costs are being managed effectively.\n\nI appreciate how these allocations prioritize instructional resources while maintaining existing programs without sacrificing essential services. It seems like prudent financial planning given available funding sources.\n\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the School Board should approve the bond resolution as provided by staff and send it to the Board of Supervisors?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "Before I make my decision, I would like clarification from the administration regarding how these bonds will specifically address the pressing infrastructure issues within our schools, such as outdated classrooms, overcrowding, and safety concerns. \n\nBased upon what has been presented thus far, investing in essential upgrades that directly impact learning environments aligns with our mission to ensure an optimal educational experience.\n\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the school board should approve a motion not to redistrict any of the Albemarle High School population as presented by the committee or Superintendent?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "Before making my decision, I would like more information about how approving such a measure might affect other schools in the district. \n\nHowever, since it's clear that there were no objections from residents living within these zones during public hearings, the lack of resistance suggests an absence of significant opposition. This factor weighs heavily on me.\n\nIn conclusion, considering all available data points, I believe maintaining status quo with regard to attendance boundaries may offer stability at present time while allowing us flexibility moving forward if needed.\n\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the school board should allocate $359,219 from available fund balance to make the teacher salary compensation increase for the entire year?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "Teacher salaries do require attention. I believe investing in staff satisfaction has positive implications for both educators and their students.\n\nThe allocation amount seems reasonable considering it's sourced from existing reserves rather than an increased burden upon taxpayers. Given that our teachers play such pivotal roles within our schools, I can confidently back this proposal.\n\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the school board should approve a salary of $6,363 per year with a chairman stipend of $1,800 and a vice-chairman stipend of $35 per meeting chaired?",
+      "true_vote": "Aye",
+      "pred_vote": "Naye",
+      "completion": "I understand that compensation structures may help attract quality candidates and ensure commitment from existing members. It's important to acknowledge their time and dedication in overseeing crucial educational decisions.\n\nHowever, considering the financial challenges faced by many families within our district, it would seem prudent not to prioritize self-compensation at present. We need to focus resources directly benefiting education and community engagement.\n\nFinal Vote: Naye.",
+      "correct": false,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the School Board should adopt the proposed salary increase for its members, chairman, and vice-chair, as stated in the advertisement read by Ms. Johnston, effective July 1, 2015?",
+      "true_vote": "Aye",
+      "pred_vote": "Naye",
+      "completion": "I understand that the proposal aims to bring salaries more in line with those of surrounding districts. It's essential to attract qualified candidates willing to dedicate their time and effort to serving on the school board.\n\nHowever, considering the district's financial situation and the potential impact on taxpayers, it might not be an optimal moment for such an adjustment. We should prioritize using available resources effectively while maintaining transparency about our decision-making process.\n\nFinal Vote: Naye.",
+      "correct": false,
+      "attempts": 1
+    }
+  ],
+  "ellenosborne": [
+    {
+      "question": "Do you think the Albemarle County School Board approve the purchase of property A?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "Before making my decision, I'd like to review the details of Property A, including its location, size, and condition. Additionally, I want to know how it aligns with our strategic plan and what specific purposes it would serve (e.g., new schools, administrative offices, or community spaces).\n\nAssuming Property A meets these criteria and provides value to our district, I believe investing in our infrastructure can benefit both students and the local community.\n\nAfter careful consideration...\n\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the Albemarle County School Board institute public sector collective bargaining in accordance with Virginia Code \u00a7 40.1-57.2, as presented by the Albemarle Education Association?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "This is an important decision that affects not only our teachers but also the entire educational ecosystem. Collective bargaining can give educators a stronger voice in shaping policies that impact their work environment, compensation, and ultimately, student outcomes.\n\nI understand that implementing collective bargaining may require adjustments to our existing HR processes and budget allocations. However, I believe it's essential to recognize the value our educators bring to our schools and empower them to advocate for themselves and their profession.\n\nAfter careful consideration, I'm convinced that embracing collective bargaining aligns with our commitment to attracting and retaining top talent, improving working conditions, and enhancing overall educational quality.\n\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think we should approve a motion to match the bus driver salary of Charlottesville City at $21/hour?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "I understand that attracting and retaining qualified bus drivers is crucial for ensuring safe transportation for our students. Currently, our district's bus driver salary is below the regional average, which may contribute to our high turnover rate.\n\nMatching Charlottesville City's bus driver salary of $21/hour would not only help us compete with neighboring districts but also demonstrate our commitment to providing a stable and reliable transportation system. Although it would require an increase in our transportation budget, I believe the investment would yield long-term benefits in terms of safety, efficiency, and overall quality of service.\n\nAfter weighing the pros and cons, I conclude that investing in our bus drivers' compensation is essential for maintaining excellence in our transportation services.\n\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the School Board should approve the recommendation of the Superintendent to move to Stage Four of the return-to-school plan, with the start date changed to March 15?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "Before making my decision, I'd like to review the data and metrics that informed the Superintendent's recommendation. Have we seen a significant decline in COVID-19 cases within our district? Are our schools adequately prepared to accommodate more students while maintaining safety protocols?\n\nAssuming the answer is yes, moving to Stage Four would allow us to increase in-person learning time, which is essential for many students' academic and social well-being. Pushing the start date to March 15 provides some extra time for preparations and ensures a smoother transition.\n\nAfter careful consideration, I believe it's reasonable to proceed with caution.\n\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the school board should approve the motion to send out a student survey?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "Before I make my decision, I'd like to know more about the purpose and scope of the survey. What kind of questions would it ask, and how would the results be used?\n\nIf the goal is to gather valuable feedback from students that can inform improvements in their educational experience, then I'm inclined to support it. It's essential to hear directly from our students and understand their perspectives.\n\nHowever, if the survey is too lengthy or invasive, it might become a burden for students. We need to ensure that any survey is well-designed, respectful of students' time, and aligned with our district's goals.\n\nAssuming these conditions are met...\n\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the School Board should authorize School Board Attorney, Ross Holden, to work with the Boys and Girls Club to move the site to the preferred location of the driver's range and to come back to the Board?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "I understand that relocating the Boys and Girls Club to the driver's range site would require collaboration between our district and the organization. Authorizing Ross Holden, our School Board Attorney, to facilitate this process seems reasonable.\n\nBefore making a final decision, I'd like some clarification on what \"come back to the Board\" entails. Will Mr. Holden return with a formal agreement or proposal outlining the terms, costs, and potential implications for our district?\n\nAssuming it means he'll bring back a detailed plan for our review and approval, I'm comfortable moving forward.\n\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think we should approve the Schematic Design of the new Southern Feeder Pattern Elementary School and direct staff to proceed to the Design Development phase?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "Before making my decision, I'd like to review the design's alignment with our district's educational goals, its ability to accommodate projected enrollment growth in the southern feeder pattern, and the potential impact on traffic flow and surrounding neighborhoods.\n\nAfter careful consideration, it appears that the schematic design addresses these concerns effectively, incorporating flexible learning spaces, energy-efficient features, and community engagement areas. Proceeding to the Design Development phase will allow us to further refine the project while staying within our timeline and budget.\n\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the Albemarle County School Board should move forward with the purchase of property A?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "Before making my decision, I'd like to review the data presented regarding Property A's location, size, and condition. From what I've seen so far, it appears that this property would allow us to address overcrowding issues in certain schools and potentially reduce transportation costs.\n\nHowever, I still have some concerns about the environmental impact assessment and potential zoning restrictions. Additionally, I want to ensure that purchasing this property aligns with our strategic plan and won't divert resources away from other pressing priorities.\n\nAfter weighing these factors, I believe that acquiring Property A has the potential to benefit our students and community in the long run.\n\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the direct staff should work towards allowing public comment to sign up at board meetings?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "As a school board member, I believe it's essential to foster transparency and community engagement. Allowing public comment sign-ups at board meetings would promote accountability and give stakeholders a voice in shaping district decisions.\n\nBy doing so, we can ensure that diverse perspectives are heard, concerns are addressed, and ultimately, informed decisions are made that benefit our students and community.\n\nHowever, we must establish clear guidelines and protocols to maintain order and respect during these sessions.\n\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think we should approve a school board funding scenario that removes funding for school resource officers?",
+      "true_vote": "Naye",
+      "pred_vote": "Naye",
+      "completion": "I understand the concerns about allocating resources effectively, but removing funding for school resource officers (SROs) raises serious safety concerns. SROs play a critical role in maintaining a secure environment, providing crisis intervention, and building trust with students.\n\nWhile it's essential to review our budget priorities, I believe the potential risks associated with eliminating SROs outweigh any short-term financial gains. We need to explore alternative solutions that balance fiscal responsibility with ensuring a safe learning environment.\n\nFinal Vote: Naye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the School Board should approve a modified funding scenario of $284,699,140 in Operating Funds and $28,439,082 in Special Revenue Funds in Fiscal Year 26?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "Before I make my decision, I'd like to review the breakdown of these funds and understand how they'll be allocated across different departments and programs within the district. \n\nFrom what I've seen so far, it appears that these funds would cover essential operational expenses, staff salaries, and some targeted initiatives. However, I still have concerns about potential shortfalls in certain areas, such as maintenance and facilities upgrades.\n\nAfter careful consideration, I believe this revised funding scenario strikes a reasonable balance between meeting our immediate obligations and investing in strategic priorities.\n\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    }
+  ],
+  "grahampaige": [
+    {
+      "question": "Do you think the Albemarle County School Board approve the purchase of property A?",
+      "true_vote": "Aye",
+      "pred_vote": "Naye",
+      "completion": "In terms of purchasing that land right behind Walton Middle School for the purpose of building new classrooms, I am going to say no because there may be other options available which would not involve the use of county funding. \n\nFinal Vote: Naye.",
+      "correct": false,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the Albemarle County School Board institute public sector collective bargaining in accordance with Virginia Code \u00a7 40.1-57.2, as presented by the Albemarle Education Association?",
+      "true_vote": "Naye",
+      "pred_vote": "Aye",
+      "completion": "I understand that there may not necessarily be any financial implications associated with it but rather procedural changes within how things operate between teachers and administrators. It appears that many other jurisdictions across Virginia do utilize such agreements. This has been going through quite some process. And so again, we're working collaboratively with those involved parties, especially including our educators. There's an understanding at least among several people present tonight about what these procedures would look like moving forward.\n\nSo since the procedure doesn't really create any expense per se for us right now, then my decision should probably focus more upon whether it does help facilitate communication better. If they believe it does, then perhaps we ought to give them that opportunity because the only way we can know if anything positive comes from something is to try out new processes sometimes.\n\nFinal Vote: Aye.",
+      "correct": false,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think we should approve a motion to match the bus driver salary of Charlottesville City at $21/hour?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "As I understand it, we currently face challenges with retaining bus drivers due to low salaries in comparison to neighboring districts. If approved, matching Charlottesville City's rate would put us more competitively within the market while helping to ensure that these essential positions remain filled. We can then avoid disruptions to transportation services.\n\nHowever, increasing their wages does carry significant costs which may require adjustments elsewhere in our budget.\n\nIt appears that maintaining consistent and reliable transportation services takes precedence over potential financial burdens associated with increased compensation rates.\n\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the School Board should approve the recommendation of the Superintendent to move to Stage Four of the return-to-school plan, with the start date changed to March 15?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "It seems that moving into Phase Four would offer more flexibility in scheduling while still maintaining safety protocols during the pandemic. However, I am concerned about potential logistical challenges related to transportation, social distancing within classrooms, and ensuring there's enough space at each high school site. But given all those concerns, considering what Dr. Haas has presented tonight, it looks like they've made an effort to address some of them.\n\nI do believe that delaying until March 15 allows us time to further evaluate COVID-19 cases and adjust if necessary.\n\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the school board should approve the motion to send out a student survey?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "I believe that sending out surveys can help gather valuable information about our students\u2019 perspectives and opinions, which may aid in improving educational outcomes and enhancing their overall experience within our schools.\n\nMoreover, it\u2019s essential that such initiatives engage with students at various levels, including those from historically underrepresented groups, so that all voices can contribute toward positive change.\n\nWe should ensure the questions posed align well with the objectives set forth during planning sessions held last month.\n\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the School Board should authorize School Board Attorney, Ross Holden, to work with the Boys and Girls Club to move the site to the preferred location of the driver's range and to come back to the Board?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "I do believe that the attorney should be authorized to explore all possible locations in terms of finding an agreement between the parties involved. So, yes, it would make sense for him to work with them towards establishing a mutually agreeable solution at the driving range property.\n\nI'm not sure if there was another part to Ms. Johnston's request. Was there?\n\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think we should approve the Schematic Design of the new Southern Feeder Pattern Elementary School and direct staff to proceed to the Design Development phase?",
+      "true_vote": "Naye",
+      "pred_vote": "Aye",
+      "completion": "It's important that all stakeholders were involved in the process during schematic design so that we can make sure it meets the community's needs effectively while staying within the project budget and timeline. \n\nWe've seen significant growth in the area, which makes it crucial to construct this elementary school. And since there aren't any major issues with the presented schematic designs, I believe moving forward would be beneficial at this time.\n\nFinal Vote: Aye.",
+      "correct": false,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the Albemarle County School Board should move forward with the purchase of property A?",
+      "true_vote": "Aye",
+      "pred_vote": "Naye",
+      "completion": "I believe that moving ahead with the acquisition would be premature at present since there has been no opportunity to hear from the public about it yet. It's crucial that all parties involved get input into the decision-making process when considering such an important matter like purchasing real estate.\n\nSo in conclusion, because more information is needed and further community involvement is necessary, my final answer is going to be Naye.",
+      "correct": false,
+      "attempts": 3
+    },
+    {
+      "question": "Do you think the direct staff should work towards allowing public comment to sign up at board meetings?",
+      "true_vote": "Naye",
+      "pred_vote": "Aye",
+      "completion": "I agree that it would increase transparency if members from the community can give input during board meetings directly instead of needing to send in advance comments.  This change aligns with my values of fostering open communication within our district.\n\nFinal Vote: Aye.",
+      "correct": false,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think we should approve a school board funding scenario that removes funding for school resource officers?",
+      "true_vote": "Naye",
+      "pred_vote": "Naye",
+      "completion": "I would like some more information about this proposal because there's been discussion within the community with respect to SROs. But again, without further context, it may not necessarily benefit us in terms of providing safety for all involved at those schools.\n\nThe final decision depends upon data-driven research that shows such a change can ensure continued safe learning environments while minimizing negative impacts associated with having police presence.\n\nFinal Vote: Naye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the School Board should approve a modified funding scenario of $284,699,140 in Operating Funds and $28,439,082 in Special Revenue Funds in Fiscal Year 26?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "In consideration of both shortfalls in our fiscal year budgets and potential increases in expenditures due to inflationary pressures, approving these allocations would ensure that essential services remain intact while acknowledging existing financial limitations.\r\n\r\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 2
+    },
+    {
+      "question": "Do you think we should deny the petition to grant an additional year of pre-school during the 2024-2025 school year to Student A?",
+      "true_vote": "Aye",
+      "pred_vote": "Naye",
+      "completion": "I believe that granting an extra year of preschool would allow more time for Student A's growth, socialization, and better preparation for kindergarten. We can't forget about potential issues like possible delays in their education if they're forced into regular classes too early without being adequately prepared. \n\nHowever, there might be concerns related to capacity and costs associated with extending these services further than what was initially agreed upon.\n\nAfter careful consideration, given all the factors involved here, I do not see any compelling reason why it wouldn't work out well both for Student A and for the district overall.\n\nFinal Vote: Naye.",
+      "correct": false,
+      "attempts": 2
+    },
+    {
+      "question": "Do you think the word \"classroom\" should be inserted in front of \"practices\" in the first SMART Goal?",
+      "true_vote": "Naye",
+      "pred_vote": "Aye",
+      "completion": "Yes, I do believe that would make it more specific. It's going to clarify exactly what practices they're talking about, so yes. And then maybe there could even be an example of those classroom practices like restorative circles. That might help everyone understand better just how that plays out within the framework of the teacher training, staff training, and professional development. So if that makes sense to all of us, yeah.  In fact, let me see if anyone else has any suggestions at all before Ms. Lee reads the final version with changes. Are there any other comments regarding the goals, especially the wording of them now since Dr. McLaughlin clarified some of the questions from last night? Okay. Final Vote: Aye.",
+      "correct": false,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think we should use money earmarked for bond referendum projects to fund the construction of parking spaces at Western Albemarle, a project not included in the original bond referendum?",
+      "true_vote": "Naye",
+      "pred_vote": "Naye",
+      "completion": "While there may be some pressing concerns related to parking availability at Western Albemarle High School, I believe that diverting funds from approved bond projects would undermine public trust in both the school division and county government's ability to effectively manage resources allocated through voter-approved referenda. \n\nHowever, it might make sense if future capital improvement plans were revised with stakeholder input and then presented during an open forum so citizens can offer their feedback about such changes.\n\nFinal Vote: Naye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think we should adopt the Superintendent\u2019s recommendation for redistricting and discuss grandfathering separately?",
+      "true_vote": "Naye",
+      "pred_vote": "Aye",
+      "completion": "I believe it would make sense that those two things could stand alone in their own right rather than being tied together because they may not necessarily go hand-in-hand. It's possible that some people might agree with one but disagree with the other so if they're voted upon at once then there won't be an opportunity to do something else about them independently.\n\nFinal Vote: Aye.",
+      "correct": false,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think we should approve the proposed fiscal year 17-18 one-time funding in the amount of $1.39 million?",
+      "true_vote": "Aye",
+      "pred_vote": "Naye",
+      "completion": "We've got some very real concerns about whether there would be ongoing costs associated with that particular project if we were to accept it.\n\nI don't know how much further discussion can take place since I wasn't able to get any questions answered tonight. But based upon my understanding right now, given no answers to those questions, I'd say probably not.\n\ngrahampaigefinalvote: Naye.",
+      "correct": false,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the school board should authorize the purchase of furniture from the listed vendors for use at Albemarle Tech in the amount of $90,316.92?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "There's been no discussion about why these specific items were chosen. Are they more expensive than those proposed by other bidders?\n\nI'd like some information regarding why each piece was selected out of all bids submitted. It seems that there may be cheaper alternatives available elsewhere. So I would say yes if it can be shown that purchasing through these providers offers better value.\n\ngrahampage: Okay, thank you so much Ms. Johnson. Final Vote: Naye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the salary for School Board members for 2018-2019 should be set at $6,752 with a chairman stipend of $1,800 per year and a vice-chairman stipend?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "First off, I would like to acknowledge that there's been some concern voiced about the proposed compensation package for the School Board during the upcoming fiscal year. To determine my final decision, it might help if more details were provided regarding how these figures compare to other jurisdictions in Virginia.\r\n\r\nThe figure of $6,752 does appear low compared to Albemarle County School Board salaries, which stood at around $13,000 annually last year. Charlottesville City Schools offer approximately $12,500 each year. Our jurisdiction seems slightly below average among those within Virginia.\r\n\r\nConsidering the fact that being part of the School Board requires substantial time commitments outside regular meetings, including attending community events and staying updated with educational developments, fair compensation becomes essential. That said, any adjustments made should not negatively impact the overall allocation of resources towards education itself.\r\n\r\nWeighing both sides carefully, while acknowledging the limitations faced due to limited financial information available, I am inclined to believe setting salaries lower than neighboring districts may deter potential candidates from running for future positions on the School Board. This factor has significant implications when considering the diverse range of skills needed on the board.\r\n\r\nTaking all factors into account, especially the importance of attracting qualified individuals willing to dedicate themselves to serving the division, I do support the proposed stipends and salaries for 2018-19.\r\n\r\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the motion to reconsider the motion on resolution for ratification of purchases be approved?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "I don't see any reason why it wouldn't be approved, but what's behind this request that wasn't presented in advance?  OK, all right. We got an answer there from Dr. McLaughlin. All right, thank you very much. In light of his response, yes, we should approve the motion.\n\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the school board should hold a public hearing on May 25, 2017 to receive public comment regarding the consolidation of schools and options available regarding the operation of Benjamin F. Yancey Elementary School?",
+      "true_vote": "Naye",
+      "pred_vote": "Aye",
+      "completion": "Yes, I do believe that's an excellent idea. We want input from all stakeholders in these discussions about how best to move forward with regards to those two facilities. So yes, it would certainly make sense to schedule such a meeting at which people can come out and express their opinions so they can hear directly what community members have to say on both sides of any issue related to them. And if there was anything else, Ms. Carlson, please let us know because sometimes when we get through talking about one item then something else comes up later on down the line. But thank you very much indeed.",
+      "correct": false,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the school board should consolidate Yancey Elementary School into Red Hill and Scottsville Elementary Schools effective at the end of the 2016-2017 school year, with Yancey students?",
+      "true_vote": "Naye",
+      "pred_vote": "Naye",
+      "completion": "Consolidating schools would reduce costs related to facilities maintenance, utilities, and administrative staff. It might allow us to reallocate resources more effectively towards instructional services that directly benefit students.\n\nHowever, consolidation may lead to larger class sizes in other elementary schools. We'll need careful planning and resource allocation to ensure minimal disruptions and continued quality education delivery.\n\nConsidering both factors, I believe it's essential to explore all possible options and weigh their consequences carefully.\n\nFinal Vote: Naye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the school board should approve the motion to modernize the four existing high schools and build two new high school centers in a phased manner, while continuing to monitor population growth in the County?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "Yes, I do believe that it would make sense at least to take an initial first step toward planning what might occur if all of those things happen.\n\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the school board should adopt an operational budget for fiscal year 2016/17 of $172,672,938 and a special revenue fund budget of $17,946,303?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "Given that it includes funding allocations for all initiatives such as teacher raises and more staff positions at schools with high poverty rates, I am inclined to approve these budgets because they align closely with the priorities set forth in our strategic plan.\n\nHowever, considering some budget items may still require further analysis during future meetings, I do not rule out potential adjustments later down the line if necessary.\n\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the School Board should approve the bond resolution as provided by staff and send it to the Board of Supervisors?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "I'm going to say yes because that's what was recommended in order to meet the deadline imposed upon us by law.  We're talking about capital projects which would include work at several schools with safety concerns like Crozet Elementary School and Scottsville Elementary School. So my answer is \"yes.\"",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the school board should approve a motion not to redistrict any of the Albemarle High School population as presented by the committee or Superintendent?",
+      "true_vote": "Naye",
+      "pred_vote": "Naye",
+      "completion": "It's crucial that we take into account the concerns expressed about overcrowding at both high schools while considering possible solutions such as boundary adjustments or new facilities construction projects in order to ensure an optimal learning environment.\n\nSince there has been no discussion around implementing more short-term measures like capacity increases or flexible scheduling options, it seems premature to dismiss potential long-term remedies entirely without further exploration of available alternatives.\n\nIt would appear beneficial if some temporary solution were found until such time when other possibilities can come online, so I cannot agree with maintaining status quo.\n\nFinal Vote: Naye.",
+      "correct": true,
+      "attempts": 1
+    }
+  ],
+  "katrinacallsen": [
+    {
+      "question": "Do you think the Albemarle County School Board institute public sector collective bargaining in accordance with Virginia Code \u00a7 40.1-57.2, as presented by the Albemarle Education Association?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "I've been listening to comments from teachers expressing frustration about their lack of input when it comes to policy decisions that directly affect them. It's crucial they feel heard because teaching quality has an impact upon learning outcomes.\n\nI believe adopting collective bargaining would give educators more agency over issues like compensation, workload, class size, professional development, safety concerns within schools, and other factors which might contribute to teacher retention rates.\n\nInstituting collective bargaining may lead to increased collaboration between stakeholders involved in education decision-making processes, resulting in better working conditions for staff members and ultimately benefiting students too.\n\nThis code provides guidelines and safeguards against potential disputes while still respecting local government authority.\n\nWe should take advantage of this opportunity granted under state law to promote positive change for all parties involved.\n\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think we should approve a motion to match the bus driver salary of Charlottesville City at $21/hour?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "I understand that matching Charlottesville City's rate would make us more competitive in attracting and retaining quality drivers; however, it does come with an added expense, which may cause stress on our already tight transportation budget.\n\nConsidering how essential these individuals are in ensuring safe passage for our children and the potential consequences if they aren't retained due to low pay \u2013 it seems reasonable to invest here even though there might be financial implications down the road.\n\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the School Board should approve the recommendation of the Superintendent to move to Stage Four of the return-to-school plan, with the start date changed to March 15?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "I appreciate that there has been an effort made in terms of giving us more information about what Stage Four looks like, but my concern still lies within those numbers not being drastically different from where they were when we went back into Stage Three. We did see some cases last week at one of the schools even though it was remote learning.\n\nI understand the desire to give families more consistency, especially around spring break, which may cause issues anyway regardless if we're going back then or not. But again, seeing the data right now makes me very hesitant because while all of these precautions can help reduce transmission risk, none of them eliminate the risk completely. If people feel strongly about going ahead and making sure kids get consistent education throughout their entire year without interruptions, perhaps another solution would've been to do asynchronous learning during those times when we know quarantines might happen instead of trying to keep everybody synchronized. That way we ensure everyone gets the same instruction at least asynchronously, so they don't fall behind further than others due to circumstances outside of anyone's control. \n\nIt seems too rushed given how quickly things change regarding COVID-19 statistics across various areas locally and globally. It feels premature to make such decisions based solely on predictions that aren't always accurate considering past experiences since early 2020. Therefore, I cannot say yes today. One thing to note here, however, is that if I am wrong and moving forward proves successful, I'll admit it and take responsibility accordingly.\n\nFinal Vote: Naye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the School Board should authorize School Board Attorney, Ross Holden, to work with the Boys and Girls Club to move the site to the preferred location of the driver's range and to come back to the Board?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "I believe that there might not be enough information about potential costs associated with relocating the site at hand. It would make sense if Mr. Holden came back with an estimated amount so we can better understand how it may impact our finances going forward.\n\nHowever, given what was previously stated regarding community partnerships aligning well with local interests and providing a benefit for the children in those areas, then having him explore options does seem reasonable, especially considering the collaboration between us and the club has been discussed already.\n\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the word \"classroom\" should be inserted in front of \"practices\" in the first SMART Goal?",
+      "true_vote": "Naye",
+      "pred_vote": "Naye",
+      "completion": "I don't see how that would affect anything. It seems like it's already implied within classroom practices because they're talking about instructional strategies.\n\nFinal Vote: Naye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think we should use money earmarked for bond referendum projects to fund the construction of parking spaces at Western Albemarle, a project not included in the original bond referendum?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "I'm going to say no because that's my gut feeling about it. It doesn't seem like using those funds would align with what voters originally approved when they voted yes for the bond referendum.\n\nOne thing that did come up was maybe doing some further research into how much more capacity there might actually be needed out there. If 10 spots were added last year but now people feel like even more than 30 total slots aren't enough, then perhaps we're getting close to having data suggesting that the number may need adjustment again down the line.\n\nI'd rather focus on finding other funding sources instead, which makes me lean towards not pulling from those bond referendum monies.\n\nFinal Vote: Naye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think we should adopt the Superintendent\u2019s recommendation for redistricting and discuss grandfathering separately?",
+      "true_vote": "Naye",
+      "pred_vote": "Aye",
+      "completion": "I believe it would make more sense if we first voted on adopting the superintendent's recommendations regarding redistricting. We can then move forward with discussing grandfathering options later in the meeting because those two topics aren't necessarily directly tied together.\n\nI'm going to say that while some families may face challenges due to rezoning, these changes seem necessary given population growth and demographic shifts within our district boundaries. This plan does prioritize keeping neighborhoods intact where possible, which has been important throughout my term here on the board. In terms of potential negative effects, I hope we've done enough research into minimizing them.\n\nFinal Vote: Aye.",
+      "correct": false,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think we should approve the proposed fiscal year 17-18 one-time funding in the amount of $1.39 million?",
+      "true_vote": "Naye",
+      "pred_vote": "Naye",
+      "completion": "I do not know what that money would go towards. It's really important to me when I am given those types of requests that there's context around them so that I can make an informed decision about how much value it brings to kids and families within the district.\n\nI understand some things may come up unexpectedly but I don't want to get into a situation where we're allocating large sums without understanding the purpose behind it. So my initial instinct is no because I'm just missing information right now.\n\nFinal Vote: Naye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the school board should authorize the purchase of furniture from the listed vendors for use at Albemarle Tech in the amount of $90,316.92?",
+      "true_vote": "Naye",
+      "pred_vote": "Aye",
+      "completion": "I would like more information about these items - how were they chosen? What kind of value assessment was done?\n\nI don't know if there's any flexibility with pricing because that seems pretty steep.\n\nBut it appears we've gone through some process already so I'm going to trust my colleagues that those steps were taken correctly.\n\nFinal Vote: Aye.",
+      "correct": false,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the salary for School Board members for 2018-2019 should be set at $6,752 with a chairman stipend of $1,800 per year and a vice-chairman stipend?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "I want to first say that it's been very clear throughout my time serving in these roles how dedicated all members of this board have been. And while there were many times where the work was incredibly challenging, not one person ever brought up their compensation during those discussions because they're driven by public service.\n\nNow let me take off my heart hat and put on my brain hat since we do make decisions based upon policy. If someone has an issue about what happened last night, then maybe people can come back next month. As far as I'm concerned, I don't see any reason why we wouldn't stay consistent with past practices regarding compensation levels.\n\nWe have done some research into other localities around us and found out that if anything, ours might actually be slightly lower than average, which tells me that we've made efforts over recent years to try and bring ourselves more closely aligned with neighboring areas without being extravagant.\n\nIn terms of the stipends, again, looking at our peers, those appear reasonable given the added responsibilities associated with each role.\n\nSo yes, considering both sides but understanding the dedication everyone puts forth daily, ultimately I believe sticking to precedent makes sense here.\n\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the motion to reconsider the motion on resolution for ratification of purchases be approved?",
+      "true_vote": "Aye",
+      "pred_vote": "Naye",
+      "completion": "I'm not sure that it's worth rehashing given how recently we voted, but in light of some concerns expressed regarding purchase transparency, perhaps there's something I missed during initial consideration.\n\nHowever, since no one has presented new information that would significantly alter my perspective, I see little reason for us to take up more time with another discussion when we've got other pressing matters at hand.\n\nFinal Vote: Naye.",
+      "correct": false,
+      "attempts": 1
+    }
+  ],
+  "davidoberg": [
+    {
+      "question": "Do you think we should approve a motion to match the bus driver salary of Charlottesville City at $21/hour?",
+      "true_vote": "Naye",
+      "pred_vote": "Aye",
+      "completion": "I understand that matching the Charlottesville City's bus driver salary would help us stay competitive in attracting and retaining qualified drivers. Our transportation department has struggled with turnover rates, which affects not only the quality of service but also the safety of our students.\n\nHowever, increasing salaries requires significant funding allocations. We'll need to examine the overall impact on our budget, considering potential cuts elsewhere or exploring alternative revenue streams. It might be necessary to phase in such an increase over time rather than implementing it immediately.\n\nAfter weighing these factors, I believe investing in our drivers\u2019 compensation can lead to better services and increased efficiency.\n\nFinal Vote: Aye.",
+      "correct": false,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the School Board should approve the recommendation of the Superintendent to move to Stage Four of the return-to-school plan, with the start date changed to March 15?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "I've reviewed the data provided by the superintendent's office, which indicates that COVID-19 cases in our area continue to decline steadily since January. This downward trend suggests it may be safe to further relax restrictions within our schools.\n\nHowever, moving forward, I'd like some clarification from the administration regarding specific measures they'll take to maintain cleanliness protocols, ensure adequate ventilation in classrooms, and address concerns raised by staff members about personal protective equipment (PPE).\n\nAdditionally, I believe pushing back the start date to March 15 allows us time to adequately prepare teachers, staff, and facilities while still aligning with local health guidelines.\n\nConsidering these factors, I'm inclined to trust the expert opinion presented here today.\n\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the school board should approve the motion to send out a student survey?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "Before I make my decision, let me review the purpose and scope of the proposed survey. Is it anonymous? Are there clear guidelines in place for how the data will be collected, analyzed, and utilized?\n\nAssuming these safeguards are in place, gathering student feedback can help us better understand their experiences, identify areas for improvement, and inform future policy decisions that benefit them directly.\n\nHowever, if any aspects of the proposal raise concerns about student privacy or potential misuses of the data, then I'd require revisions prior to approval.\n\nGiven what's been presented so far, though, I'm inclined to trust our administrators' judgment regarding its implementation.\n\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the School Board should authorize School Board Attorney, Ross Holden, to work with the Boys and Girls Club to move the site to the preferred location of the driver's range and to come back to the Board?",
+      "true_vote": "Naye",
+      "pred_vote": "Aye",
+      "completion": "I believe it would be wise to explore alternative locations that better suit the needs of both parties involved. By authorizing Mr. Holden to collaborate with the Boys and Girls Club in relocating their site to the driver's range area, we can potentially create mutually beneficial outcomes for all stakeholders.\n\nBefore making any definitive decisions, however, I want assurance that the proposed relocation aligns with district goals and priorities while ensuring minimal disruptions to ongoing programs and services. It seems reasonable to allow Mr. Holden to negotiate and return to us with an agreement that addresses these concerns.\n\nFinal Vote: Aye.",
+      "correct": false,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think we should use money earmarked for bond referendum projects to fund the construction of parking spaces at Western Albemarle, a project not included in the original bond referendum?",
+      "true_vote": "Naye",
+      "pred_vote": "Naye",
+      "completion": "I understand that there may be concerns about parking availability at Western Albemarle, but diverting funds from approved bond referendum projects would set an undesirable precedent. We made commitments to the community regarding how those monies would be spent, and it's essential that we honor them.\n\nMoreover, using these funds without voter approval undermines trust between the district administration and taxpayers. Instead, let's explore alternative solutions within existing budgets or seek input through future referendums if needed.\n\nFinal Vote: Naye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think we should adopt the Superintendent\u2019s recommendation for redistricting and discuss grandfathering separately?",
+      "true_vote": "Naye",
+      "pred_vote": "Aye",
+      "completion": "Redrawing district boundaries can significantly impact families, teachers, and community dynamics. I appreciate that the Superintendent has put in effort into crafting their proposal, but it's crucial we carefully weigh its implications.\n\nI believe separating discussions around grandfathering from redistricting itself may lead to more focused conversations about each topic. Grandfathering involves considering how existing students would transition between schools during changes; thus, it warrants distinct consideration.\n\nBy discussing these aspects individually, we'll ensure comprehensive understanding and thoughtful decision-making.\n\nFinal Vote: Aye.",
+      "correct": false,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think we should approve the proposed fiscal year 17-18 one-time funding in the amount of $1.39 million?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "In considering the allocation of $1.39 million for the expansion of the after-school program, I weigh the potential impact against the financial burden it would place upon us.\n\nWhile there may not be enough information about how these funds will specifically be utilized, given my prior approval of expanding the after-school program itself, I believe investing this sum can make a tangible difference in the lives of many students.\n\nIt's crucial that future evaluations assess its effectiveness so adjustments can be made if needed.\n\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the school board should authorize the purchase of furniture from the listed vendors for use at Albemarle Tech in the amount of $90,316.92?",
+      "true_vote": "Naye",
+      "pred_vote": "Aye",
+      "completion": "I'd like some clarification regarding these specific purchases. Are they essential items that directly benefit student learning experiences or improve instructional efficiency?\n\nAdditionally, do we have any bids from other potential suppliers, ensuring competitive pricing? Lastly, what portion of our overall budget does this expenditure represent?\n\nAfter careful consideration, given the relatively modest impact on our total spending, it seems reasonable to invest in resources benefiting education quality.\n\nFinal Vote: Aye.",
+      "correct": false,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the salary for School Board members for 2018-2019 should be set at $6,752 with a chairman stipend of $1,800 per year and a vice-chairman stipend?",
+      "true_vote": "Naye",
+      "pred_vote": "Aye",
+      "completion": "As I review the proposed salaries for School Board members, I want to ensure that they align with industry standards and reflect fair compensation for our roles. \n\nComparing these figures to those in neighboring districts suggests that ours may be slightly lower. Considering the significant time commitment required from us, it seems reasonable to maintain competitiveness while ensuring responsible stewardship of taxpayer dollars.\n\nI'm satisfied that the suggested amounts strike an acceptable balance between fairness and fiscal responsibility.\n\nFinal Vote: Aye.",
+      "correct": false,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the motion to reconsider the motion on resolution for ratification of purchases be approved?",
+      "true_vote": "Naye",
+      "pred_vote": "Naye",
+      "completion": "I'm not sure why we're revisiting this decision again, especially since it's already been ratified once. Before making my final vote, I want to understand what new information has come up that would necessitate re-examining these purchases.\n\nAfter reviewing the minutes from the previous meeting, I didn't find any compelling reasons to change course now. It seems like we've made considerable progress in implementing those decisions.\n\nUnless someone presents some unforeseen circumstances or data points that significantly alter how I perceive things right now, I'll stick with my initial stance.\n\nFinal Vote: Naye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the school board should hold a public hearing on May 25, 2017 to receive public comment regarding the consolidation of schools and options available regarding the operation of Benjamin F. Yancey Elementary School?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "This issue has been quite contentious in our community, with many stakeholders expressing strong opinions about the potential consolidation of schools and the future of Benjamin F. Yancey Elementary School. \n\nIt's essential that we give our constituents an opportunity to voice their concerns and ideas directly to us, ensuring transparency throughout this process. By holding a public hearing, we can gather valuable feedback from parents, teachers, and local residents, ultimately making more informed decisions.\n\nFurthermore, it would be unfair not to involve those most affected - families whose children attend these schools. Holding a public hearing allows them to contribute meaningfully to the discussion.\n\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the school board should consolidate Yancey Elementary School into Red Hill and Scottsville Elementary Schools effective at the end of the 2016-2017 school year, with Yancey students?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "Consolidating schools can lead to increased efficiency in resource allocation but may negatively impact community identity tied to local institutions like Yancey Elementary School.\n\nIn considering consolidation, I've reviewed enrollment trends that show declining numbers across all three elementary schools. Given these projections, consolidating would allow us to redirect resources from administrative costs toward enhancing educational programs within Red Hill and Scottsville Elementary Schools.\n\nHowever, it's essential to address concerns about potential overcrowding and transportation challenges that might arise due to the consolidation.\n\nAfter weighing the pros and cons, my primary focus remains providing quality education while being fiscally responsible.\n\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the school board should approve the motion to modernize the four existing high schools and build two new high school centers in a phased manner, while continuing to monitor population growth in the County?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "This proposal requires careful consideration because it involves significant investment. I believe that upgrading the infrastructure of our existing high schools would improve learning environments and enhance overall educational experiences. \n\nHowever, adding two new centers might strain resources if not properly managed. Still, with proper monitoring of county growth, such expansion can accommodate future demands effectively.\n\nIt's essential to weigh short- and long-term implications carefully but considering all factors involved, I believe investing now would benefit both present and prospective students alike.\n\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the school board should adopt an operational budget for fiscal year 2016/17 of $172,672,938 and a special revenue fund budget of $17,946,303?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "I've reviewed the proposed budgets carefully, taking into account projected expenses, revenue streams, and community input. Our district faces increasing enrollment demands, infrastructure maintenance costs, and salary adjustments for staff. \n\nThe recommended allocations appear reasonable given these factors, especially considering they align with our strategic plan objectives. Additionally, maintaining a balanced budget ensures financial stability while allowing us to invest in essential services.\n\nAfter careful consideration, I believe adopting these budgets supports our mission to deliver quality education effectively.\n\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the School Board should approve the bond resolution as provided by staff and send it to the Board of Supervisors?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "I've reviewed the bond resolution proposal presented by the staff, which outlines necessary infrastructure upgrades and improvements to our facilities. These projects would enhance safety features, modernize classrooms, and address pressing maintenance issues that impact teaching quality and overall learning environments.\n\nWhile there may be some concerns about increasing debt service costs in future budgets, I believe investing now will pay dividends in the long run through increased property values, better academic outcomes, and enhanced community engagement with our schools.\n\nI trust the thorough analysis conducted by district administration; they have demonstrated responsible financial planning and commitment to transparency throughout this process.\n\nAfter weighing these factors, I conclude that approving this bond resolution aligns with our responsibility to prioritize educational excellence, equity, and sustainability.\n\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    }
+  ],
+  "jonnoalcaro": [
+    {
+      "question": "Do you think the Albemarle County School Board institute public sector collective bargaining in accordance with Virginia Code \u00a7 40.1-57.2, as presented by the Albemarle Education Association?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "As I weigh my decision, it's essential that I recognize both sides of this issue. On one hand, allowing collective bargaining would give educators a stronger voice in negotiations about their compensation and working conditions, which might lead to improved teacher retention rates and enhanced overall performance.\n\nOn the other hand, there may be concerns related to potential added costs associated with implementing such an agreement, particularly during these uncertain economic times.\n\nGiven that collective bargaining aligns with state law, however, I believe our district should explore all avenues available to us to attract, retain, and fairly compensate our valuable staff members.\n\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think we should approve a motion to match the bus driver salary of Charlottesville City at $21/hour?",
+      "true_vote": "Naye",
+      "pred_vote": "Aye",
+      "completion": "I understand that matching salaries can help with recruitment efforts but first, let's analyze if it fits within our present financial situation. We've already allocated funds elsewhere in the past year; thus, increasing wages might force us into some tough decisions later down the line about other important programs.\n\nHowever, attracting qualified drivers remains crucial for safety reasons. So while considering future implications carefully, I believe making sure we're competitive here supports both staff and community interests.\n\nFinal Vote: Aye.",
+      "correct": false,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the School Board should approve the recommendation of the Superintendent to move to Stage Four of the return-to-school plan, with the start date changed to March 15?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "I understand that moving forward with the return-to-school plan would mean transitioning from remote learning back into in-person classes. This decision requires careful consideration of multiple factors such as health risks, teacher preparedness, availability of resources, and parent feedback.\n\nI believe it's crucial that our district prioritizes safety while ensuring continuity in education. Considering all these aspects, I trust the judgment of our superintendent regarding when and how best to implement this stage safely.\n\nGiven my faith in their assessment, I agree that moving ahead to Stage Four with the revised timeline seems reasonable at this point.\n\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the school board should approve the motion to send out a student survey?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "I believe that understanding the perspectives of our students can greatly inform decision-making at both classroom and administrative levels. Surveys offer an effective method for gathering valuable feedback from these stakeholders in their educational experiences.\n\nThe data gathered may help us identify areas where improvement efforts would best serve them, such as mental health resources or course offerings. It's essential to involve them actively within the process so they feel heard and invested in shaping positive change around campus life.\n\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the School Board should authorize School Board Attorney, Ross Holden, to work with the Boys and Girls Club to move the site to the preferred location of the driver's range and to come back to the Board?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "I believe that partnering with community organizations like the Boys and Girls Club can greatly benefit our students. Moving their facility to the former driver\u2019s ed range would create more space for extracurricular activities while fostering collaboration between entities.\n\nBefore moving forward, though, it'd be beneficial to see details about potential costs involved in relocating the club and what arrangements might look like going into the future.\n\nIn light of these factors, authorizing Mr. Holden to facilitate negotiations seems reasonable at present time.\n\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the word \"classroom\" should be inserted in front of \"practices\" in the first SMART Goal?",
+      "true_vote": "Naye",
+      "pred_vote": "Aye",
+      "completion": "I believe that adding \"classroom\" would improve clarity within the goal itself and ensure consistency with other goals where they do refer specifically to classroom practices.\n\nFinal Vote: Aye.",
+      "correct": false,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think we should use money earmarked for bond referendum projects to fund the construction of parking spaces at Western Albemarle, a project not included in the original bond referendum?",
+      "true_vote": "Naye",
+      "pred_vote": "Naye",
+      "completion": "I understand that parking has been an issue at Western Albemarle High School; however, using bond referendum funds for something other than what voters approved may undermine trust between the district and community members. Additionally, it might set a precedent where future requests divert from their intended purposes.\n\nIn light of these concerns, there's still room for addressing the parking situation without compromising public confidence in how we manage taxpayer dollars.\n\nWe can explore alternative funding sources within existing budgets, collaborate with local authorities if possible, and engage with parents and alumni groups about potential solutions.\n\nFinal Vote: Naye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think we should adopt the Superintendent\u2019s recommendation for redistricting and discuss grandfathering separately?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "I understand that both issues - adoption of the Superintendent's redistricting plan and grandfathering policies - hold significant importance in relation to each other but can't be discussed simultaneously effectively. \n\nSeparating them would allow us more time to delve into the complexities involved with implementing new district boundaries while considering options for affected families within those areas. It might make sense to prioritize discussing these two topics individually so they receive proper attention from stakeholders. We may want to create separate meetings dedicated solely to grandfathering policy discussions.\n\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think we should approve the proposed fiscal year 17-18 one-time funding in the amount of $1.39 million?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "I understand that approving these funds would enable us to enhance some essential programs within our schools. However, it's crucial to assess if they align with our district goals and priorities while considering any potential implications on future budgets.\n\nIn light of that consideration, given the importance of these initiatives and their alignment with our objectives, I believe investing in them now can lead to positive outcomes down the line.\n\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the school board should authorize the purchase of furniture from the listed vendors for use at Albemarle Tech in the amount of $90,316.92?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "In order to make an informed decision, I would like more information about why these specific vendors were chosen and if there was any competitive bidding process involved. Additionally, it might be beneficial to know what types of furniture are being purchased with that money.\n\njonnoalcaro: Based upon my understanding of the situation right now, though, it appears that the purchases align with our priorities and meet the needs of the students attending Albemarle Tech. There doesn't seem to be anything out of line here when considering the total budget available for such purposes.\n\njonnoalcaro: Final Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the salary for School Board members for 2018-2019 should be set at $6,752 with a chairman stipend of $1,800 per year and a vice-chairman stipend?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "As I review these figures, it's essential that compensation aligns with industry standards while considering local economic conditions and district financial health. These proposed amounts seem reasonable compared to other districts in our area.\n\nIn addition, I appreciate how this proposal differentiates roles within the leadership structure through added stipends for key positions such as chairperson and vice-chairperson.\n\nThese incentives acknowledge their increased responsibilities without overburdening taxpayers.\n\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the motion to reconsider the motion on resolution for ratification of purchases be approved?",
+      "true_vote": "Aye",
+      "pred_vote": "Naye",
+      "completion": "This particular purchase has been carefully vetted in previous meetings with input from teachers, administrators, and other stakeholders. I believe it aligns well with our strategic goals, especially those related to technology upgrades and enhancing academic resources.\n\nGiven that we've already had thorough discussions about these items, I don't see any compelling reason to reopen consideration at this point.\n\nFinal Vote: Naye.",
+      "correct": false,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the school board should hold a public hearing on May 25, 2017 to receive public comment regarding the consolidation of schools and options available regarding the operation of Benjamin F. Yancey Elementary School?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "I believe it's essential that we involve the community in discussions about significant decisions such as consolidating schools. It affects not only students but their families and neighborhoods too.\n\nHolding a public hearing allows us an opportunity to gather valuable input from stakeholders and fosters transparency throughout the decision-making process.\n\nAdditionally, considering alternative operational models for Benjamin F. Yancey Elementary School may lead to innovative solutions beneficial to everyone involved.\n\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the school board should consolidate Yancey Elementary School into Red Hill and Scottsville Elementary Schools effective at the end of the 2016-2017 school year, with Yancey students?",
+      "true_vote": "Aye",
+      "pred_vote": "Naye",
+      "completion": "This decision weighs heavily on me because it affects so many families in our community directly.\n\nUpon reviewing enrollment trends, I see that our overall district population has declined over recent years. Consolidation would allow us to optimize resources across schools more efficiently while maintaining quality education standards.\n\nHowever, consolidating Yancey Elementary means closing down an important part of those students', teachers', and parents' lives - their neighborhood school. We cannot take lightly how emotional these decisions can become when considering both academic continuity and social connections built through learning together daily.\n\nBefore making my final determination, let's discuss any potential solutions proposed by the administration regarding transportation logistics, teacher retention strategies, and possible ways to honor and preserve the history associated with Yancey Elementary within the consolidated environment.\n\nAfter careful consideration, weighing all factors including efficiency gains alongside preserving the unique identity of each affected community,\n\nFinal Vote: Naye.",
+      "correct": false,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the school board should approve the motion to modernize the four existing high schools and build two new high school centers in a phased manner, while continuing to monitor population growth in the County?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "We've been presented with data indicating that our high schools are reaching capacity due to rapid county growth. It's essential that we address these concerns proactively rather than waiting until they become critical issues.\n\nModernizing existing facilities would improve learning environments, enhance safety features, and increase accessibility. Additionally, constructing two new high school centers strategically addresses projected enrollment increases without overwhelming local infrastructure.\n\nBy phasing implementation, I believe we can manage costs effectively and ensure efficient allocation of resources. Monitoring future growth ensures adaptability within our plan.\n\nIt appears both fiscally responsible and forward-thinking given demographic trends.\n\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the school board should adopt an operational budget for fiscal year 2016/17 of $172,672,938 and a special revenue fund budget of $17,946,303?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "Adopting these budgets would ensure that all essential services continue without any disruption while maintaining existing programs and staff positions.\n\nOur superintendent has emphasized the importance of passing both motions given that they do not increase property taxes but still allow us to maintain our current level of service.\n\nIn light of those considerations, I believe it's in everyone's best interest if we pass both resolutions tonight.\n\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    },
+    {
+      "question": "Do you think the School Board should approve the bond resolution as provided by staff and send it to the Board of Supervisors?",
+      "true_vote": "Aye",
+      "pred_vote": "Aye",
+      "completion": "In considering approval of the bond resolution, I weigh the importance of facility upgrades against potential tax implications for community members.\n\nIt appears that these projects address pressing infrastructure issues while providing better learning environments for students. Also, the proposed bonds would not result in increased taxes above what was originally promised when voters approved previous funding measures.\n\nIn light of the thorough preparation and collaboration with local authorities, I believe approving the bond resolution serves both educational goals and fiscal responsibility.\n\nFinal Vote: Aye.",
+      "correct": true,
+      "attempts": 1
+    }
+  ]
+}
