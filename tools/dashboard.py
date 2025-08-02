@@ -12,89 +12,56 @@ FIGURES_DIR = os.path.join(BASE_DIR, 'figures')
 EVALS_DIR = os.path.join(BASE_DIR, 'evals')
 
 
-# 1. Define a specific captions dictionary (put this at the module level)
-# Captions for Completion Experiments
-completion_image_captions = {
-    "completion_agent_win_rate.png": "Per-agent win rates showing how often each model's response is preferred over LLaMA‑70B in completion tasks.",
-    "completion_overall_win_rate.png": "Aggregate win rate across all prompts, indicating how often each model is preferred over LLaMA‑70B.",
-    "agent_violin.png": "Distribution of 1–5 judge scores per agent, illustrating variation in response quality across models.",
-    "model_win_rate.png": "Breakdown of how frequently each model's responses are selected as best over LLaMA‑70B.",
-    "violin_compare.png": "Comparison of 1–5 score distributions between fine-tuned models and LLaMA‑70B, showing differences in output quality.",
-}
-
-# Captions for Monologue Experiments
-monologue_image_captions = {
-    "monologue_agent_win_rate.png": "Per-agent win rates showing how often the fine-tuned model outperforms LLaMA‑70B on monologue prompts.",
-    "monologue_overall_win_rate.png": "Overall model preference rate across all monologue prompts, based on comparisons with LLaMA‑70B.",
-    "agent_violin.png": "Judge score distributions (1–5 scale) for each model, indicating variation in style fidelity and response quality.",
-    "violin_compare.png": "Side-by-side distribution comparison of 1–5 judge scores for fine-tuned vs LLaMA‑70B models on monologue completions.",
-}
-
-# Captions for Alignment Experiments
-alignment_image_captions = {
-    "memory_overall_win_rate.png": "Overall win rate showing how well fine-tuned models recall agent-specific memories compared to LLaMA‑70B.",
-    "memory_agent_win_rate.png": "Per-agent win rates for memory alignment, reflecting how well fine-tuned models retrieve specific facts over LLaMA‑70B.",
-    "belief_overall_win_rate.png": "Overall model preference rate on belief-alignment tasks versus LLaMA‑70B, assessing alignment with speaker values.",
-    "belief_agent_win_rate.png": "Per-agent win rates showing how well fine-tuned models reflect speaker beliefs compared to LLaMA‑70B.",
-    "personality_agent_win_rate.png": "Per-agent win rates evaluating how well the model reflects speaker personality traits versus LLaMA‑70B.",
-    "personality_overall_win_rate.png": "Aggregate win rate on personality-alignment prompts, showing fine-tuned model performance relative to LLaMA‑70B.",
-    "agent_violin.png": "Judge score distributions (1–5 scale) across agents and alignment dimensions, showing variation in trait alignment.",
-    "violin_compare.png": "Comparison of 1–5 alignment scores between fine-tuned models and LLaMA‑70B across all traits.",
-}
-
-# Captions for Vote Prediction Experiments
-votes_image_captions = {
-    "votes_accuracy_pie.png": "Overall distribution of correct vs incorrect vote predictions across all board members.",
-    "votes_accuracy_by_agent.png": "Prediction accuracy by school board member, showing per-agent vote prediction performance.",
-    "votes_confusion_matrix.png": "Confusion matrix showing patterns of misclassified Aye, Naye, and Unknown votes by the model.",
-}
-
-# Captions for Single-Speaker Fool Rate Experiments
-single_speaker_image_captions = {
-    "completion_fool_rates.png": "Fool rates for completion data, showing how often model outputs are mistaken for real speaker utterances by binary classifiers.",
-    "belief_fool_rates.png": "Fool rates on belief-alignment data, reflecting how convincingly the model mimics speaker beliefs.",
-    "personality_fool_rates.png": "Fool rates on personality-aligned completions, measuring how well models imitate speaker personality traits.",
-    "fool_rates_by_agent.png": "Per-agent fool rates across datasets, indicating how successfully each model mimics individual speakers.",
-    "monologue_fool_rates.png": "Fool rates on monologue completions, assessing realism of long-form generated speech.",
-    "memory_fool_rates.png": "Fool rates on memory-alignment data, evaluating whether models capture and reflect speaker-specific facts.",
-    "fool_rates_by_dataset.png": "Aggregated fool rates across all datasets and evaluation subsets, showing overall speaker mimicry strength.",
-}
-
-# Captions for Multi-Speaker Classification Experiments
-multi_speaker_image_captions = {
-    "beliefs.png": "Speaker classification accuracy by agent on belief-alignment completions, reflecting distinctiveness in expressed views.",
-    "personality.png": "Classification accuracy by agent on personality-aligned completions, assessing stylistic fidelity.",
-    "memory.png": "Classifier accuracy on memory-aligned content, evaluating reproduction of speaker-specific references.",
-    "monologues.png": "Speaker classification accuracy by agent on monologue completions, indicating long-form voice consistency.",
-    "completions.png": "Speaker classification accuracy for general completions, measuring baseline speaker imitation quality.",
-    "all.png": "Overall speaker classification accuracy aggregated across all datasets, summarizing model voice fidelity.",
-    "comparison.png": "Comparison of classification accuracies across datasets and agents, highlighting relative model fidelity by domain.",
-}
-
 # --- GENERIC TAB MARKDOWNS ---
-    
+   
 EXPERIMENT_DESCRIPTIONS = {
-    "completion": """
+    "Overview": """
+### Dashboard Overview
+- This dashboards hosts all evaluations of fine-tuned LLM models
+- Experiment dates can be selected from the drop down at the top
+    -  Different experiments contain different trained model parameters (lora_rank, lora_alpha, etc).
+    -  These different parameters are visualized in the Model Summary Table below.
+- Generateion Parameter set's can also be selected from the second drop-down
+- The tabs in this dashboard are as follows:
+    1. **Overview:** stores results aggregated over all datasets
+    2. **Completion Dataset:** stores information related to dataset construction and results for only the Completion Dataset
+    3. **Monologue Dataset:** stores information related to dataset construction and results for only the Monologue Dataset
+    4. **Alignment Dataset:** stores information related to dataset construction and results for only the Alignment Dataset
+    5. **Vote Prediction:** stores information and results related to the Vote Prediction Experiment
+    6. **Next Speaker Prediction:** stores evaluations of models for the 'next-speaker' prediction task which may be helpful when we run real simulations.
+    7. **Prediction Model Evaluations:** stores evaluation of speaker classification models.
+- The main evaluation metrics used are:
+  - **Win Rate vs LLaMA‑70B**: A LLaMA‑70B judge decides produces a response more aligned with the ground of truth in terms of tone, sentiment, and vocabulary.
+  - **Judge Scores (1–5)**: LLaMA‑70B scores each response for content alignment and quality.
+  - **Speaker Attribution Accuracy**: A 7-way classifier trained on real utterances from transcripts to classify speakers.  It is then used to label completions generated by each fine-tuned model.  We assess if this classifier can associate the correct labels to the fine-tuned model the generated an utterance.
+  - **Fool Rates**: One-vs-all classifiers are trained for each speaker to identify if an utterance is from that speaker or some other speaker.  These classifiers then label the fine-tuned model completions.  We call Fool Rate the percentage off fine-tuned model generations that successfully pass as real to the classifier.
+
+""",
+
+    "Completion Dataset": """
 ### Completion Dataset
 - **Dataset**: The completion dataset consists of chat-completions from a held outset of meeting transcriptions.  Evaluates dialogue completion quality using real conversational prompts and ground truth continuations.
 - **Setup**: Both fine-tuned and baseline (LLaMA‑70B with in-context persona) models generate completions for the same prompt. 
 - **Evaluation**:
   - **Win Rate vs LLaMA‑70B**: A LLaMA‑70B judge decides produces a response more aligned with the ground of truth in terms of tone, sentiment, and vocabulary.
   - **Judge Scores (1–5)**: LLaMA‑70B scores each response for content alignment and quality.
-- **Output Metrics**: Overall and dimension-wise win rates, score distributions, and qualitative themes from judge justifications.
+  - **Speaker Attribution Accuracy**: A 7-way classifier trained on real utterances from transcripts to classify speakers.  It is then used to label completions generated by each fine-tuned model.  We assess if this classifier can associate the correct labels to the fine-tuned model the generated an utterance.
+  - **Fool Rates**: One-vs-all classifiers are trained for each speaker to identify if an utterance is from that speaker or some other speaker.  These classifiers then label the fine-tuned model completions.  We call Fool Rate the percentage off fine-tuned model generations that successfully pass as real to the classifier.
 """,
 
-    "monologue": """
+    "Monologue Dataset": """
 ### Monologue Dataset
 - **Dataset**:  Long speaker monologues (greater than 150 words) from transcripts are reverse-prompted into questions.  We ask LLaMA-70B to come up with a question that generated this monologue.  The completion dataset comprises of some short completions which can introduce some noise.  These longer form monolgues encourage longer answers and allow us to better study response tone and style.
 - **Setup**: Both fine-tuned and baseline (LLaMA‑70B with in-context persona) models generate responses to the monologue question.
 - **Evaluation**:
   - **Win Rate vs LLaMA‑70B**: A LLaMA‑70B judge decides produces a response more aligned with the ground of truth.
   - **Judge Scores (1–5)**: LLaMA‑70B scores each resopnse for quality, personality fit, and relevance.
+  - **Speaker Attribution Accuracy**: A 7-way classifier trained on real utterances from transcripts to classify speakers.  It is then used to label completions generated by each fine-tuned model.  We assess if this classifier can associate the correct labels to the fine-tuned model the generated an utterance.
+  - **Fool Rates**: One-vs-all classifiers are trained for each speaker to identify if an utterance is from that speaker or some other speaker.  These classifiers then label the fine-tuned model completions.  We call Fool Rate the percentage off fine-tuned model generations that successfully pass as real to the classifier.
 - **Output Metrics**: Win rate, score distributions, and qualitative analysis of response preferences.
 """,
 
-    "alignment": """
+    "Alignment Dataset": """
 ### Alignment Dataset
 
 - **Dataset**: Meeting transcripts are scraped for instances where speakers discuss their beliefs, memories, or personality traits.  LLaMA-70B is then used to come up with questions to ask the LLMs to express beliefs, recall memories and reveal personallity traits.
@@ -102,46 +69,28 @@ EXPERIMENT_DESCRIPTIONS = {
 - **Evaluation**:
   - **Win Rate vs LLaMA‑70B**: Judged on trait reflection accuracy.
   - **Judge Scores (1–5)**: Ratings based on alignment strength.
+  - **Speaker Attribution Accuracy**: A 7-way classifier trained on real utterances from transcripts to classify speakers.  It is then used to label completions generated by each fine-tuned model.  We assess if this classifier can associate the correct labels to the fine-tuned model the generated an utterance.
+  - **Fool Rates**: One-vs-all classifiers are trained for each speaker to identify if an utterance is from that speaker or some other speaker.  These classifiers then label the fine-tuned model completions.  We call Fool Rate the percentage off fine-tuned model generations that successfully pass as real to the classifier.
 - **Output Metrics**: Win rates per trait, overall alignment accuracy, and score distributions.
 """,
 
-    "votes": """
+    "Vote Prediction": """
 ### Vote Prediction Evaluation
 
 - **Dataset**: Historical school board votes from meeting minutes were scraped and turned into yes/no questions.  Fine-tuned models predict each member's vote.
-- **Evaluation**:
-  - **Correctness**: Prediction compared to actual vote.
+- **Evaluation**: Prediction accuracy compared to actual vote.
 - **Output Metrics**: Overall accuracy, per-agent accuracy, and confusion matrices highlighting prediction errors.
 """,
 
-    "multi-speaker": """
-### Multi-Speaker Classificaiton Evaluation
-
-- **Datasets**: Completion, Monologue and Alignment (beliefs, memory and personality questions)
-- **Setup**: A 7-way classifier trained on real utterances from transcripts is used to label completions generated by each fine-tuned model.  We assess if this classifier can associate the correct labels to the fine-tuned model the generated an utterance.
-- **Evaluation**:
-  - **Accuracy**: Whether the classifier correctly identifies the intended speaker.
-- **Output Metrics**: Accuracy by dataset and by speaker, illustrating model fidelity across multiple linguistic dimensions.
-""",
-
-    "single-speaker": """
-### Single-Speaker Experiments
-
-- **Datasets**: Completion, Monologue and Alignment (beliefs, memory and personality questions)
-- **Setup**: One-vs-all classifiers are trained for each speaker to identify if an utterance is from that speaker or some other speaker.  These classifiers then label the fine-tuned model completions.
-- **Evaluation**:
-  - **Fool Rate**: Percentage off fine-tuned model utterancess that successfully pass as real to the classifier.
-- **Output Metrics**: Fool rates by agent, by dataset, and by alignment dimensions (beliefs, personality, memory).
-""",
-
-    "Prediction Model Evals": """
+    "Prediction Model Evaluations": """
 ### Prediction Model Evaluations
 
 This section summarizes test set validation performance of the Single-Speaker and Multi-Speaker Classificaiton models.
-
-- **Evaluation**: Aggregates confusion matrices, score distributions, and classifier performance across all speaker modeling experiments.
+1.  **Single Speaker Model** - this is used for Fool Rate calculations.  microsoft/deberta-v3-large was trained to predict 1 if an utterance came from a particular speaker and 0 if it came from any other speaker.  Since we have 7-agents, seven different models were trained in total.
+2.  **Multi-Speaker Modle** - this is used for Speaker Attribution Accuracy metrics.  microsoft/deberta-v3-large was trained to predict one of 7 classification labels.
 """,
-'next-speaker-prediction': """
+
+'Next Speaker Prediction': """
 ### Next Speaker Prediction
 
 -  **Goal**: To use these fine-tuned models in a simulation setting, we need a way to decide the next speaker.  To do this we try to come up with a next speaker prediction model.
@@ -204,11 +153,10 @@ def get_param_sets(figures_dir):
     return []
 
 def get_categories(param_set):
-    desired_order = [ "completion", "monologue", "alignment", "votes", "multi-speaker", "single-speaker"
-    ]
+    desired_order = [ "Completion Dataset", "Monologue Dataset", "Alignment Dataset", "Vote Prediction"]
     path = os.path.join(FIGURES_DIR, param_set)
     existing = [d for d in os.listdir(path) if os.path.isdir(os.path.join(path, d))]
-    return ['overview'] + [d for d in desired_order if d in existing] + ['next-speaker-prediction']
+    return ['Overview'] + desired_order + ['Next Speaker Prediction']
 
 def get_image_files(param_set, category):
     folder = os.path.join(FIGURES_DIR, param_set, category)
@@ -251,7 +199,7 @@ def display_carousel(image_paths, tab_key):
     """
     components.html(image_html, height=650)
 
-    description = get_caption(img_name)
+    description = ""#get_caption(img_name)
     if description:
         st.markdown(f'''
             <p style="
@@ -297,12 +245,25 @@ st.markdown("""
 """)
 
 categories = get_categories(selected_param)
-categories.append("Prediction Model Evals")
+categories.append("Prediction Model Evaluations")
 tabs = st.tabs(categories)
 
+category_map = {
+    'Completion Dataset': 'completion',
+    'Monologue Dataset': 'monologue',
+    'Alignment Dataset': 'alignment',
+    'Vote Prediction': 'votes',
+
+}
+
 for tab, category in zip(tabs, categories):
+    print(category)
     with tab:
-        if category =='overview':
+
+        # Insert generic experiment description per tab
+        st.markdown(EXPERIMENT_DESCRIPTIONS.get(category, f"**Experiment Overview: {category.capitalize()}**"))
+
+        if category =='Overview':
             st.markdown("### Experiment Overview")
 
             # Direct DataFrame rendering (preferred)
@@ -310,17 +271,16 @@ for tab, category in zip(tabs, categories):
             with open(os.path.join(BASE_DIR, selected_experiment, "model_summary.md"), "r") as f:
                 st.markdown(f.read())
 
-            st.markdown("### Perplexity Results")
-            img_path = os.path.join(BASE_DIR, selected_experiment, 'perplexity.png')
-            st.image(img_path, caption="Perplexity", use_container_width=True)
-            continue
-
-        # Insert generic experiment description per tab
-        st.markdown(EXPERIMENT_DESCRIPTIONS.get(category, f"**Experiment Overview: {category.capitalize()}**"))
+            st.markdown("### Results Overview")
+            images = get_image_files(selected_param, 'main')
+            image_paths = [img_path for _, img_path in images] 
+            perplexity_path = os.path.join(BASE_DIR, selected_experiment, 'perplexity.png')
+            image_paths.insert(0, perplexity_path)
+            display_carousel(image_paths, f"{selected_param}_{category}")
 
         # "completion", "monologue", etc.
-        if category in ["completion",  "monologue", "alignment", "multi-speaker", "single-speaker", "votes"]:
-            images = get_image_files(selected_param, category)
+        if category in ["Completion Dataset",  "Monologue Dataset", "Alignment Dataset", "Vote Prediction"]:
+            images = get_image_files(selected_param, category_map[category])
             if not images:
                 st.info("No images available for this category.")
                 continue
@@ -330,7 +290,7 @@ for tab, category in zip(tabs, categories):
 
 
              ########### Completion TAB Manual Review ##############
-            if category == "completion":
+            if category == "Completion Dataset":
                 # --- Manual Review Section for Alignment ---
                 st.markdown("---")
                 st.subheader("Manual Review: Completion Data")
@@ -418,7 +378,7 @@ for tab, category in zip(tabs, categories):
 
 
              ########### Monologue TAB Manual Review ##############
-            if category == "monologue":
+            if category == "Monologue Dataset":
                 # --- Manual Review Section for Alignment ---
                 st.markdown("---")
                 st.subheader("Manual Review: Monologue Data")
@@ -504,7 +464,7 @@ for tab, category in zip(tabs, categories):
 
 
              ########### ALIGNMENT TAB Manual Review ##############
-            if category == "alignment":
+            if category == "Alignment Dataset":
                 # --- Manual Review Section for Alignment ---
                 st.markdown("---")
                 st.subheader("Manual Review: Alignment Data")
@@ -573,9 +533,9 @@ for tab, category in zip(tabs, categories):
                     st.warning("Could not find the selected alignment data file.")
 
 
-        elif category == "Prediction Model Evals":
+        elif category == "Prediction Model Evaluations":
             # Example: show multi- and single-speaker model evals, generic/coverage only
-            st.subheader("Multi-Speaker Models")
+            st.subheader("Multi-Speaker Model")
             multi_speaker_imgs = [
                 os.path.join(EVALS_DIR, "multi-speaker_scores.png"),
                 os.path.join(EVALS_DIR, "multi-speaker_cm.png"),
@@ -589,7 +549,7 @@ for tab, category in zip(tabs, categories):
             ]
             display_carousel(single_speaker_imgs, "single_speaker_eval")
 
-        elif category == "next-speaker-prediction":
+        elif category == "Next Speaker Prediction":
             st.markdown("### Next Speaker Prediction Results")
 
             next_pred_dir = os.path.join(BASE_DIR, "next_speaker_pred")
