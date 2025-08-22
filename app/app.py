@@ -169,7 +169,7 @@ def create_markdown_table(df):
 
 
 # --- HELPERS ---
-@st.cache_data
+#@st.cache_data
 def get_param_sets(figures_dir):
     if os.path.exists(figures_dir):
         return sorted([d for d in os.listdir(figures_dir) if os.path.isdir(os.path.join(figures_dir, d))])
