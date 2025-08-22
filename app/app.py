@@ -7,7 +7,8 @@ import base64
 import pandas as pd
 
 # --- CONFIG ---
-BASE_DIR = "/playpen-ssd/smerrill/llm_decisions/results"
+BASE_DIR = "results"
+BASE_DIR = os.path.join(os.path.dirname(__file__), 'results')
 FIGURES_DIR = os.path.join(BASE_DIR, 'figures')
 EVALS_DIR = os.path.join(BASE_DIR, 'evals')
 
