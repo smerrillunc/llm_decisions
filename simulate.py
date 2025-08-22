@@ -5,6 +5,7 @@
 # =========================
 
 import argparse
+from html import parser
 import json
 import os
 import random
@@ -69,28 +70,118 @@ def round_robin_order(agent_names, start=0):
         yield agent_names[idx % len(agent_names)]
         idx += 1
 
+def apply_chat_template(messages):
+    output = ["<|begin_of_text|>"]
+    last_role = None
+
+    for message in messages:
+        
+        
+        role = message['role']
+        content = message['content']
+
+        if last_role and (last_role != role):
+            output.append('<|eot_id|>\n\n')
+
+        # Always add header if assistant
+        # For user, only add header if previous role wasn't user
+        if role == "assistant" or (role == "user" and last_role != "user"):
+            output.append(f"<|start_header_id|>{role}<|end_header_id|>\n")
+
+        output.append(f"\n{content}")
+        last_role = role
+
+    output.append('<|eot_id|>')
+    return "".join(output)
+
 
 # =========================
 # AGENT CLASS
 # =========================
 
 class Agent:
-    def __init__(self, name, model, tokenizer):
+    def __init__(
+        self,
+        name,
+        model,
+        tokenizer,
+        temperature: float = 0.7,
+        top_k: int = 50,
+        top_p: float = 0.9,
+        repetition_penalty: float = 1.0,
+        max_new_tokens: int = 150,
+    ):
         self.name = name
         self.model = model
         self.tokenizer = tokenizer
         self.conv_history = []
 
-    def generate_response(self, prompt: str, gen_kwargs=None, agent_names=None) -> str:
-        gen_kwargs = gen_kwargs or {
-            "do_sample": True,
-            "temperature": 0.7,
-            "max_new_tokens": 150,
+        # Default generation settings
+        self.temperature = temperature
+        self.top_k = top_k
+        self.top_p = top_p
+        self.repetition_penalty = repetition_penalty
+        self.max_new_tokens = max_new_tokens
+
+    def generate_response(
+        self,
+        prompt: str,
+        temperature: float = None,
+        top_k: int = None,
+        top_p: float = None,
+        repetition_penalty: float = None,
+        max_new_tokens: int = None,
+        num_candidates: int = 1,
+        agent_names=None,
+    ) -> str:
+        """
+        Generate a single response (string).
+        Allows overriding of default generation settings.
+        """
+        gen_kwargs = {
+            "temperature": temperature if temperature is not None else self.temperature,
+            "top_k": top_k if top_k is not None else self.top_k,
+            "top_p": top_p if top_p is not None else self.top_p,
+            "repetition_penalty": (
+                repetition_penalty if repetition_penalty is not None else self.repetition_penalty
+            ),
+            "max_new_tokens": max_new_tokens if max_new_tokens is not None else self.max_new_tokens,
         }
-        candidates = self.generate_candidates(prompt, 1, gen_kwargs, agent_names or [])
+
+        candidates = self.generate_candidates(
+            prompt, num_candidates, agent_names or [], **gen_kwargs
+        )
         return candidates[0]
 
-    def generate_candidates(self, prompt, num_candidates, gen_kwargs, agent_names, max_attempts=3):
+    def generate_candidates(
+        self,
+        prompt: str,
+        num_candidates: int = 1,
+        agent_names=None,
+        temperature: float = None,
+        top_k: int = None,
+        top_p: float = None,
+        repetition_penalty: float = None,
+        max_new_tokens: int = None,
+        max_attempts: int = 3,
+    ):
+        """
+        Generate multiple candidate responses.
+        Uses defaults unless overridden by arguments.
+        """
+        self.model.set_adapter(self.name)
+
+        gen_kwargs = {
+            "do_sample": True,
+            "temperature": temperature if temperature is not None else self.temperature,
+            "top_k": top_k if top_k is not None else self.top_k,
+            "top_p": top_p if top_p is not None else self.top_p,
+            "repetition_penalty": (
+                repetition_penalty if repetition_penalty is not None else self.repetition_penalty
+            ),
+            "max_new_tokens": max_new_tokens if max_new_tokens is not None else self.max_new_tokens,
+        }
+
         candidates = []
         inputs = self.tokenizer(prompt, return_tensors="pt")
         input_ids = inputs.input_ids
@@ -98,7 +189,7 @@ class Agent:
 
         def is_multi_agent_reply(reply: str) -> bool:
             lower = reply.lower()
-            return sum(lower.count(f"{name.lower()}:") for name in agent_names) > 1
+            return sum(lower.count(f"{name.lower()}:") for name in (agent_names or [])) > 1
 
         for _ in range(num_candidates):
             attempt = 0
@@ -108,6 +199,7 @@ class Agent:
                 reply = self.tokenizer.decode(new_tokens, skip_special_tokens=True).strip()
 
                 if not is_multi_agent_reply(reply):
+                    debug_print(f"[FILTER] MULTI_AGENT_REPLY {attempt} accepted reply:\n{reply}")
                     candidates.append(reply)
                     break
                 attempt += 1
@@ -130,25 +222,6 @@ def get_formal_alias(agent_key: str):
             return alias.title().replace("Ms ", "Ms. ").replace("Mr ", "Mr. ")
     return agent_key.title()
 
-def parse_vote_from_response(response: str) -> dict:
-    resp = response.lower().strip()
-    resp = re.sub(r"^\w+:", "", resp).strip()
-
-    yes_keywords = ["i vote yes", "i support", "yes", "approve", "agree"]
-    no_keywords = ["i vote no", "i oppose", "no", "reject", "disagree"]
-    abstain_keywords = ["abstain", "undecided", "no strong opinion", "won’t vote"]
-
-    def match(terms): return any(term in resp for term in terms)
-
-    if match(yes_keywords):
-        return {"vote": "yes", "comment": response.strip()}
-    elif match(no_keywords):
-        return {"vote": "no", "comment": response.strip()}
-    elif match(abstain_keywords):
-        return {"vote": "abstain", "comment": response.strip()}
-    else:
-        debug_print(f"[WARNING] Could not parse vote from: {response}")
-        return {"vote": "abstain", "comment": response.strip()}
 
 def generate_vote(agent, conversation_log, vote_type: str):
 
@@ -175,10 +248,10 @@ def generate_vote(agent, conversation_log, vote_type: str):
         "Vote: yes"
     ]
 
-    conv = [{"role": "user" if msg['speaker'] != agent.name else "assistant", "content": f"{msg['speaker']}: {msg['content']}"} for msg in conversation_log[-30:]]
-    conv.append({"role": "system", "content": system_prompt})
-    prompt = agent.tokenizer.apply_chat_template(conv, tokenize=False)
-    prompt += f"<|start_header_id|>assistant<|end_header_id|>\n\n{agent.name}: "
+    conv = [{"role": "user" if msg['speaker'] != agent.name else "assistant", "content": f"{msg['speaker']}: {msg['content']}"} for msg in conversation_log[-10:]]
+    conv.append({"role": "system", "content": '\n'.join(system_prompt)})
+    prompt = apply_chat_template(conv)
+    prompt += f"\n\n<|start_header_id|>assistant<|end_header_id|>\n\n{agent.name}: "
     print(prompt)
     
     
@@ -192,26 +265,128 @@ def generate_vote(agent, conversation_log, vote_type: str):
         
     return vote
 
+def parse_vote_from_response(response: str) -> dict:
+    """
+    Extract:
+      - vote: the token after 'Vote:' (yes|no|abstain), case-insensitive
+      - comment: everything after '<speaker>:' up to 'Vote:'
+    """
+    resp = response.strip()
+
+    # vote
+    vote_match = re.search(r"vote:\s*(yes|no|abstain)\b", resp, re.IGNORECASE)
+    vote = vote_match.group(1).lower() if vote_match else "abstain"
+
+    # comment (allow any speaker token before ':')
+    comment_match = re.match(r"^[^:]+:\s*(.*?)(?:\s*vote:|$)", resp, re.IGNORECASE | re.DOTALL)
+    comment = comment_match.group(1).strip() if comment_match else resp
+
+    return {"vote": vote, "comment": comment}
+
+
+def tally_and_log_votes(public_votes, private_votes, log, chair_name):
+    """
+    Tally votes from:
+      - dict[str -> {'vote': 'yes'|'no'|'abstain', 'comment': str}]
+      - list[{'vote': ...}] or list[str]
+      - entries that may only have 'content' containing 'Vote: ...'
+    Log a chair announcement as a dict {speaker, content}.
+    Return public/private/combined tallies + results.
+    """
+    def extract_vote_from_any(x: object) -> str:
+        # Accept dicts like {'vote': 'yes', 'comment': ...}
+        if isinstance(x, dict):
+            v = x.get("vote")
+            if v:
+                return str(v).strip().lower()
+            # Fallback: parse from 'content'
+            content = x.get("content", "")
+            m = re.search(r"vote:\s*(yes|no|abstain)\b", str(content), re.IGNORECASE)
+            if m:
+                return m.group(1).lower()
+            return ""
+        # Accept raw strings like "Vote: yes" or "yes"
+        if isinstance(x, str):
+            m = re.search(r"vote:\s*(yes|no|abstain)\b", x, re.IGNORECASE)
+            if m:
+                return m.group(1).lower()
+            # bare token
+            tok = x.strip().lower()
+            if tok in {"yes", "no, ", "no", "abstain"}:
+                # handle stray comma case; normalize
+                return tok.replace(",", "")
+            return ""
+        return ""
+
+    def safe_vote_count(votes) -> dict:
+        counts = {"yes": 0, "no": 0, "abstain": 0}
+        # If votes is a dict of name -> vote_obj, iterate over values
+        iterable = votes.values() if isinstance(votes, dict) else votes
+        for item in iterable:
+            v = extract_vote_from_any(item)
+            if v in counts:
+                counts[v] += 1
+            else:
+                # treat missing/unknown as abstain
+                counts["abstain"] += 1
+        return counts
+
+    def result_from_counts(c: dict) -> str:
+        if c["yes"] > c["no"]:
+            return "approved"
+        if c["yes"] < c["no"]:
+            return "denied"
+        return "tied"  # optional but clearer than defaulting to denied
+
+    # Tally
+    public_counts = safe_vote_count(public_votes)
+    private_counts = safe_vote_count(private_votes)
+    combined_counts = {
+        "yes": public_counts["yes"] + private_counts["yes"],
+        "no": public_counts["no"] + private_counts["no"],
+        "abstain": public_counts["abstain"] + private_counts["abstain"],
+    }
+
+    # Results
+    public_result = result_from_counts(public_counts)
+    private_result = result_from_counts(private_counts)
+    combined_result = result_from_counts(combined_counts)
+
+    # Log as a dict (not a string!) so downstream code that expects dicts works
+    log.append({
+        "speaker": chair_name,
+        "content": (
+            "Thank you everyone for voting. After counting all the votes, we have "
+            f"{public_counts['yes']} (public) / {private_counts['yes']} (private) in favor, "
+            f"{public_counts['no']} (public) / {private_counts['no']} (private) against, and "
+            f"{public_counts['abstain']} (public) / {private_counts['abstain']} (private) abstaining. "
+            f"Results → Public: {public_result}, Private: {private_result}, Combined: {combined_result}. "
+            "Thank you everyone for coming, have a nice night."
+        )
+    })
+
+    return {
+        "public": {**public_counts, "result": public_result},
+        "private": {**private_counts, "result": private_result},
+        "combined": {**combined_counts, "result": combined_result},
+    }
+
+
 def run_voting(vote_prompt: str, vote_type: str, agents: dict, log: list[dict], agent_names: list[str]) -> tuple[dict, list[dict]]:
     """
     Collects votes from all agents and the chair, adds them to the log.
-
-    - For public voting: comments and votes are broadcast (simulated dialogue).
-    - For private voting: votes and reasoning are stored, but not announced to others.
-    
-    Returns tuple: (votes_dict, updated_log)
     """
     voting_log = deepcopy(log)
     private_log = deepcopy(log)
-    
+
     votes = {}
     non_chair = [a for a in agent_names if a != CHAIR_NAME]
 
     # Initial announcement from the chair
     if vote_type == "public":
-        announcement = f"We are now out of time and will vote publicly.  We are voting on {vote_prompt}.  {get_formal_alias(non_chair[0])}, can you please start us off?"
+        announcement = f"Ok, that's enough, we will now vote publicly.  We are voting on {vote_prompt}.  {get_formal_alias(non_chair[0])}, can you please start us off?"
     else:
-        announcement = f"We are now out of time and will vote privately.  We are voting on {vote_prompt}.  If each of you could please record your vote in the chat, I will tally them up and announce the results."
+        announcement = f"Ok, that's enough, we will now vote privately.  We are voting on {vote_prompt}.  If each of you could please record your vote in the chat, I will tally them up and announce the results."
 
     voting_log.append({"speaker": CHAIR_NAME, "content": announcement})
     private_log.append({"speaker": CHAIR_NAME, "content": announcement})
@@ -219,7 +394,6 @@ def run_voting(vote_prompt: str, vote_type: str, agents: dict, log: list[dict], 
     for idx, name in enumerate(non_chair):
         agent = agents[name]
         debug_print(f"[VOTE-{vote_type.upper()}] {name} is voting...")
-        prior = votes if vote_type == "public" else {}
 
         # Generate vote
         vote = generate_vote(agent, voting_log, vote_type)
@@ -227,13 +401,14 @@ def run_voting(vote_prompt: str, vote_type: str, agents: dict, log: list[dict], 
 
         # Add to transcript
         if vote_type == "public":
-            # Spoken dialogue: visible to everyone
             voting_log.append({"speaker": name, "content": vote["comment"]})
-            
-            if vote["vote"] == "":
+
+            # Announce the vote
+            v = vote.get("vote", "").strip().lower()
+            if v not in {"yes", "no", "abstain"}:
                 voting_log.append({"speaker": CHAIR_NAME, "content": f"{get_formal_alias(name)} abstains from voting."})
             else:
-                voting_log.append({"speaker": CHAIR_NAME, "content": f"{get_formal_alias(name)} votes {vote['vote']}.  Thank you, {get_formal_alias(name)}."})
+                voting_log.append({"speaker": CHAIR_NAME, "content": f"{get_formal_alias(name)} votes {v}.  Thank you, {get_formal_alias(name)}."})
 
             # Next agent prompt
             if idx + 1 < len(non_chair):
@@ -256,24 +431,19 @@ def run_voting(vote_prompt: str, vote_type: str, agents: dict, log: list[dict], 
         voting_log.append({"speaker": CHAIR_NAME, "content": "Now it's my turn to vote."})
         chair_vote = generate_vote(chair_agent, voting_log, vote_type)
         votes[CHAIR_NAME] = chair_vote
-
         voting_log.append({"speaker": CHAIR_NAME, "content": chair_vote["comment"]})
     else:
         chair_vote = generate_vote(chair_agent, voting_log, vote_type)
         votes[CHAIR_NAME] = chair_vote
-
         private_log.append({
             "speaker": CHAIR_NAME,
             "content": chair_vote["comment"],
             "vote": chair_vote["vote"],
             "private": True
         })
+        voting_log = private_log  # return the private transcript
 
-    if vote_type == "private":
-        voting_log = private_log
-        
     return votes, voting_log
-
 
 # =========================
 # RANKING, DETECTION, LOADERS
@@ -283,14 +453,29 @@ def detect_forced_next_speaker(evaluator, tokenizer, recent_turns, agents, max_n
     convo = "\n".join(f"{t['speaker']}: {t['content']}" for t in recent_turns)
     participant_line = ", ".join(agents)
 
+    #prompt = (
+    #    f"You are analyzing a school board conversation.\nParticipants: {participant_line}\n"
+    #    f"Conversation:\n{convo}\nWho is most expected to speak next? Answer EXACT name or 'None':\n"
+    #)
+    
     prompt = (
-        f"You are analyzing a school board conversation.\nParticipants: {participant_line}\n"
-        f"Conversation:\n{convo}\nWho is most expected to speak next? Answer EXACT name or 'None':\n"
+        f"You are analyzing a school board conversation. \n"
+        f"Participants: {participant_line}\n"
+        f"Conversation:\n{convo}\n\n"
+        f"Your task: Determine if the last message in the conversation is directed at any of the listed participants. "
+        f"Only consider explicit references or mentions by name. \n"
+        f"Instructions:\n"
+        f"- Respond with the EXACT name of the school board member being addressed.\n"
+        f"- If the message is not directed at any participant, respond with 'None'.\n"
+        f"- Do not include any additional text or explanation.\n\n"
+        f"Answer:"
     )
 
     inputs = tokenizer(prompt, return_tensors="pt")
     prompt_len = inputs.input_ids.shape[1]
-    out_tokens = evaluator.generate(**inputs, max_new_tokens=max_new_tokens, do_sample=True)
+    with evaluator.disable_adapter():
+        out_tokens = evaluator.generate(**inputs, max_new_tokens=max_new_tokens, do_sample=True)
+        
     reply = tokenizer.decode(out_tokens[0][prompt_len:], skip_special_tokens=True).strip().lower()
 
     for name in agents:
@@ -298,70 +483,88 @@ def detect_forced_next_speaker(evaluator, tokenizer, recent_turns, agents, max_n
             return name
     return None
 
-def rank_candidates(evaluator, tokenizer, context: str, candidates: list[str]) -> str:
-    prompt = context.strip() + "\n\nChoose the best continuation:\n"
-    for i, c in enumerate(candidates, 1):
-        prompt += f"{i}. {c}\n"
-    prompt += "Answer with the NUMBER only:\n"
+def detect_vote(evaluator, tokenizer, recent_turns, max_new_tokens=20):
+    """
+    Detects whether a school board conversation includes a call for a vote or motion.
+
+    Args:
+        evaluator: the language model.
+        tokenizer: tokenizer for the model.
+        recent_turns: list of dicts with 'speaker' and 'content'.
+        agents: list of participant names.
+        max_new_tokens: max tokens to generate.
+
+    Returns:
+        True if a vote or motion is called, False otherwise.
+    """
+
+    convo_text = "\n".join(f"{t['speaker']}: {t['content']}" for t in recent_turns)
+
+    prompt = (
+        f"You are an assistant analyzing a school board conversation.\n"
+        f"Conversation:\n{convo_text}\n\n"
+        f"Detect if any participant calls for a vote or motion.\n"
+        f"Respond with ONLY 'Yes' if a vote or motion is called, and 'No' if not. "
+        f"Do not include any explanation, reasoning, or extra text.\n"
+        f"Answer:"
+    )
 
     inputs = tokenizer(prompt, return_tensors="pt")
     prompt_len = inputs.input_ids.shape[1]
-    response = evaluator.generate(**inputs, max_new_tokens=10, do_sample=True)
+
+    # Disable adapters if using one
+    with evaluator.disable_adapter():
+        # Use deterministic output to reduce variability
+        out_tokens = evaluator.generate(
+            **inputs, max_new_tokens=max_new_tokens, do_sample=False
+        )
+
+    reply = tokenizer.decode(out_tokens[0][prompt_len:], skip_special_tokens=True).strip().lower()
+
+    return reply == "yes"
+
+
+
+def rank_candidates(evaluator, tokenizer, context: str, candidates: list[str]) -> str:
+    prompt = context.strip() + "\n\nYou are evaluating a conversaiton.  The only people in this conversation are: Ellen Osborne, Judy Le, Graham Paige Kristina Callsen, Kate Acuff, David Oberg and Jonno Alcaro.  Please rule out any response that addresses people not in the conversation and choose the best continuation:\n"
+    for i, c in enumerate(candidates):
+        prompt += f"Response {i+1}: {c}\n"
+    prompt += "Answer with the NUMBER only:\n"
+    print(prompt)
+    inputs = tokenizer(prompt, return_tensors="pt")
+    prompt_len = inputs.input_ids.shape[1]
+    
+    with evaluator.disable_adapter():
+        response = evaluator.generate(**inputs, max_new_tokens=10, do_sample=True)
+        
     reply = tokenizer.decode(response[0][prompt_len:], skip_special_tokens=True).strip()
 
     match = re.search(r"\b([1-3])\b", reply)
     return candidates[int(match.group(1)) - 1] if match else random.choice(candidates)
 
-def load_adapters(config_path, base_model):
-    with open(config_path) as f:
-        paths = json.load(f)
-    loaded = {}
-    for name, path in paths.items():
-        path = path.replace('merged','')
-        tokenizer = AutoTokenizer.from_pretrained(path, use_fast=True)
-        tokenizer.pad_token = tokenizer.eos_token
-        model = PeftModel.from_pretrained(base_model, path, device_map="auto", torch_dtype=torch.bfloat16)
-        loaded[name] = (model, tokenizer)
-    return loaded
-
-def tally_and_log_votes(public_votes, private_votes, log, chair_name):
-    def safe_vote_count(votes):
-        counts = {"yes": 0, "no": 0, "abstain": 0}
-        for v in votes:
-            if isinstance(v, dict):
-                vote = v.get("vote", "").lower()
-            elif isinstance(v, str):
-                vote = v.lower()
-            else:
-                continue  # skip unknown type
-
-            if vote in counts:
-                counts[vote] += 1
-        return counts
-
-    public_counts = safe_vote_count(public_votes)
-    private_counts = safe_vote_count(private_votes)
-
-    vote_pass_public = "approved" if public_counts["yes"] > public_counts["no"] else "denied"
-    vote_pass_private = "approved" if private_counts["yes"] > private_counts["no"] else "denied"
-
-    # Log results
-    log.append({
-        "speaker": chair_name,
-        "content": (
-            f"Thank you everyone for voting. After counting all the votes, we have "
-            f"{public_counts['yes']} (public) / {private_counts['yes']} (private) in favor, "
-            f"{public_counts['no']} (public) / {private_counts['no']} (private) against, and "
-            f"{public_counts['abstain']} (public) / {private_counts['abstain']} (private) abstaining. "
-            f"The motion is {vote_pass_public} (public) / {vote_pass_private} (private). "
-            f"Thank you everyone for coming, have a nice night."
+def load_adapters(model_paths, base_model_path):
+    base = AutoModelForCausalLM.from_pretrained(
+            base_model_path,
+            torch_dtype=torch.bfloat16,
+            device_map="auto"
         )
-    })
+    tokenizer = AutoTokenizer.from_pretrained(base_model_path, use_fast=True)
+    tokenizer.pad_token = tokenizer.eos_token
 
-    return {
-        "public": {**public_counts, "result": vote_pass_public},
-        "private": {**private_counts, "result": vote_pass_private}
-    }
+
+
+    peft_model = None
+    for name, path in model_paths.items():
+        path = path.replace("/merged", "")
+        print(f"[INFO] Loading adapter for {name} from {path}")
+        
+        if peft_model == None:
+            peft_model = PeftModel.from_pretrained(base, path, is_trainable=False)
+        
+        peft_model.load_adapter(path, adapter_name=name)
+
+    return peft_model, tokenizer
+
     
 # =========================
 # MAIN FUNCTION
@@ -376,53 +579,107 @@ def main():
     parser.add_argument("--agenda_item", required=True)
     parser.add_argument("--vote_prompt", required=True)
     parser.add_argument("--save_dir", default="results_simulation")
-    parser.add_argument("--max_turns", type=int, default=4)
+    parser.add_argument("--max_turns", type=int, default=25)
     parser.add_argument("--num_candidates", type=int, default=3)
+    
+    parser.add_argument("--temperature", type=float, default=0.7, help="Sampling temperature")
+    parser.add_argument("--top_k", type=int, default=50, help="Top-k sampling cutoff")
+    parser.add_argument("--top_p", type=float, default=0.9, help="Top-p nucleus sampling cutoff")
+    parser.add_argument("--repetition_penalty", type=float, default=1.0, help="Penalty for token repetition")
+    parser.add_argument("--max_new_tokens", type=int, default=150, help="Maximum new tokens to generate")
+
     args = parser.parse_args()
 
-    base = AutoModelForCausalLM.from_pretrained(args.base_model, device_map="auto", torch_dtype=torch.bfloat16)
-    evaluator = AutoModelForCausalLM.from_pretrained("meta-llama/Meta-Llama-3-8B-Instruct", torch_dtype=torch.bfloat16, device_map="auto")
-    eval_tokenizer = AutoTokenizer.from_pretrained(args.base_model, use_fast=True)
+    with open(args.config) as f:
+        model_paths = json.load(f)
 
-    adapters = load_adapters(args.config, base)
+
+    peft_model, tokenizer = load_adapters(model_paths, args.base_model)
+
     agents = {}
-
-    for name, (model, tokenizer) in adapters.items():
-        tokenizer.chat_template = "<|begin_of_text|>{% for message in messages %}<|start_header_id|>{{ message['role'] }}<|end_header_id|>\n\n{{ message['content'] }}<|eot_id|>\n\n{% endfor %}"
-        agents[name] = Agent(name, model, tokenizer)
+    for name in model_paths.keys():
+        agents[name] = Agent(
+            name,
+            peft_model,
+            tokenizer,
+            temperature=args.temperature,
+            top_k=args.top_k,
+            top_p=args.top_p,
+            repetition_penalty=args.repetition_penalty,
+            max_new_tokens=args.max_new_tokens
+        )
 
     log = [{
         "speaker": CHAIR_NAME,
         "content": f"Welcome everyone. Let's begin discussion on: {args.agenda_item}. Who would like to start?"
     }]
-    agent_names = list(adapters.keys())
+    agent_names = list(model_paths.keys())
     turn_order = deque(agent_names)
     turn_order.remove(CHAIR_NAME)
 
-    for _ in range(args.max_turns):
-        recent = log[-3:] if len(log) >= 3 else log
-        forced = detect_forced_next_speaker(evaluator, eval_tokenizer, recent, agent_names)
-        speaker = forced or turn_order.popleft()
+    last_speaker = CHAIR_NAME  # initialize with chair
+
+    for round_idx in range(args.max_turns):
+        recent = log[-1:] if len(log) >= 1 else log
+        forced = detect_forced_next_speaker(peft_model, tokenizer, recent, agent_names)
+
+        if forced and forced == last_speaker:
+            # If forced speaker is same as last, pick next in turn_order
+            speaker = turn_order.popleft()
+        else:
+            speaker = forced or turn_order.popleft()
+            
+        # Ensure speaker is not the same as last_speaker
+        if speaker == last_speaker:
+            # Rotate turn_order until we find someone else
+            for _ in range(len(turn_order)):
+                turn_order.append(speaker)
+                speaker = turn_order.popleft()
+                if speaker != last_speaker:
+                    break
+        
+        print('-'*20)
+        print("Round Index: {}, Speaker: {}, Forced: {}".format(round_idx, speaker, forced))
 
         agent = agents[speaker]
-        conv = [{"role": "user" if msg['speaker'] != speaker else "assistant", "content": f"{msg['speaker']}: {msg['content']}"} for msg in log[-30:]]
-        prompt = agent.tokenizer.apply_chat_template(conv, tokenize=False)
-        prompt += f"<|start_header_id|>assistant<|end_header_id|>\n\n{speaker}: "
+        conv = [{"role": "user" if msg['speaker'] != speaker else "assistant", "content": f"{msg['speaker']}: {msg['content']}"} for msg in log[-10:]]
+        system_prompt = (
+            "You are roleplaying as a school board member named {speaker}. "
+            "Always speak in the voice of {speaker}, and respond only as that character. "
+            "Do not break character, add commentary, or speak for anyone else."
+        )
+        conv.append({"role": "system", "content": system_prompt})
 
-        candidates = agent.generate_candidates(prompt, args.num_candidates, {
-            "do_sample": True, "temperature": 0.7, "max_new_tokens": 200, "top_p": 0.95
-        }, ALL_AGENT_NAMES)
-
+        prompt = apply_chat_template(conv)
+        prompt += f"\n\n<|start_header_id|>assistant<|end_header_id|>\n\n{speaker}: "
+        candidates = agent.generate_candidates(
+            prompt,
+            num_candidates=args.num_candidates,
+            agent_names=agent_names,       # list of other agents
+            temperature=args.temperature,
+            top_p=args.top_p,
+            top_k=args.top_k,
+            repetition_penalty=args.repetition_penalty,
+            max_new_tokens=args.max_new_tokens
+        )
+        
+        print(f"[{speaker}] Candidates: {len(candidates)}")
         context = format_conversation(log)
-        chosen = rank_candidates(evaluator, eval_tokenizer, context, candidates)
-        log.append({"speaker": speaker, "content": chosen})
+        chosen = rank_candidates(peft_model, tokenizer, context, candidates)
+        log.append({"speaker": speaker, "content": chosen.strip()})
 
         if not forced:
             turn_order.append(speaker)
+            
+        last_speaker = speaker  # update last speaker
 
+        # we want to detect if a member called for a vote
+        if detect_vote(peft_model, tokenizer, log[-1:]):
+            print(f"[{speaker}] Detected vote call!")
+            break
+        
     public_votes, public_log = run_voting(args.vote_prompt, "public", agents, log, agent_names)
     private_votes, private_log = run_voting(args.vote_prompt, "private", agents, log, agent_names)
-
     vote_summary = tally_and_log_votes(public_votes, private_votes, log, CHAIR_NAME)
 
 
