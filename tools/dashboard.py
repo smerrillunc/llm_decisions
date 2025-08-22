@@ -7,7 +7,7 @@ import base64
 import pandas as pd
 
 # --- CONFIG ---
-BASE_DIR = "results"
+BASE_DIR = "/playpen-ssd/smerrill/llm_decisions/results"
 FIGURES_DIR = os.path.join(BASE_DIR, 'figures')
 EVALS_DIR = os.path.join(BASE_DIR, 'evals')
 
@@ -104,9 +104,24 @@ This section summarizes test set validation performance of the Single-Speaker an
   5. **Order-1 Markov Model**: Learns P(next_speaker | prev_speaker); uses transition matrices; fallback to uniform distribution for unseen transitions.
   6. **Higher-Order Markov Model**: Learns P(next_speaker | last n speakers); configurable order n; evaluated with top-K and F1.
 - **Evaluation Metrics**: Top-K accuracy, Precision, Recall, Macro/Micro/Weighted F1 scores.
+""",
+
+'School Board Simulation': """
+### School Board Simulation
+- **Goal**: Simulate a realistic school board meeting with multiple AI agents acting as board members. Agents discuss agenda items, debate motions, reference each other, and vote. Supports public and private voting, logging reasoning and results.
+- **Seed Message**: Each meeting begins with a Chair’s opening statement introducing an agenda item (e.g., COVID Mask Policy, High School Renovation, Technology Plan, Student Code of Conduct, Curriculum Update).
+- **Agent Interaction**:
+  - Round-robin speaking order by default; references can override turn order.
+  - Each agent generates 3 candidate responses; LLaMA‑70B selects the best.
+- **Discussion Mechanics**: Agents debate until 25 messages are exchanged.
+- **Voting System**:
+  - **Public Voting**: Votes and reasoning are visible to all.
+  - **Private Voting**: Votes are private; Chair announces final results.
+""",
 
 
-"""
+
+
 }
 
 # --- GENERIC IMAGE CAPTIONS ---
@@ -143,6 +158,12 @@ def get_caption(img_name):
         return "Displays 'fool rate' statistics, indicating misclassification rates."
     return "Figure relevant to this experiment category."
 
+def create_markdown_table(df):
+    md = "| Aspect | Score | Explanation |\n"
+    md += "|--------|-------|-------------|\n"
+    for _, row in df.iterrows():
+        md += f"| **{row['aspect']}** | {row['score']} | {row['explanation']} |\n"
+    return md
 
 
 
@@ -154,7 +175,7 @@ def get_param_sets(figures_dir):
     return []
 
 def get_categories(param_set):
-    desired_order = [ "Completion Dataset", "Monologue Dataset", "Alignment Dataset", "Vote Prediction"]
+    desired_order = [ "Completion Dataset", "Monologue Dataset", "Alignment Dataset", "Vote Prediction", "School Board Simulation"]
     path = os.path.join(FIGURES_DIR, param_set)
     existing = [d for d in os.listdir(path) if os.path.isdir(os.path.join(path, d))]
     return ['Overview'] + desired_order + ['Next Speaker Prediction']
@@ -167,16 +188,6 @@ def get_image_files(param_set, category):
         if f.lower().endswith((".png", ".jpg", ".jpeg", ".gif"))
     ]
 
-def load_layout(param_set, category):
-    path = os.path.join(LAYOUT_DIR, f"{param_set}_{category}.json")
-    if os.path.exists(path):
-        with open(path, "r") as f:
-            data = json.load(f)
-        if isinstance(data, list):
-            return {"order": data}
-        elif isinstance(data, dict):
-            return data
-    return None
 
 def display_carousel(image_paths, tab_key):
     if tab_key not in st.session_state:
@@ -237,8 +248,13 @@ selected_experiment = st.selectbox("Select Experiment", exp_names, key="experime
 FIGURES_DIR = os.path.join(BASE_DIR, selected_experiment, 'figures')
 
 param_sets = get_param_sets(FIGURES_DIR)
-param_sets.remove('perplexity')
+try:
+    param_sets.remove('perplexity')
+except:
+    print("EXCEPTION")
 selected_param = st.selectbox("Select Parameter Set", param_sets)
+# Add the "4o" checkbox at the top of your UI
+use_4o = st.checkbox("4o", value=False)
 
 # Explanation block
 st.markdown("""
@@ -261,6 +277,11 @@ category_map = {
 
 }
 
+
+# Adjust suffix and image filter based on checkbox
+json_suffix = "_4o" if use_4o else ""
+image_filter_suffix = "_4o.png" if use_4o else None
+
 for tab, category in zip(tabs, categories):
     print(category)
     with tab:
@@ -278,7 +299,12 @@ for tab, category in zip(tabs, categories):
 
             st.markdown("### Results Overview")
             images = get_image_files(selected_param, 'main')
-            image_paths = [img_path for _, img_path in images] 
+            image_paths = [img_path for _, img_path in images]
+
+            # Filter for 4o if checkbox checked
+            if image_filter_suffix:
+                image_paths = [img for img in image_paths if img.endswith(image_filter_suffix)]
+
             perplexity_path = os.path.join(BASE_DIR, selected_experiment, 'perplexity.png')
             image_paths.insert(0, perplexity_path)
             display_carousel(image_paths, f"{selected_param}_{category}")
@@ -289,18 +315,32 @@ for tab, category in zip(tabs, categories):
             if not images:
                 st.info("No images available for this category.")
                 continue
+
+            # Apply correct 4o filtering
+            if image_filter_suffix:
+                images = [(name, path) for name, path in images if path.endswith(image_filter_suffix)]
+            else:
+                images = [(name, path) for name, path in images if not path.endswith("_4o.png")]
+
             image_paths = [img_path for _, img_path in images]
+            if not image_paths:
+                st.info("No matching images found for this category.")
+                continue
+
             display_carousel(image_paths, f"{selected_param}_{category}")
 
 
-
-             ########### Completion TAB Manual Review ##############
+            ########### Completion TAB Manual Review ##############
             if category == "Completion Dataset":
-                # --- Manual Review Section for Alignment ---
                 st.markdown("---")
                 st.subheader("Manual Review: Completion Data")
 
-                completion_path = os.path.join(BASE_DIR, selected_experiment, "completion_results", f"test_responses_{selected_param}.json")
+                completion_path = os.path.join(
+                    BASE_DIR, 
+                    selected_experiment, 
+                    "completion_results", 
+                    f"test_responses_{selected_param}{json_suffix}.json"
+                )
 
                 if os.path.exists(completion_path):
                     with open(completion_path, "r") as f:
@@ -344,7 +384,6 @@ for tab, category in zip(tabs, categories):
                     st.markdown("#### True Completion")
                     st.text_area("True Completion", item.get("true_completion", ""), height=80)
 
-
                     st.markdown("#### A. Agent Response")
                     st.text_area("Agent Response", item.get("model_responses", "")[0], height=80)
 
@@ -356,21 +395,9 @@ for tab, category in zip(tabs, categories):
                     judgement = pd.DataFrame(item.get('gpt_judgment'))
                     filtered_df = judgement[judgement['response_idx'].isin([0, 'gpt'])]
 
-                    def create_markdown_table(df):
-                        md = "| Aspect | Score | Explanation |\n"
-                        md += "|--------|-------|-------------|\n"
-                        for _, row in df.iterrows():
-                            md += f"| **{row['aspect']}** | {row['score']} | {row['explanation']} |\n"
-                        return md
-                    
-                    judgement = pd.DataFrame(item.get('gpt_judgment'))
-                    # Group by response_idx and display each separately
-                    for idx in [0, 'gpt']:
-                        if idx == 0:
-                            name = 'Model'
-                        else:
-                            name = 'LLaMA‑70B'
 
+                    for idx in [0, 'gpt']:
+                        name = 'Model' if idx == 0 else 'LLaMA‑70B'
                         st.subheader(f"{name} Response")
                         sub_df = filtered_df[filtered_df['response_idx'] == idx]
                         st.markdown(create_markdown_table(sub_df), unsafe_allow_html=True)
@@ -382,13 +409,17 @@ for tab, category in zip(tabs, categories):
                     st.warning("Could not find the completion data file.")
 
 
-             ########### Monologue TAB Manual Review ##############
+            ########### Monologue TAB Manual Review ##############
             if category == "Monologue Dataset":
-                # --- Manual Review Section for Alignment ---
                 st.markdown("---")
                 st.subheader("Manual Review: Monologue Data")
 
-                monologue_path = os.path.join(BASE_DIR, selected_experiment, "monologue_results", f"test_responses_{selected_param}.json")
+                monologue_path = os.path.join(
+                    BASE_DIR, 
+                    selected_experiment, 
+                    "monologue_results", 
+                    f"test_responses_{selected_param}{json_suffix}.json"
+                )
 
                 if os.path.exists(monologue_path):
                     with open(monologue_path, "r") as f:
@@ -426,10 +457,13 @@ for tab, category in zip(tabs, categories):
 
                     item = speaker_data[st.session_state[mono_idx_key]]
 
+                    st.markdown("#### Referene Monologue")
+                    st.text_area("Monologue", item.get("monologue", ""), height=80)
+
                     st.markdown("#### Question")
                     question = item.get("prompt", "").split('unknownspeaker:')[1].split('<|eot_id|>')[0]
-
                     st.text_area("Question", question, height=80)
+
                     st.markdown("#### A. Agent Response")
                     st.text_area("Agent Response", item.get("model_responses", "")[0], height=80)
 
@@ -437,25 +471,11 @@ for tab, category in zip(tabs, categories):
                     st.text_area("LLaMA‑70B Response", item.get("gpt_response", ""), height=80)
 
                     st.markdown("#### Scores")
-                    
                     judgement = pd.DataFrame(item.get('gpt_judgment'))
                     filtered_df = judgement[judgement['response_idx'].isin([0, 'gpt'])]
 
-                    def create_markdown_table(df):
-                        md = "| Aspect | Score | Explanation |\n"
-                        md += "|--------|-------|-------------|\n"
-                        for _, row in df.iterrows():
-                            md += f"| **{row['aspect']}** | {row['score']} | {row['explanation']} |\n"
-                        return md
-                    
-                    judgement = pd.DataFrame(item.get('gpt_judgment'))
-                    # Group by response_idx and display each separately
                     for idx in [0, 'gpt']:
-                        if idx == 0:
-                            name = "Model"
-                        else:
-                            name = 'LLaMA‑70B'
-
+                        name = 'Model' if idx == 0 else 'LLaMA‑70B'
                         st.subheader(f"{name} Response")
                         sub_df = filtered_df[filtered_df['response_idx'] == idx]
                         st.markdown(create_markdown_table(sub_df), unsafe_allow_html=True)
@@ -464,25 +484,23 @@ for tab, category in zip(tabs, categories):
                     st.write('**Winner:**', item.get("final_comparison", {}).get('winner', 'Error parsing response'))
                     st.write('**Justification:**', item.get("final_comparison", {}).get('justification', 'Error parsing response'))
                 else:
-                    st.warning("⚠️ Could not find the monologue data file.")
+                    st.warning("Could not find the monologue data file.")
 
 
-
-             ########### ALIGNMENT TAB Manual Review ##############
+            ########### ALIGNMENT TAB Manual Review ##############
             if category == "Alignment Dataset":
-                # --- Manual Review Section for Alignment ---
                 st.markdown("---")
                 st.subheader("Manual Review: Alignment Data")
 
                 alignment_json_map = {
-                    "Memory Alignment": f"memory_results_{selected_param}.json",
-                    "Belief Alignment": f"belief_results_{selected_param}.json",
-                    "Personality Alignment": f"personality_results_{selected_param}.json"
+                    "Memory Alignment": f"memory_results_{selected_param}{json_suffix}.json",
+                    "Belief Alignment": f"belief_results_{selected_param}{json_suffix}.json",
+                    "Personality Alignment": f"personality_results_{selected_param}{json_suffix}.json"
                 }
 
                 alignment_choice = st.selectbox("Select Alignment Dataset", list(alignment_json_map.keys()), key="alignment_dataset")
                 alignment_path = os.path.join(BASE_DIR, selected_experiment, "alignment_results", alignment_json_map[alignment_choice])
-                print(alignment_path)
+
                 if os.path.exists(alignment_path):
                     with open(alignment_path, "r") as f:
                         alignment_data = json.load(f)
@@ -517,6 +535,12 @@ for tab, category in zip(tabs, categories):
                         st.button("➡️ Next", on_click=align_go_next, key=f"align_next_button_{alignment_choice}")
 
                     item = speaker_data[st.session_state[idx_key]]
+                    st.markdown("#### Monologue Chunk")
+                    st.text_area("Monologue Chunk", item.get("chunk", ""), height=80)
+
+                    st.markdown("#### Synthesized Monologue Chunk")
+                    st.text_area("Synthesized Chunk", item.get("summary", ""), height=80)
+
                     st.markdown("#### Question")
                     st.text_area("Question", item.get("question", ""), height=80)
                     st.markdown("#### A. Agent Response")
@@ -526,14 +550,13 @@ for tab, category in zip(tabs, categories):
 
                     st.markdown("#### Scores")
                     st.write('**Agent response Score:** ' + str(item.get("evaluation_response", {}).get('score', '')))
-                    st.write('\n**Agent response Explanation:** ' + item.get("evaluation_response", {}).get('explanation', ''))
-
-                    st.write('\n\n**LLaMA‑70B response Score:** ' + str(item.get("evaluation_gpt_response", {}).get('score', '')))
-                    st.write('\n**LLaMA‑70B response Explanation:** ' + item.get("evaluation_gpt_response", {}).get('explanation', ''))
+                    st.write('**Agent response Explanation:** ' + item.get("evaluation_response", {}).get('explanation', ''))
+                    st.write('**LLaMA‑70B response Score:** ' + str(item.get("evaluation_gpt_response", {}).get('score', '')))
+                    st.write('**LLaMA‑70B response Explanation:** ' + item.get("evaluation_gpt_response", {}).get('explanation', ''))
 
                     st.markdown("#### Comparison")
                     st.write('**Winner:** ' + item.get("final_comparison", {}).get('winner', 'Error parsing response'))
-                    st.write('\n**Justification:** ' + item.get("final_comparison", {}).get('justification', 'Error parsing response'))
+                    st.write('**Justification:** ' + item.get("final_comparison", {}).get('justification', 'Error parsing response'))
                 else:
                     st.warning("Could not find the selected alignment data file.")
 
@@ -570,3 +593,91 @@ for tab, category in zip(tabs, categories):
                     display_carousel(images, "next_speaker_prediction")
             else:
                 st.warning("Next Speaker Prediction images directory not found.")
+                
+                        
+        elif category == "School Board Simulation":
+            st.markdown("---")
+            st.subheader("School Board Simulation Review")
+
+            # Map to your JSON files with selected_param dynamically inserted
+            
+            sim_p = os.path.join(
+                    BASE_DIR, 
+                    selected_experiment, 
+                    "simulation_results", 
+                )
+
+            print(sim_p)
+            simulation_json_map = {
+                "COVID Mask Policy":  f"/{BASE_DIR}/{selected_experiment}/simulation_results/3.1/{selected_param}/public_voting.json",
+                "High School Renovation":  f"/{BASE_DIR}/{selected_experiment}/simulation_results/3.2/{selected_param}/public_voting.json",
+                "Technology Plan":  f"/{BASE_DIR}/{selected_experiment}/simulation_results/3.3/{selected_param}/public_voting.json",
+                "Student Code of Conduct": f"/{BASE_DIR}/{selected_experiment}/simulation_results/3.4/{selected_param}/public_voting.json",
+                "Curriculum Update": f"/{BASE_DIR}/{selected_experiment}/simulation_results/3.5/{selected_param}/public_voting.json"
+            }
+
+            simulation_choice = st.selectbox(
+                "Select Simulation Transcript", 
+                list(simulation_json_map.keys()), 
+                key="simulation_dataset"
+            )
+            
+            simulation_path = simulation_json_map[simulation_choice]  # already includes selected_param
+            st.write(f"Loading transcript from: {simulation_path}")
+
+            if os.path.exists(simulation_path):
+                with open(simulation_path, "r") as f:
+                    simulation_data = json.load(f)
+
+                # Inject CSS once
+                st.markdown("""
+                <style>
+                .chat-container {
+                    max-width: 800px;
+                    margin: 0 auto;
+                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+                }
+                .bubble-wrapper {
+                    display: flex;
+                    justify-content: flex-start;
+                    margin: 5px 0;
+                }
+                .bubble {
+                    border-radius: 18px;
+                    padding: 10px 15px;
+                    max-width: 70%;
+                    word-wrap: break-word;
+                    font-size: 15px;
+                    line-height: 1.4;
+                    background-color: #e5e5ea;
+                    color: black;
+                }
+                .speaker-name {
+                    font-size: 12px;
+                    margin-bottom: 2px;
+                    color: #666;
+                }
+                </style>
+                """, unsafe_allow_html=True)
+
+                # Start container
+                st.markdown('<div class="chat-container">', unsafe_allow_html=True)
+
+                # Render each message as its own st.markdown
+                for turn in simulation_data:
+                    speaker = turn.get("speaker", "Unknown")
+                    content = turn.get("content", "").replace("\n", "<br><br>")
+                    bubble_html = f"""
+                    <div class="bubble-wrapper">
+                        <div class="bubble">
+                            <div class="speaker-name">{speaker}</div>
+                            {content}
+                        </div>
+                    </div>
+                    """
+                    st.markdown(bubble_html, unsafe_allow_html=True)
+
+                # Close container
+                st.markdown('</div>', unsafe_allow_html=True)
+            else:
+                st.warning("Simulation JSON file not found for this selected parameter.")
