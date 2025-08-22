@@ -605,13 +605,6 @@ for tab, category in zip(tabs, categories):
 
             # Map to your JSON files with selected_param dynamically inserted
             
-            sim_p = os.path.join(
-                    BASE_DIR, 
-                    selected_experiment, 
-                    "simulation_results", 
-                )
-
-            print(sim_p)
             simulation_json_map = {
                 "COVID Mask Policy":  f"/{BASE_DIR}/{selected_experiment}/simulation_results/3.1/{selected_param}/public_voting.json",
                 "High School Renovation":  f"/{BASE_DIR}/{selected_experiment}/simulation_results/3.2/{selected_param}/public_voting.json",
