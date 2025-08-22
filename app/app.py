@@ -12,6 +12,9 @@ BASE_DIR = os.path.join(os.path.dirname(__file__), 'results')
 FIGURES_DIR = os.path.join(BASE_DIR, 'figures')
 EVALS_DIR = os.path.join(BASE_DIR, 'evals')
 
+st.write("Current working directory:", os.getcwd())
+st.write("Files in this directory:", os.listdir())
+
 
 # --- GENERIC TAB MARKDOWNS ---
    
