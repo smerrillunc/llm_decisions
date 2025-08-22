@@ -607,11 +607,11 @@ for tab, category in zip(tabs, categories):
             
 
             simulation_json_map = {
-                "COVID Mask Policy":  f"/{BASE_DIR}/{selected_experiment}/simulation_results/3.1/{selected_param}/public_voting.json",
-                "High School Renovation":  f"/{BASE_DIR}/{selected_experiment}/simulation_results/3.2/{selected_param}/public_voting.json",
-                "Technology Plan":  f"/{BASE_DIR}/{selected_experiment}/simulation_results/3.3/{selected_param}/public_voting.json",
-                "Student Code of Conduct": f"/{BASE_DIR}/{selected_experiment}/simulation_results/3.4/{selected_param}/public_voting.json",
-                "Curriculum Update": f"/{BASE_DIR}/{selected_experiment}/simulation_results/3.5/{selected_param}/public_voting.json"
+                "COVID Mask Policy":  f"{BASE_DIR}/{selected_experiment}/simulation_results/3.1/{selected_param}/public_voting.json",
+                "High School Renovation":  f"{BASE_DIR}/{selected_experiment}/simulation_results/3.2/{selected_param}/public_voting.json",
+                "Technology Plan":  f"{BASE_DIR}/{selected_experiment}/simulation_results/3.3/{selected_param}/public_voting.json",
+                "Student Code of Conduct": f"{BASE_DIR}/{selected_experiment}/simulation_results/3.4/{selected_param}/public_voting.json",
+                "Curriculum Update": f"{BASE_DIR}/{selected_experiment}/simulation_results/3.5/{selected_param}/public_voting.json"
             }
 
             simulation_choice = st.selectbox(
