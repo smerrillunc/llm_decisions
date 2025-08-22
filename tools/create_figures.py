@@ -457,8 +457,8 @@ def multi_speaker_comparison(metrics_df, save_path):
     plt.figure(figsize=(10, 6))
     sns.barplot(data=long_df, x="Data", y="Score", hue="Metric", palette="Set2")
     plt.ylim(0, 1)
-    plt.title("Multi-Speaker Model Prediction Across Datasets")
-    plt.ylabel("Score")
+    plt.title("Speaker Attribution Accuracy by Dataset")
+    plt.ylabel("SAA")
     plt.xlabel("Dataset")
     plt.legend(title="Metric")
     plt.tight_layout()
@@ -466,7 +466,7 @@ def multi_speaker_comparison(metrics_df, save_path):
     plt.close()
     
 
-def multi_speaker_comparison_agent(metrics_df, dataset_label, min_count=20, save_path=None):
+def multi_speaker_comparison_agent(metrics_df, dataset_label, min_count=5, save_path=None):
     """
     Plots Model Accuracy vs GPT Accuracy per agent for a specific dataset.
 
@@ -496,9 +496,9 @@ def multi_speaker_comparison_agent(metrics_df, dataset_label, min_count=20, save
     # Plot
     plt.figure(figsize=(12, 6))
     sns.barplot(data=long_df, x='Agent', y='Accuracy', hue='System', palette='Set2')
-    plt.title(f'Model vs LLama-70B Accuracy per Agent — {dataset_label}', fontsize=16)
+    plt.title(f'Model vs LLama-70B Speaker Attribution Accuracy (SAA) — {dataset_label}', fontsize=16)
     plt.xlabel('Agent', fontsize=12)
-    plt.ylabel('Accuracy', fontsize=12)
+    plt.ylabel('SAA', fontsize=12)
     plt.ylim(0, 1)
     plt.xticks(rotation=45, ha='right', fontsize=10)
     plt.yticks(fontsize=10)
@@ -559,7 +559,7 @@ def evaluate_fool_rate(df, agent_name, threshold=0.5):
         results[label] = fool_rate
     return pd.DataFrame.from_dict(results, orient='index', columns=["fool_rate"])
 
-def evaluate_all_fool_rates(df, target_names, threshold=0.5, min_samples=10):
+def evaluate_all_fool_rates(df, target_names, threshold=0.5, min_samples=5):
     all_results = []
     for agent in target_names:
         try:
@@ -580,7 +580,7 @@ def evaluate_all_fool_rates(df, target_names, threshold=0.5, min_samples=10):
         raise RuntimeError("No valid results computed for any agents.")
     return pd.concat(all_results, ignore_index=True)
 
-def plot_fool_rates(result_df, name, output_path, min_samples=10):
+def plot_fool_rates(result_df, name, output_path, min_samples=5):
     # Count number of samples per agent per response type
     if 'count' in result_df.columns:
         counts = result_df.groupby("Agent")["count"].min().reset_index()
@@ -778,7 +778,7 @@ def plot_model_win_rates(completion_df, monologue_df, belief_df, memory_df, pers
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.show()
 
-def evaluate_fool_rate_by_dataset(df, dataset_name, threshold=0.5, min_samples=10):
+def evaluate_fool_rate_by_dataset(df, dataset_name, threshold=0.5, min_samples=5):
     target_agents = df['agent_name'].unique()
     all_results = []
     
@@ -828,7 +828,7 @@ def plot_fool_rates_by_agent(tmp_df, output_path=None):
         palette="Set2"
     )
     plt.ylim(0, 1)
-    plt.title("Overall Fool Rate per Agent")
+    plt.title("Fool Rate by Agent")
     plt.ylabel("Fool Rate")
     plt.xlabel("Agent")
     plt.xticks(rotation=45, ha='right')
@@ -998,9 +998,7 @@ def main():
         os.makedirs(os.path.join(param_dir, 'completion'), exist_ok=True)
         os.makedirs(os.path.join(param_dir, 'monologue'), exist_ok=True)
         os.makedirs(os.path.join(param_dir, 'alignment'), exist_ok=True)
-        os.makedirs(os.path.join(param_dir, 'multi-speaker'), exist_ok=True)
-        os.makedirs(os.path.join(param_dir, 'single-speaker'), exist_ok=True)
-
+        os.makedirs(os.path.join(param_dir, 'main'), exist_ok=True)
 
         completion_df, monologue_df, belief_df, memory_df, personality_df = load_data(comp_file, mono_file, belief_file, memory_file, personality_file)
         
@@ -1025,7 +1023,7 @@ def main():
         # save to summary tab
         try:
             plot_model_win_rates(completion_df, monologue_df, belief_df, memory_df, personality_df,
-                                save_path=os.path.join(param_dir, 'completion', f'model_win_rate.png'))
+                                save_path=os.path.join(param_dir, 'main', f'model_win_rate.png'))
         except Exception as e:
             print(f"[DEBUG] Failed to plot model win rates: {type(e).__name__}: {e}")
 
@@ -1122,7 +1120,7 @@ def main():
                 compute_metrics(personality_df, "Personality"),
             ]
             metrics_df = pd.DataFrame(results)
-            multi_speaker_comparison(metrics_df, os.path.join(param_dir, 'multi-speaker', "comparison.png"))
+            multi_speaker_comparison(metrics_df, os.path.join(param_dir, 'main', "SAA_dataset.png"))
         except Exception as e:
             print(f"[DEBUG][MULTI-SPEAKER][{param_dir}] Failed to plot multi-speaker comparison: {type(e).__name__}: {e}")
 
@@ -1137,12 +1135,12 @@ def main():
                 compute_metrics_by_agent(personality_df, "Personality"),
             ]
             metrics_df1 = pd.concat(results1, ignore_index=True)
-            multi_speaker_comparison_agent(metrics_df1, dataset_label='Completions', save_path=os.path.join(param_dir, 'multi-speaker', "completions.png"))
-            multi_speaker_comparison_agent(metrics_df1, dataset_label='Monologues', save_path=os.path.join(param_dir, 'multi-speaker', "monologues.png"))
-            multi_speaker_comparison_agent(metrics_df1, dataset_label='Beliefs', save_path=os.path.join(param_dir, 'multi-speaker', "beliefs.png"))
-            multi_speaker_comparison_agent(metrics_df1, dataset_label='Memory', save_path=os.path.join(param_dir, 'multi-speaker', "memory.png"))
-            multi_speaker_comparison_agent(metrics_df1, dataset_label='Personality', save_path=os.path.join(param_dir, 'multi-speaker', "personality.png"))
-            multi_speaker_comparison_agent(metrics_df1, dataset_label='All Datasets', save_path=os.path.join(param_dir, 'multi-speaker', "all.png"))
+            multi_speaker_comparison_agent(metrics_df1, dataset_label='Completions Dataset', save_path=os.path.join(param_dir, 'completion', "completion_SAA.png"))
+            multi_speaker_comparison_agent(metrics_df1, dataset_label='Monologues Dataset', save_path=os.path.join(param_dir, 'monologue', "monologue_SAA.png"))
+            multi_speaker_comparison_agent(metrics_df1, dataset_label='Beliefs Dataset', save_path=os.path.join(param_dir, 'alignment', "belief_SAA.png"))
+            multi_speaker_comparison_agent(metrics_df1, dataset_label='Memory Dataset', save_path=os.path.join(param_dir, 'alignment', "memory_SAA.png"))
+            multi_speaker_comparison_agent(metrics_df1, dataset_label='Personality Dataset', save_path=os.path.join(param_dir, 'alignment', "personality_SAA.png"))
+            multi_speaker_comparison_agent(metrics_df1, dataset_label='All Datasets', save_path=os.path.join(param_dir, 'main', "SAA_agent.png"))
         except Exception as e:
             print(f"[DEBUG][MULTI-SPEAKER][{param_dir}] Failed to plot agentwise multi-speaker breakdowns: {type(e).__name__}: {e}")
 
@@ -1161,12 +1159,12 @@ def main():
         
         tmp =results_by_dataset.groupby(['index', 'Dataset']).aggregate({'num_samples':'sum', 'avg_fool_rate':'sum'})
         tmp['avg_fool_rate'] = tmp['avg_fool_rate']/tmp['num_samples']
-        plot_fool_rates_by_dataset(tmp, os.path.join(param_dir,  'single-speaker', "fool_rates_by_dataset.png"))
+        plot_fool_rates_by_dataset(tmp, os.path.join(param_dir,  'main', "fool_rates_by_dataset.png"))
 
 
         tmp2 =results_by_dataset.groupby(['index', 'Agent']).aggregate({'num_samples':'sum', 'avg_fool_rate':'sum'})
         tmp2['avg_fool_rate'] = tmp2['avg_fool_rate']/tmp2['num_samples']
-        plot_fool_rates_by_agent(tmp2, os.path.join(param_dir,  'single-speaker', "fool_rates_by_agent.png"))
+        plot_fool_rates_by_agent(tmp2, os.path.join(param_dir,  'main', "fool_rates_by_agent.png"))
 
 
 
@@ -1174,35 +1172,35 @@ def main():
 
         try:
             results_df = evaluate_all_fool_rates(completion_df, TARGETS)
-            plot_fool_rates(results_df, 'Completion', os.path.join(param_dir,  'single-speaker', "completion_fool_rates.png"))
+            plot_fool_rates(results_df, 'Completion', os.path.join(param_dir,  'completion', "completion_fool_rates.png"))
         except Exception as e:
             print(f"[DEBUG][SINGLE-SPEAKER][{param_dir}] Failed to plot completion fool rates: {type(e).__name__}: {e}")
 
         # --- 2.2 Monologue Results ---
         try:
             results_df = evaluate_all_fool_rates(monologue_df, TARGETS)
-            plot_fool_rates(results_df, 'Monologue', os.path.join(param_dir, 'single-speaker', "monologue_fool_rates.png"))
+            plot_fool_rates(results_df, 'Monologue', os.path.join(param_dir, 'monologue', "monologue_fool_rates.png"))
         except Exception as e:
             print(f"[DEBUG][SINGLE-SPEAKER][{param_dir}] Failed to plot monologue fool rates: {type(e).__name__}: {e}")
 
         # --- 2.3 Belief Results ---
         try:
             results_df = evaluate_all_fool_rates(belief_df, TARGETS)
-            plot_fool_rates(results_df, 'Belief', os.path.join(param_dir,  'single-speaker', "belief_fool_rates.png"))
+            plot_fool_rates(results_df, 'Belief', os.path.join(param_dir,  'alignment', "belief_fool_rates.png"))
         except Exception as e:
             print(f"[DEBUG][SINGLE-SPEAKER][{param_dir}] Failed to plot belief fool rates: {type(e).__name__}: {e}")
 
         # --- 2.4 Memory Results ---
         try:
             results_df = evaluate_all_fool_rates(memory_df, TARGETS)
-            plot_fool_rates(results_df, 'Memory', os.path.join(param_dir,  'single-speaker', "memory_fool_rates.png"))
+            plot_fool_rates(results_df, 'Memory', os.path.join(param_dir,  'alignment', "memory_fool_rates.png"))
         except Exception as e:
             print(f"[DEBUG][SINGLE-SPEAKER][{param_dir}] Failed to plot memory fool rates: {type(e).__name__}: {e}")
 
         # --- 2.5 Personality Results ---
         try:
             results_df = evaluate_all_fool_rates(personality_df, TARGETS)
-            plot_fool_rates(results_df, 'Personality', os.path.join(param_dir,  'single-speaker', "personality_fool_rates.png"))
+            plot_fool_rates(results_df, 'Personality', os.path.join(param_dir,  'alignment', "personality_fool_rates.png"))
         except Exception as e:
             print(f"[DEBUG][SINGLE-SPEAKER][{param_dir}] Failed to plot personality fool rates: {type(e).__name__}: {e}")
 
