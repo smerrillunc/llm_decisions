@@ -600,15 +600,21 @@ for tab, category in zip(tabs, categories):
             st.markdown("---")
             st.subheader("School Board Simulation Review")
 
-            # Map to your JSON files with selected_param dynamically inserted
-            
+            # System prompt selectbox
+            system_prompts = ["None", "Custom"]  # folder names
+            selected_system_prompt = st.selectbox(
+                "Select System Prompt",
+                system_prompts,
+                key="system_prompt"
+            )
 
+            # Simulation transcript selectbox
             simulation_json_map = {
-                "COVID Mask Policy":  f"{BASE_DIR}/{selected_experiment}/simulation_results/3.1/{selected_param}/public_voting.json",
-                "High School Renovation":  f"{BASE_DIR}/{selected_experiment}/simulation_results/3.2/{selected_param}/public_voting.json",
-                "Technology Plan":  f"{BASE_DIR}/{selected_experiment}/simulation_results/3.3/{selected_param}/public_voting.json",
-                "Student Code of Conduct": f"{BASE_DIR}/{selected_experiment}/simulation_results/3.4/{selected_param}/public_voting.json",
-                "Curriculum Update": f"{BASE_DIR}/{selected_experiment}/simulation_results/3.5/{selected_param}/public_voting.json"
+                "COVID Mask Policy":  f"3.1/{selected_param}/public_voting.json",
+                "High School Renovation":  f"3.2/{selected_param}/public_voting.json",
+                "Technology Plan":  f"3.3/{selected_param}/public_voting.json",
+                "Student Code of Conduct": f"3.4/{selected_param}/public_voting.json",
+                "Curriculum Update": f"3.5/{selected_param}/public_voting.json"
             }
 
             simulation_choice = st.selectbox(
@@ -616,8 +622,9 @@ for tab, category in zip(tabs, categories):
                 list(simulation_json_map.keys()), 
                 key="simulation_dataset"
             )
-            
-            simulation_path = simulation_json_map[simulation_choice]  # already includes selected_param
+
+            # Build full path including system prompt
+            simulation_path = f"/{BASE_DIR}/{selected_experiment}/simulation_results/{selected_system_prompt}/{simulation_json_map[simulation_choice]}"
             st.write(f"Loading transcript from: {simulation_path}")
 
             if os.path.exists(simulation_path):
