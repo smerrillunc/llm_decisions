@@ -636,7 +636,7 @@ for tab, category in zip(tabs, categories):
             )
 
             # Build full path including system prompt
-            simulation_path = f"/{BASE_DIR}/{selected_experiment}/simulation_results/{selected_system_prompt}/{simulation_json_map[simulation_choice]}"
+            simulation_path = f"{BASE_DIR}/{selected_experiment}/simulation_results/{selected_system_prompt}/{simulation_json_map[simulation_choice]}"
             st.write(f"Loading transcript from: {simulation_path}")
 
             if os.path.exists(simulation_path):
