@@ -597,6 +597,18 @@ for tab, category in zip(tabs, categories):
                 
                         
         elif category == "School Board Simulation":
+            folder = os.path.join(FIGURES_DIR, 'simulation')
+            images = [x for x in os.listdir(folder) if x.lower().endswith((".png", ".jpg", ".jpeg", ".gif"))]
+                
+            if not images:
+                st.info("No images available for this category.")
+                continue
+
+            image_paths = [os.path.join(folder, f) for f in sorted(images)]
+            display_carousel(image_paths, f"{selected_param}_{category}")
+
+
+            
             st.markdown("---")
             st.subheader("School Board Simulation Review")
 
@@ -624,7 +636,7 @@ for tab, category in zip(tabs, categories):
             )
 
             # Build full path including system prompt
-            simulation_path = f"{BASE_DIR}/{selected_experiment}/simulation_results/{selected_system_prompt}/{simulation_json_map[simulation_choice]}"
+            simulation_path = f"/{BASE_DIR}/{selected_experiment}/simulation_results/{selected_system_prompt}/{simulation_json_map[simulation_choice]}"
             st.write(f"Loading transcript from: {simulation_path}")
 
             if os.path.exists(simulation_path):

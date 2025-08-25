@@ -595,6 +595,18 @@ for tab, category in zip(tabs, categories):
                 st.warning("Next Speaker Prediction images directory not found.")
                         
         elif category == "School Board Simulation":
+            folder = os.path.join(FIGURES_DIR, 'simulation')
+            images = [x for x in os.listdir(folder) if x.lower().endswith((".png", ".jpg", ".jpeg", ".gif"))]
+                
+            if not images:
+                st.info("No images available for this category.")
+                continue
+
+            image_paths = [os.path.join(folder, f) for f in sorted(images)]
+            display_carousel(image_paths, f"{selected_param}_{category}")
+
+
+            
             st.markdown("---")
             st.subheader("School Board Simulation Review")
 
