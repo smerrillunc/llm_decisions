@@ -31,6 +31,13 @@ ALL_AGENT_NAMES = [
     'ellenosborne', 'davidoberg', 'grahampaige', 'jonnoalcaro',
     'katrinacallsen', 'kateacuff', 'judyle'
 ]
+with open("/playpen-ssd/smerrill/llm_decisions/configs/personas.json") as f:
+    PERSONAS = json.load(f)
+    
+with open('/playpen-ssd/smerrill/llm_decisions/configs/agenda.json') as f:
+    agenda = json.load(f)
+
+
 ALIASES = {
     "ellenosborne": ["ellen osborne", "ms. osborne", "ellen", "osborne", "ms osborne"],
     "davidoberg": ["david oberg", "mr. oberg", "david", "oberg", "mr oberg"],
@@ -45,6 +52,42 @@ ALIASES = {
 # =========================
 # UTILITY FUNCTIONS
 # =========================
+
+def create_context_card_simulation(speaker, persona_info, topics_list, people_list):
+    """
+    Generate a structured, LLM-friendly context card for fine-tuning.
+    
+    Inputs:
+        transcript_file: key/filename for transcript in topics_data
+        speaker: the persona name
+        
+    Returns:
+        context_card_text (str): formatted context card
+    """   
+    topics_str = "\n        ".join(topics_list)
+    
+    # Format people
+    people_str = ", ".join(people_list)
+    
+    # Build the final context card string
+    context_card = """
+PROFILE:
+Persona Name: {speaker}
+Persona: {persona_info}
+
+CONVERSATION CONTEXT:
+Topics Discussed:
+        {topics_str}
+People in Conversation: {people_str}
+""".format(
+        speaker=speaker,
+        persona_info=persona_info,
+        topics_str=topics_str,
+        people_str=people_str
+    )
+        
+    return context_card.strip()
+
 
 def normalize_text(text: str) -> str:
     text = text.lower()
@@ -69,30 +112,6 @@ def round_robin_order(agent_names, start=0):
     while True:
         yield agent_names[idx % len(agent_names)]
         idx += 1
-
-def apply_chat_template(messages):
-    output = ["<|begin_of_text|>"]
-    last_role = None
-
-    for message in messages:
-        
-        
-        role = message['role']
-        content = message['content']
-
-        if last_role and (last_role != role):
-            output.append('<|eot_id|>\n\n')
-
-        # Always add header if assistant
-        # For user, only add header if previous role wasn't user
-        if role == "assistant" or (role == "user" and last_role != "user"):
-            output.append(f"<|start_header_id|>{role}<|end_header_id|>\n")
-
-        output.append(f"\n{content}")
-        last_role = role
-
-    output.append('<|eot_id|>')
-    return "".join(output)
 
 
 # =========================
@@ -223,7 +242,7 @@ def get_formal_alias(agent_key: str):
     return agent_key.title()
 
 
-def generate_vote(agent, conversation_log, vote_type: str):
+def generate_vote(agent, conversation_log, vote_type, tokenizer):
 
     system_prompt = [
         "You are a school board member participating in a vote on a policy issue.",
@@ -250,14 +269,11 @@ def generate_vote(agent, conversation_log, vote_type: str):
 
     conv = [{"role": "user" if msg['speaker'] != agent.name else "assistant", "content": f"{msg['speaker']}: {msg['content']}"} for msg in conversation_log[-10:]]
     conv.append({"role": "system", "content": '\n'.join(system_prompt)})
-    prompt = apply_chat_template(conv)
-    prompt += f"\n\n<|start_header_id|>assistant<|end_header_id|>\n\n{agent.name}: "
+    prompt = tokenizer.apply_chat_template(conv, tokenize=False, add_generation_prompt=True) + f'{agent.name}: '
     print(prompt)
-    
     
     vote = {'vote': '', 'comment': ''}
     retries = 0
-
     
     while (vote['comment'] == '') and (retries < 3):
         vote = parse_vote_from_response(agent.generate_response(prompt))
@@ -372,7 +388,7 @@ def tally_and_log_votes(public_votes, private_votes, log, chair_name):
     }
 
 
-def run_voting(vote_prompt: str, vote_type: str, agents: dict, log: list[dict], agent_names: list[str]) -> tuple[dict, list[dict]]:
+def run_voting(vote_prompt: str, vote_type: str, agents: dict, log: list[dict], agent_names: list[str], tokenizer) -> tuple[dict, list[dict]]:
     """
     Collects votes from all agents and the chair, adds them to the log.
     """
@@ -396,7 +412,7 @@ def run_voting(vote_prompt: str, vote_type: str, agents: dict, log: list[dict], 
         debug_print(f"[VOTE-{vote_type.upper()}] {name} is voting...")
 
         # Generate vote
-        vote = generate_vote(agent, voting_log, vote_type)
+        vote = generate_vote(agent, voting_log, vote_type, tokenizer)
         votes[name] = vote
 
         # Add to transcript
@@ -429,11 +445,11 @@ def run_voting(vote_prompt: str, vote_type: str, agents: dict, log: list[dict], 
 
     if vote_type == "public":
         voting_log.append({"speaker": CHAIR_NAME, "content": "Now it's my turn to vote."})
-        chair_vote = generate_vote(chair_agent, voting_log, vote_type)
+        chair_vote = generate_vote(chair_agent, voting_log, vote_type, tokenizer)
         votes[CHAIR_NAME] = chair_vote
         voting_log.append({"speaker": CHAIR_NAME, "content": chair_vote["comment"]})
     else:
-        chair_vote = generate_vote(chair_agent, voting_log, vote_type)
+        chair_vote = generate_vote(chair_agent, voting_log, vote_type, tokenizer)
         votes[CHAIR_NAME] = chair_vote
         private_log.append({
             "speaker": CHAIR_NAME,
@@ -535,7 +551,7 @@ def rank_candidates(evaluator, tokenizer, context: str, candidates: list[str]) -
     prompt_len = inputs.input_ids.shape[1]
     
     with evaluator.disable_adapter():
-        response = evaluator.generate(**inputs, max_new_tokens=10, do_sample=True)
+        response = evaluator.generate(**inputs, max_new_tokens=10, do_sample=False)
         
     reply = tokenizer.decode(response[0][prompt_len:], skip_special_tokens=True).strip()
 
@@ -565,7 +581,27 @@ def load_adapters(model_paths, base_model_path):
 
     return peft_model, tokenizer
 
+
+def build_system_prompt(speaker, personas, all_agent_names):
+    persona = personas.get(speaker.lower(), "")
+    allowed_names = ", ".join(all_agent_names)
     
+    system_prompt = (
+        f"You are roleplaying as a school board member named {speaker}. "
+        f"Your persona is as follows: {persona} "
+        "Always speak as this character, maintaining their distinct tone, style, values, leadership approach, and commonly used phrases. "
+        "Speak naturally and realistically, as if participating in a live board meeting. "
+        "Use fillers ('uh', 'um', 'you know', 'I mean'), hesitations, false starts, self-corrections, repeated words, partial thoughts, and trailing sentences. "
+        "Occasionally interject or interrupt briefly to clarify points, ask questions, or push back, but never speak for anyone else. "
+        "You may only reference people in this meeting: {allowed_names}. "
+        "Do not reference anyone else, external events, or previous meetings not part of this conversation. "
+        "Do NOT include any parenthetical stage directions like (pause), (turning), or (pauses to collect thoughts). "
+        "Do not announce your own name or identify yourself; speak as if everyone already knows who you are. "
+        "Avoid perfectly polished or overly formal sentences; let your speech feel imperfect, conversational, and human. "
+        f"Respond only as {speaker} and do not add commentary or speak as any other participant."
+    )
+    return system_prompt
+
 # =========================
 # MAIN FUNCTION
 # =========================
@@ -576,8 +612,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", required=True)
     parser.add_argument("--base_model", required=True)
-    parser.add_argument("--agenda_item", required=True)
-    parser.add_argument("--vote_prompt", required=True)
+    parser.add_argument("--agenda_item", type=int, required=True)
     parser.add_argument("--save_dir", default="results_simulation")
     parser.add_argument("--max_turns", type=int, default=25)
     parser.add_argument("--num_candidates", type=int, default=3)
@@ -589,7 +624,6 @@ def main():
     parser.add_argument("--max_new_tokens", type=int, default=150, help="Maximum new tokens to generate")
 
     args = parser.parse_args()
-
     with open(args.config) as f:
         model_paths = json.load(f)
 
@@ -609,6 +643,11 @@ def main():
             max_new_tokens=args.max_new_tokens
         )
 
+    seed_message = agenda[args.agenda_item]['agenda_item']
+    vote_prompt = agenda[args.agenda_item]['vote_prompt']
+    topics_list = agenda[args.agenda_item]['topics']
+    people_list = ['ellenosborne', 'davidoberg', 'grahampage', 'jonnoalcaro', 'katrinacallsen', 'kateacuff', 'judyle']
+    
     log = [{
         "speaker": CHAIR_NAME,
         "content": f"Welcome everyone. Let's begin discussion on: {args.agenda_item}. Who would like to start?"
@@ -643,15 +682,21 @@ def main():
 
         agent = agents[speaker]
         conv = [{"role": "user" if msg['speaker'] != speaker else "assistant", "content": f"{msg['speaker']}: {msg['content']}"} for msg in log[-10:]]
-        system_prompt = (
-            "You are roleplaying as a school board member named {speaker}. "
-            "Always speak in the voice of {speaker}, and respond only as that character. "
-            "Do not break character, add commentary, or speak for anyone else."
-        )
-        conv.append({"role": "system", "content": system_prompt})
+        #system_prompt = (
+        #    "You are roleplaying as a school board member named {speaker}. "
+        #    "Always speak in the voice of {speaker}, and respond only as that character. "
+        #    "Do not break character, add commentary, or speak for anyone else."
+        #)
+        # This was the old system prompt, we will now use the context card
+        #system_prompt = build_system_prompt(speaker, PERSONAS, ALL_AGENT_NAMES)
+        system_prompt = create_context_card_simulation(speaker, PERSONAS.get(speaker, ""), topics_list, people_list)
+        
+        # system prompt was first in training set
+        conv.insert(0, {"role": "system", "content": system_prompt})
 
-        prompt = apply_chat_template(conv)
-        prompt += f"\n\n<|start_header_id|>assistant<|end_header_id|>\n\n{speaker}: "
+        prompt = tokenizer.apply_chat_template(conv, tokenize=False, add_generation_prompt=True) + f'{speaker}: '
+        print(prompt)
+        
         candidates = agent.generate_candidates(
             prompt,
             num_candidates=args.num_candidates,
@@ -671,6 +716,7 @@ def main():
         if not forced:
             turn_order.append(speaker)
             
+        print(last_speaker, "->", speaker)
         last_speaker = speaker  # update last speaker
 
         # we want to detect if a member called for a vote
@@ -678,15 +724,21 @@ def main():
             print(f"[{speaker}] Detected vote call!")
             break
         
-    public_votes, public_log = run_voting(args.vote_prompt, "public", agents, log, agent_names)
-    private_votes, private_log = run_voting(args.vote_prompt, "private", agents, log, agent_names)
+    public_votes, public_log = run_voting(vote_prompt, "public", agents, log, agent_names, tokenizer)
+    private_votes, private_log = run_voting(vote_prompt, "private", agents, log, agent_names, tokenizer)
     vote_summary = tally_and_log_votes(public_votes, private_votes, log, CHAIR_NAME)
 
 
     os.makedirs(args.save_dir, exist_ok=True)
     json.dump(public_log, open(f"{args.save_dir}/public_voting.json", "w"), indent=2)
+
     json.dump(private_log, open(f"{args.save_dir}/private_voting.json", "w"), indent=2)
     json.dump(log, open(f"{args.save_dir}/full_conversation.json", "w"), indent=2)
+
+    # Save votes for analysis
+    json.dump(public_votes, open(f"{args.save_dir}/public_votes.json", "w"), indent=2)
+    json.dump(private_votes, open(f"{args.save_dir}/private_votes.json", "w"), indent=2)
+
 
     print_voting_log("PUBLIC", public_log)
     print_voting_log("PRIVATE", private_log)
