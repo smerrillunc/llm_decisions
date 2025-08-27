@@ -1,27 +1,19 @@
 #!/bin/bash
+export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 
 # ================================================
 # Agent-Specific Fine-Tuning Parameters
 # -----------------------------------------------
-# | Agent            | Content Words | LoRA Factors | LoRA Dropout | Learning Rate | Train Epochs |
-# |------------------|---------------|--------------|--------------|----------------|---------------|
-# | ellenosborne     | 5,728         | 4            | 0.175        | 5e-6           | 2             |
-# | judyle           | 17,462        | 12           | 0.125        | 1e-5           | 3             |
-# | davidoberg       | 19,247        | 12           | 0.125        | 1e-5           | 3             |
-# | kateacuff        | 22,398        | 12           | 0.125        | 1e-5           | 3             |
-# | jonnoalcaro      | 31,320        | 16           | 0.125        | 4e-5           | 3             |
-# | katrinacallsen   | 41,910        | 16           | 0.075        | 2e-5           | 4             |
-# | grahampaige      | 45,121        | 16           | 0.075        | 2e-5           | 4             |
+# | Agent            | Content Tokens | LoRA Factors | LoRA Dropout | Learning Rate | Train Epochs |
+# |------------------|----------------|--------------|--------------|----------------|---------------|
+# | kateacuff        | 128,417        | 16           | 0.125        | 1e-4          | 3             |
+# | ellenosborne     | 35,178         | 8            | 0.125        | 1e-4          | 2             |
+# | grahampaige      | 326,740        | 32           | 0.125        | 1e-4          | 3             |
+# | katrinacallsen   | 197,329        | 16           | 0.125        | 1e-4          | 3             |
+# | davidoberg       | 89,394         | 8            | 0.125        | 1e-4          | 2             |
+# | jonnoalcaro      | 147,408        | 16           | 0.125        | 1e-4          | 3             |
+# | judyle           | 84,197         | 8            | 0.125        | 1e-4          | 2             |
 # ================================================
-
-#export ACCELERATE_LOG_LEVEL=debug
-#export ACCELERATE_USE_FSDP=1
-#export FSDP_CPU_RAM_EFFICIENT_LOADING=1
-#export CUDA_VISIBLE_DEVICES=0,1,2,5,6,7
-#export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
-
-NUM_GPUS=$(echo "$CUDA_VISIBLE_DEVICES" | awk -F',' '{print NF}')
-echo "Detected $NUM_GPUS visible GPUs: $CUDA_VISIBLE_DEVICES"
 
 AGENTS=(
   kateacuff
@@ -33,10 +25,10 @@ AGENTS=(
   judyle
 )
 
-FACTORS=(12 4 16 16 12 16 12)
-DROPOUTS=(0.125 0.175 0.075 0.075 0.125 0.125 0.125)
-LRS=(2e-5 2e-5 2e-5 2e-5 2e-5 2e-5 1e-5)
-EPOCHS=(3 3 3 3 3 3 3)
+FACTORS=(16 8 32 16 8 16 8)
+DROPOUTS=(0.125 0.125 0.125 0.125 0.125 0.125 0.125)
+LRS=(1e-4 1e-4 1e-4 1e-4 1e-4 1e-4 1e-4)
+EPOCHS=(3 2 3 3 2 3 2)
 
 SCRIPT_PATH="/playpen-ssd/smerrill/llm_decisions/train_agent_llm.py"
 MERGE_PATH="/playpen-ssd/smerrill/llm_decisions/tools/merge_lora_adapters.py"
@@ -48,54 +40,58 @@ TMP_MODELS_JSON=$(mktemp)
 
 echo "{" > "$TMP_MODELS_JSON"
 
+NUM_GPUS=$(echo "$CUDA_VISIBLE_DEVICES" | awk -F',' '{print NF}')
+echo "Detected $NUM_GPUS visible GPUs: $CUDA_VISIBLE_DEVICES"
+
 for IDX in "${!AGENTS[@]}"; do
   AGENT="${AGENTS[$IDX]}"
   FACTOR="${FACTORS[$IDX]}"
   DROPOUT="${DROPOUTS[$IDX]}"
   LR="${LRS[$IDX]}"
   EPOCH="${EPOCHS[$IDX]}"
-  OUTPUT_DIR="/playpen-ssd/smerrill/trained_models/meta-llama/Meta-Llama-3-70B-Instruct/${AGENT}_${FACTOR}_${DROPOUT}_${LR}_${EPOCH}"
 
-  echo "---------------------------------------------"
-  echo "Training agent: $AGENT"
-  echo "  lora_factors: $FACTOR"
-  echo "  lora_dropout: $DROPOUT"
-  echo "  learning_rate: $LR"
-  echo "  train_epochs:  $EPOCH"
-  echo "  output_dir:    $OUTPUT_DIR"
-  echo "---------------------------------------------"
+  for SYS_MESSAGE in 0 1; do
+      OUTPUT_DIR="/playpen-ssd/smerrill/trained_models/meta-llama/Meta-Llama-3-70B-Instruct/${AGENT}_${FACTOR}_${DROPOUT}_${LR}_${EPOCH}_sys${SYS_MESSAGE}"
 
-  #if [ -d "$OUTPUT_DIR" ]; then
-  #  echo "Skipping: $OUTPUT_DIR already exists."
-  #else
-  accelerate launch --num_processes "$NUM_GPUS" "$SCRIPT_PATH" \
-    --config "$CONFIG_PATH" \
-    --agent_name "$AGENT" \
-    --factors "$FACTOR" \
-    --dropout "$DROPOUT" \
-    --lr "$LR" \
-    --epochs "$EPOCH" \
-    --save_dir "$OUTPUT_DIR"
+      echo "---------------------------------------------"
+      echo "Training agent: $AGENT"
+      echo "  lora_factors: $FACTOR"
+      echo "  lora_dropout: $DROPOUT"
+      echo "  learning_rate: $LR"
+      echo "  train_epochs:  $EPOCH"
+      echo "  sys_message:   $SYS_MESSAGE"
+      echo "  output_dir:    $OUTPUT_DIR"
+      echo "---------------------------------------------"
 
-  if [ $? -ne 0 ]; then
-    echo "Training failed for agent: $AGENT. Exiting..."
-    exit 1
-  fi
-  #fi
+      accelerate launch --num_processes "$NUM_GPUS" "$SCRIPT_PATH" \
+        --config "$CONFIG_PATH" \
+        --agent_name "$AGENT" \
+        --factors "$FACTOR" \
+        --dropout "$DROPOUT" \
+        --lr "$LR" \
+        --epochs "$EPOCH" \
+        --sys_message "$SYS_MESSAGE" \
+        --save_dir "$OUTPUT_DIR"
 
-  echo "Attempting to merge directory"
-  python "$MERGE_PATH" --output_dir "$OUTPUT_DIR"
+      if [ $? -ne 0 ]; then
+        echo "Training failed for agent: $AGENT with sys_message=$SYS_MESSAGE. Exiting..."
+        exit 1
+      fi
 
-  if [ $? -ne 0 ]; then
-    echo "Merging failed for agent: $AGENT. Exiting..."
-    exit 1
-  fi
+      echo "Attempting to merge directory"
+      python "$MERGE_PATH" --output_dir "$OUTPUT_DIR"
 
-  MERGED_PATH="${OUTPUT_DIR}/merged"
-  echo "  -> Merged to: $MERGED_PATH"
+      if [ $? -ne 0 ]; then
+        echo "Merging failed for agent: $AGENT with sys_message=$SYS_MESSAGE. Exiting..."
+        exit 1
+      fi
 
-  # Append JSON line
-  echo "  \"$AGENT\": \"$MERGED_PATH\"," >> "$TMP_MODELS_JSON"
+      MERGED_PATH="${OUTPUT_DIR}/merged"
+      echo "  -> Merged to: $MERGED_PATH"
+
+      # Append JSON line
+      echo "  \"${AGENT}_sys${SYS_MESSAGE}\": \"$MERGED_PATH\"," >> "$TMP_MODELS_JSON"
+  done
 done
 
 # Finalize models.json (remove trailing comma and close JSON)

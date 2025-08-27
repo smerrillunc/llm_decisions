@@ -10,6 +10,7 @@ import math
 import evaluate
 from transformers import PreTrainedTokenizerBase
 import re
+import json
 
 def fix_zero_training_loss(model, tokenizer, train_dataset):
     """
@@ -567,3 +568,33 @@ def pad_test_data(test_data, train_completion_data, target_size=25):
 def add_system_message(prompt, system_message):
     system_message = f"<|begin_of_text|><|system|>\n\n{system_message}<|eot_id|>\n\n"
     return system_message + prompt
+
+
+def get_dataset(train_path, test_path, speaker, sys_message=1):
+    """
+    Load train and test datasets from JSON files and return examples for a specific speaker.
+
+    Args:
+        train_path: path to the training dataset JSON file
+        test_path: path to the testing dataset JSON file
+        speaker: the persona name to filter examples
+
+    Returns:
+        train_examples: list of training examples for the specified speaker
+        test_examples: list of testing examples for the specified speaker
+    """
+    with open(train_path, "r", encoding="utf-8") as f:
+        train_dataset = json.load(f)
+    
+    with open(test_path, "r", encoding="utf-8") as f:
+        test_dataset = json.load(f)
+    
+    train_examples = train_dataset.get(speaker, [])
+    test_examples = test_dataset.get(speaker, [])
+    
+    if not sys_message:
+        train_examples = [x[1:] for x in train_examples]
+        test_examples = [x[1:] for x in test_examples]
+    return train_examples, test_examples
+    
+    

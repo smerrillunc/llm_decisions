@@ -21,7 +21,7 @@ from trl import (
    SFTTrainer)
 
 import wandb
-from utils import train_test_split, train_on_responses_only, preprocess_test_data, compute_perplexity_metrics
+from utils import get_dataset, preprocess_test_data, compute_perplexity_metrics
 
 import evaluate
 from accelerate import Accelerator
@@ -30,20 +30,20 @@ from accelerate import Accelerator
 # LLAMA_3_CHAT_TEMPLATE="{% set loop_messages = messages %}{% for message in loop_messages %}{% set content = '<|start_header_id|>' + message['role'] + '<|end_header_id|>\n\n'+ message['content'] | trim + '<|eot_id|>' %}{% if loop.index0 == 0 %}{% set content = bos_token + content %}{% endif %}{{ content }}{% endfor %}{% if add_generation_prompt %}{{ '<|start_header_id|>assistant<|end_header_id|>\n\n' }}{% endif %}"
 
 # Anthropic/Vicuna like template without the need for special tokens
-LLAMA_3_CHAT_TEMPLATE = (
-    "{% for message in messages %}"
-        "{% if message['role'] == 'system' %}"
-            "{{ message['content'] }}"
-        "{% elif message['role'] == 'user' %}"
-            "{{ '\n\nHuman: ' + message['content'] +  eos_token }}"
-        "{% elif message['role'] == 'assistant' %}"
-            "{{ '\n\nAssistant: '  + message['content'] +  eos_token  }}"
-        "{% endif %}"
-    "{% endfor %}"
-    "{% if add_generation_prompt %}"
-    "{{ '\n\nAssistant: ' }}"
-    "{% endif %}"
-)
+#LLAMA_3_CHAT_TEMPLATE = (
+#    "{% for message in messages %}"
+#        "{% if message['role'] == 'system' %}"
+#            "{{ message['content'] }}"
+#        "{% elif message['role'] == 'user' %}"
+#            "{{ '\n\nHuman: ' + message['content'] +  eos_token }}"
+#        "{% elif message['role'] == 'assistant' %}"
+#            "{{ '\n\nAssistant: '  + message['content'] +  eos_token  }}"
+#        "{% endif %}"
+#    "{% endfor %}"
+#    "{% if add_generation_prompt %}"
+#    "{{ '\n\nAssistant: ' }}"
+#    "{% endif %}"
+#)
 
 @dataclass
 class ScriptArguments:
@@ -75,6 +75,10 @@ class ScriptArguments:
         default='judyle', metadata={"help": "Name of agent to train"}
     )
     
+    sys_message: int = field(
+        default=1, metadata={"help": "Include System message/context card during training"}
+    )
+    
     dataset_path: str = field(
         default='/playpen-ssd/smerrill/dataset', metadata={"help": "Dataset path"}
     )
@@ -94,13 +98,14 @@ def training_function(script_args, training_args, accelerator):
     ################
     # Dataset
     ################
-    train_data, eval_data, train_completion_data = train_test_split(
-        script_args.agent_name, data_path=script_args.dataset_path
-    )
+    #train_data, eval_data, train_completion_data = train_test_split(
+    #    script_args.agent_name, data_path=script_args.dataset_path
+    #)
     
-    train_data = Dataset.from_list([{"text": text} for text in train_data])
+    #train_data = Dataset.from_list([{"text": text} for text in train_data])
     #eval_data = preprocess_test_data(eval_data)
     
+
     ################
     # Model & Tokenizer
     ################
@@ -108,8 +113,15 @@ def training_function(script_args, training_args, accelerator):
     # Tokenizer        
     tokenizer = AutoTokenizer.from_pretrained(script_args.model_name, use_fast=True)
     tokenizer.pad_token = tokenizer.eos_token
-    tokenizer.chat_template = LLAMA_3_CHAT_TEMPLATE
-    
+    #tokenizer.chat_template = LLAMA_3_CHAT_TEMPLATE
+        
+    train_path = '/playpen-ssd/smerrill/dataset/train_dataset.json'
+    test_path = '/playpen-ssd/smerrill/dataset/test_dataset.json'
+
+    train_examples, _ = get_dataset(train_path, test_path, script_args.agent_name, script_args.sys_message)
+    train_examples = [tokenizer.apply_chat_template(x, tokenize=False) for x in train_examples]
+    train_data = Dataset.from_list([{"text": text} for text in train_examples])
+
     # Model    
     #torch_dtype = torch.bfloat16
     #quant_storage_dtype = torch.bfloat16
@@ -183,11 +195,12 @@ def training_function(script_args, training_args, accelerator):
         #compute_metrics=compute_perplexity_metrics
     )
     
-    trainer = train_on_responses_only(
-        trainer,
-        instruction_part="<|start_header_id|>user<|end_header_id|>\n\n",
-        response_part="<|start_header_id|>assistant<|end_header_id|>\n\n",
-    )
+    # Now done in SFTConfig Directly
+    # trainer = train_on_responses_only(
+    #    trainer,
+    #    instruction_part="<|start_header_id|>user<|end_header_id|>\n\n",
+    #    response_part="<|start_header_id|>assistant<|end_header_id|>\n\n",
+    #)
 
     if accelerator.is_main_process:
         trainer.model.print_trainable_parameters()
