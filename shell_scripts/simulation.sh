@@ -1,6 +1,6 @@
 #!/bin/bash
 # =========================
-# Parameter Sweep + Repeats Script
+# Parameter Sweep + Repeats + Multiple Model Configs
 # =========================
 
 # Sweep parameters
@@ -16,49 +16,61 @@ END_IDX=5
 # Number of repeats per agenda item
 REPEATS=5
 
-# Iterate over agenda items
-for i in $(seq $START_IDX $END_IDX)
+# List of model config files
+MODEL_CONFIGS=(
+    "/playpen-ssd/smerrill/llm_decisions/configs/models2.json"
+    "/playpen-ssd/smerrill/llm_decisions/configs/models.json"
+)
+
+# Iterate over model configs
+for model_config in "${MODEL_CONFIGS[@]}"
 do
-    # Repeat each agenda item multiple times
-    for run_id in $(seq 1 $REPEATS)
+    config_name=$(basename "$model_config" .json)  # e.g., models_A
+
+    # Iterate over agenda items
+    for i in $(seq $START_IDX $END_IDX)
     do
-        # Sweep over parameter combinations
-        for j in "${!temps[@]}"; do
-            temp="${temps[$j]}"
-            top_p="${top_ps[$j]}"
-            top_k="${top_ks[$j]}"
-            rep="${reps[$j]}"
+        # Repeat each agenda item multiple times
+        for run_id in $(seq 1 $REPEATS)
+        do
+            # Sweep over parameter combinations
+            for j in "${!temps[@]}"; do
+                temp="${temps[$j]}"
+                top_p="${top_ps[$j]}"
+                top_k="${top_ks[$j]}"
+                rep="${reps[$j]}"
 
-            # Define save directory including agenda number, run ID, and param combo
-            save_dir="/playpen-ssd/smerrill/llm_decisions/results_simulation/AgendaItem_${i}/Run${run_id}/T${temp}_P${top_p}_K${top_k}_R${rep}"
+                # Define save directory including model, agenda number, run ID, and param combo
+                save_dir="/playpen-ssd/smerrill/llm_decisions/results_simulation/${config_name}/AgendaItem_${i}/Run${run_id}/T${temp}_P${top_p}_K${top_k}_R${rep}"
 
-            # Skip if results already exist
-            if [ -d "$save_dir" ]; then
-                echo "[INFO] Skipping item $i, run $run_id – results exist for temp=${temp}, top_p=${top_p}, top_k=${top_k}, rep=${rep}"
+                # Skip if results already exist
+                if [ -d "$save_dir" ]; then
+                    echo "[INFO] Skipping ${config_name}, item $i, run $run_id – results exist for temp=${temp}, top_p=${top_p}, top_k=${top_k}, rep=${rep}"
+                    echo "--------------------------------------------------"
+                    continue
+                fi
+
+                echo "[INFO] Processing Model: $config_name, Agenda Item Index: $i, Run: $run_id"
+                echo "[INFO] Save Directory: $save_dir"
+                echo "[INFO] Params: temperature=${temp}, top_p=${top_p}, top_k=${top_k}, repetition_penalty=${rep}"
+
+                # Run the simulation command
+                PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
+                accelerate launch --num_processes=1 /playpen-ssd/smerrill/llm_decisions/simulate.py \
+                    --base_model meta-llama/Meta-Llama-3-70B-Instruct \
+                    --config "$model_config" \
+                    --agenda_item "$i" \
+                    --save_dir "$save_dir" \
+                    --temperature "$temp" \
+                    --top_p "$top_p" \
+                    --top_k "$top_k" \
+                    --repetition_penalty "$rep"
+
+                echo "[INFO] Finished ${config_name}, Agenda Item $i, Run $run_id, param combo $((j+1))"
                 echo "--------------------------------------------------"
-                continue
-            fi
-
-            echo "[INFO] Processing Agenda Item Index: $i, Run: $run_id"
-            echo "[INFO] Save Directory: $save_dir"
-            echo "[INFO] Params: temperature=${temp}, top_p=${top_p}, top_k=${top_k}, repetition_penalty=${rep}"
-
-            # Run the simulation command
-            PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
-            accelerate launch --num_processes=1 /playpen-ssd/smerrill/llm_decisions/simulate.py \
-                --base_model meta-llama/Meta-Llama-3-70B-Instruct \
-                --config /playpen-ssd/smerrill/llm_decisions/configs/models.json \
-                --agenda_item "$i" \
-                --save_dir "$save_dir" \
-                --temperature "$temp" \
-                --top_p "$top_p" \
-                --top_k "$top_k" \
-                --repetition_penalty "$rep"
-
-            echo "[INFO] Finished Agenda Item $i, Run $run_id, param combo $((j+1))"
-            echo "--------------------------------------------------"
+            done
         done
     done
 done
 
-echo "[INFO] All agenda items, repeats, and parameter sweeps processed."
+echo "[INFO] All models, agenda items, repeats, and parameter sweeps processed."
