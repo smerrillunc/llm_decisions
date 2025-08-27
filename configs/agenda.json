@@ -1,0 +1,57 @@
+[
+    {
+        "agenda_item": "Agenda Item No. 3.1: COVID Mask Policy - The board will discuss the district\u2019s COVID-19 health protocols, specifically whether students should be required to wear masks while in classrooms. This policy would apply during the regular school day, with exceptions for lunch and designated mask-break periods. The goal is to balance student safety with comfort and learning effectiveness.",
+        "vote_prompt": "Agenda Item No. 3.1: Should the district require students to wear masks in classrooms during the school day?",
+        "topics": [
+            "1.  Current COVID-19 Case Rates and Risk Assessment",
+            "2.  Effectiveness of Mask-Wearing in Schools",
+            "3.  Impact on Learning and Student Wellbeing",
+            "4.  Exceptions and Accommodations",
+            "5.  Implementation and Enforcement Strategies"
+        ]
+    },
+    {
+        "agenda_item": "Agenda Item No. 3.2: High School Renovation Project - The board will consider approval of funding for major facility improvements at the high school, including building four new science laboratories and repairing the athletic fields. The science lab construction is projected to cost $1,240,400 spread over four years, while athletic field repairs are included in the same package. These upgrades aim to improve STEM instruction and student access to safe extracurricular facilities.",
+        "vote_prompt": "Agenda Item No. 3.2: Should the board approve funding of $1,240,400 over four years for new science labs, along with athletic field repairs at the high school?",
+        "topics": [
+            "1.  Budget and Funding Allocation for Renovations",
+            "2.  Construction of New Science Laboratories",
+            "3.  Athletic Field Repairs and Safety Improvements",
+            "4.  Impact on STEM Instruction and Student Learning",
+            "5.  Project Timeline, Phasing, and Oversight"
+        ]
+    },
+    {
+        "agenda_item": "Agenda Item No. 3.3: Technology Plan - The board will review a proposal to expand digital learning access by providing Chromebooks to every high school student. This initiative is estimated to cost $10,000 annually for devices, maintenance, and licensing. The program is designed to ensure equitable access to technology, support blended learning, and prepare students with digital skills for college and career readiness.",
+        "vote_prompt": "Agenda Item No. 3.3: Should the board approve the technology plan to provide Chromebooks to all high school students at an estimated annual cost of $10,000?",
+        "topics": [
+            "1.  Provision of Chromebooks for All High School Students",
+            "2.  Annual Costs for Devices, Maintenance, and Licensing",
+            "3.  Equitable Access to Technology Across the Student Body",
+            "4.  Support for Blended and Digital Learning Models",
+            "5.  Preparing Students for College and Career Readiness"
+        ]
+    },
+    {
+        "agenda_item": "Agenda Item No. 3.4: Student Code of Conduct - The board will review proposed updates to the district\u2019s Student Code of Conduct, which outlines behavioral expectations and disciplinary procedures. Key changes include new rules around cell phone usage during instructional time, updates to the dress code to reflect inclusivity and professionalism, and revisions to disciplinary consequences to promote restorative practices.",
+        "vote_prompt": "Agenda Item No. 3.4: Should the board adopt the revised Student Code of Conduct, including updates to cell phone policies, dress code, and discipline procedures?",
+        "topics": [
+            "1. Updates to Cell Phone Usage Policies During Instruction",
+            "2.  Revisions to the Dress Code for Inclusivity and Professionalism",
+            "3.  Changes to Disciplinary Procedures and Consequences",
+            "4.  Implementation of Restorative Practices in Discipline",
+            "5.  Communication and Enforcement of the Updated Code"
+        ]
+    },
+    {
+        "agenda_item": "Agenda Item No. 3.5: Curriculum Update - The board will consider adoption of a new mathematics curriculum for grades 6\u20138, aligned with updated state standards. The proposed curriculum includes digital resources, project-based learning activities, and teacher training components. Adoption is intended to improve student outcomes in algebra readiness and standardized test performance.",
+        "vote_prompt": "Agenda Item No. 3.5: Should the district adopt the proposed new mathematics curriculum for grades 6\u20138?",
+        "topics": [
+            "1.  Adoption of New Mathematics Curriculum for Grades 6\u20138",
+            "2.  Alignment with Updated State Standards",
+            "3.  Integration of Digital Resources and Tools",
+            "4.  Project-Based Learning Activities",
+            "5.  Teacher Training and Professional Development"
+        ]
+    }
+]
