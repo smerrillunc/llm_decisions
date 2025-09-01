@@ -1,0 +1,104 @@
+[
+  {
+    "speaker": "grahampaige",
+    "content": "Welcome everyone. Let's begin discussion on: Agenda Item No. 3.1: COVID Mask Policy - The board will discuss the district\u2019s COVID-19 health protocols, specifically whether students should be required to wear masks while in classrooms. This policy would apply during the regular school day, with exceptions for lunch and designated mask-break periods. The goal is to balance student safety with comfort and learning effectiveness.. Who would like to start?"
+  },
+  {
+    "speaker": "katrinacallsen",
+    "content": "Thank you, Graham. I'd like to start by sharing the district\u2019s latest data on current case rates. Since we\u2019ve had a significant increase in cases locally, our risk assessment puts us at moderate to high transmission levels. Does anyone have any questions about these numbers or would they prefer I move forward to our first agenda item?"
+  },
+  {
+    "speaker": "davidoberg",
+    "content": "Katrina, thank you for that update. Considering the moderate to high transmission levels, I think it's essential we prioritize student safety. Before discussing specific policies, may I suggest we review the research on mask-wearing efficacy in schools? This will ensure our decisions are informed by empirical evidence."
+  },
+  {
+    "speaker": "katrinacallsen",
+    "content": "David, that's an excellent suggestion. Our administration has prepared a summary of recent studies on mask-wearing in educational settings. These findings indicate that universal masking in schools reduces the transmission rate of COVID-19 without negatively impacting emotional well-being or academic performance. Are there any specific aspects of these findings you'd like me to elaborate on before moving forward?"
+  },
+  {
+    "speaker": "davidoberg",
+    "content": "Thank you, Katrina. That's reassuring to hear. If I may add, it's also crucial to consider the disproportionate impact of COVID-19 on vulnerable populations, such as immunocompromised students and those from underserved communities. As we weigh our options, let's keep their needs at the forefront of our decision-making process to ensure equity and fairness in our approach."
+  },
+  {
+    "speaker": "katrinacallsen",
+    "content": "David, your points are vital to this discussion. Our duty extends beyond general safety measures; we must prioritize the most at-risk members of our community. Moving forward, we will engage in targeted outreach to understand the concerns and suggestions of families with immunocompromised students and those from underserved backgrounds, ensuring our decisions promote inclusivity and equal access to education. Any further thoughts before proceeding to potential policy frameworks?"
+  },
+  {
+    "speaker": "davidoberg",
+    "content": "Absolutely, Katrina. In addition to consulting with vulnerable populations, let's not overlook the importance of accommodating students with special needs who might struggle with wearing masks due to sensory issues or other challenges. We should explore possible alternatives or exemptions for these students while maintaining overall classroom safety."
+  },
+  {
+    "speaker": "katrinacallsen",
+    "content": "David, that's another critical consideration. Our proposed policy includes provisions for reasonable accommodations and exemptions, subject to medical certification. I suggest we invite our director of special education to provide insight into how we can best address individual needs within the context of our broader public health goals. Do any board members have recommendations for handling potential requests for accommodations or exemptions?"
+  },
+  {
+    "speaker": "kateacuff",
+    "content": "Thank you, Katrina. To add to David's point, in considering exemptions and accommodations, we need to define clear criteria and procedures for granting them. Transparency around these processes will be key in ensuring both consistency and fairness across all schools. Would our special education director or health services team share examples of existing protocols for managing similar situations?\n```"
+  },
+  {
+    "speaker": "judyle",
+    "content": "Kate, your emphasis on transparency and consistency resonates with me. As we draft criteria and procedures, I suggest we consult with experts in special education, as well as parents and caregivers of students with unique needs. By doing so, we'll ensure our policy acknowledges diverse experiences and promotes equitable access to quality education. How do others envision the role of our support staff and administrators in facilitating the accommodation request process?"
+  },
+  {
+    "speaker": "ellenosborne",
+    "content": "Judy, I completely agree with your suggestion. Collaborating with experts, parents, and caregivers will enable us to craft a thoughtful and inclusive process. I propose we also involve our teachers and school leaders in the development of these criteria and procedures, as they have valuable insights into the daily realities of implementing such accommodations in the classroom setting. Their input will help ensure that our policies are both effective and practical."
+  },
+  {
+    "speaker": "jonnoalcaro",
+    "content": "Thank you Ellen. Your suggestion highlights the importance of distributed leadership in developing our COVID mask policy. Engaging multiple stakeholders ensures we account for diverse perspectives and minimize unintended consequences. In crafting our implementation plan, we should outline clear roles and responsibilities for various staff, establishing open communication channels to facilitate efficient problem-solving. What strategies have other districts utilized to successfully enforce mask-wearing policies, especially in cases where students resist compliance?"
+  },
+  {
+    "speaker": "katrinacallsen",
+    "content": "Excellent ideas all around, colleagues! I'm glad we're thinking holistically about implementation. To answer John's question, some successful strategies include incentives, educational campaigns, and restorative approaches when addressing noncompliance. We can draw inspiration from peer districts and tailor our approach to fit our local culture and values. Now, before we proceed to formalize the policy details, I invite comments from community members, if any, or address any remaining questions from board members."
+  },
+  {
+    "speaker": "jonnoalcaro",
+    "content": "Great reminder, Katrina. Community engagement is key here. After hearing from constituents, I propose we summarize the key takeaways from today's discussion, then task the administration with drafting a refined policy incorporating our collective insights. Once drafted, we can schedule a follow-up meeting to discuss, finalize, and vote on this policy. We should prioritize action, while upholding our commitment to collaborative governance. Are we in agreement on next steps?"
+  },
+  {
+    "speaker": "grahampaige",
+    "content": "Ok, that's enough, we will now vote privately.  We are voting on Agenda Item No. 3.1: Should the district require students to wear masks in classrooms during the school day?.  If each of you could please record your vote in the chat, I will tally them up and announce the results."
+  },
+  {
+    "speaker": "katrinacallsen",
+    "content": "yes",
+    "vote": "yes",
+    "private": true
+  },
+  {
+    "speaker": "davidoberg",
+    "content": "yes",
+    "vote": "yes",
+    "private": true
+  },
+  {
+    "speaker": "kateacuff",
+    "content": "yes",
+    "vote": "yes",
+    "private": true
+  },
+  {
+    "speaker": "judyle",
+    "content": "Based on our thorough discussion, I'm convinced that mandating masks in classrooms aligns with our responsibility to create a safe learning environment. We've considered the complexities, and our efforts to accommodate vulnerable populations demonstrate a commitment to equity and inclusion.",
+    "vote": "abstain",
+    "private": true
+  },
+  {
+    "speaker": "ellenosborne",
+    "content": "yes",
+    "vote": "yes",
+    "private": true
+  },
+  {
+    "speaker": "jonnoalcaro",
+    "content": "yes",
+    "vote": "yes",
+    "private": true
+  },
+  {
+    "speaker": "grahampaige",
+    "content": "yes",
+    "vote": "yes",
+    "private": true
+  }
+]

@@ -595,9 +595,9 @@ for tab, category in zip(tabs, categories):
                 st.warning("Next Speaker Prediction images directory not found.")
                         
         elif category == "School Board Simulation":
-            folder = os.path.join(FIGURES_DIR, 'simulation')
+            folder = os.path.join(FIGURES_DIR, "simulation")
             images = [x for x in os.listdir(folder) if x.lower().endswith((".png", ".jpg", ".jpeg", ".gif"))]
-                
+
             if not images:
                 st.info("No images available for this category.")
                 continue
@@ -605,38 +605,36 @@ for tab, category in zip(tabs, categories):
             image_paths = [os.path.join(folder, f) for f in sorted(images)]
             display_carousel(image_paths, f"{selected_param}_{category}")
 
-
-            
             st.markdown("---")
             st.subheader("School Board Simulation Review")
 
-            # System prompt selectbox
-            system_prompts = ["None", "Custom"]  # folder names
-            selected_system_prompt = st.selectbox(
-                "Select System Prompt",
-                system_prompts,
-                key="system_prompt"
-            )
+            # --- dropdowns for selecting transcript file ---
+            base_path = os.path.join(BASE_DIR, selected_experiment,"simulation_results")
 
-            # Simulation transcript selectbox
-            simulation_json_map = {
-                "COVID Mask Policy":  f"3.1/{selected_param}/public_voting.json",
-                "High School Renovation":  f"3.2/{selected_param}/public_voting.json",
-                "Technology Plan":  f"3.3/{selected_param}/public_voting.json",
-                "Student Code of Conduct": f"3.4/{selected_param}/public_voting.json",
-                "Curriculum Update": f"3.5/{selected_param}/public_voting.json"
-            }
+            # System prompt
+            sys_prompts = sorted([d for d in os.listdir(base_path) if os.path.isdir(os.path.join(base_path, d))])
+            selected_sys_prompt = st.selectbox("Select System Prompt", sys_prompts, key="sys_prompt")
 
-            simulation_choice = st.selectbox(
-                "Select Simulation Transcript", 
-                list(simulation_json_map.keys()), 
-                key="simulation_dataset"
-            )
+            # Agenda item number
+            sys_path = os.path.join(base_path, selected_sys_prompt)
+            agenda_items = sorted([d for d in os.listdir(sys_path) if os.path.isdir(os.path.join(sys_path, d))])
+            selected_agenda = st.selectbox("Select Agenda Item", agenda_items, key="agenda_item")
 
-            # Build full path including system prompt
-            simulation_path = f"/{BASE_DIR}/{selected_experiment}/simulation_results/{selected_system_prompt}/{simulation_json_map[simulation_choice]}"
+            # Run number
+            agenda_path = os.path.join(sys_path, selected_agenda)
+            run_numbers = sorted([d for d in os.listdir(agenda_path) if os.path.isdir(os.path.join(agenda_path, d))])
+            selected_run = st.selectbox("Select Run Number", run_numbers, key="run_number")
+
+            # Param set
+            run_path = os.path.join(agenda_path, selected_run)
+            param_sets = sorted([d for d in os.listdir(run_path) if os.path.isdir(os.path.join(run_path, d))])
+            selected_param_set = st.selectbox("Select Param Set", param_sets, key="param_set")
+
+            # Full path to JSON
+            simulation_path = os.path.join(run_path, selected_param_set, "full_conversation.json")
             st.write(f"Loading transcript from: {simulation_path}")
 
+            # --- render transcript if available ---
             if os.path.exists(simulation_path):
                 with open(simulation_path, "r") as f:
                     simulation_data = json.load(f)
@@ -675,7 +673,6 @@ for tab, category in zip(tabs, categories):
                 # Start container
                 st.markdown('<div class="chat-container">', unsafe_allow_html=True)
 
-                # Render each message as its own st.markdown
                 for turn in simulation_data:
                     speaker = turn.get("speaker", "Unknown")
                     content = turn.get("content", "").replace("\n", "<br><br>")
@@ -689,7 +686,6 @@ for tab, category in zip(tabs, categories):
                     """
                     st.markdown(bubble_html, unsafe_allow_html=True)
 
-                # Close container
-                st.markdown('</div>', unsafe_allow_html=True)
+                st.markdown("</div>", unsafe_allow_html=True)
             else:
-                st.warning("Simulation JSON file not found for this selected parameter.")
+                st.warning("Simulation JSON file not found for the selected parameters.")

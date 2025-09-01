@@ -1,0 +1,30 @@
+{
+  "jonnoalcaro": {
+    "vote": "yes",
+    "comment": "Yes"
+  },
+  "katrinacallsen": {
+    "vote": "no",
+    "comment": "no"
+  },
+  "davidoberg": {
+    "vote": "abstain",
+    "comment": "Abstain"
+  },
+  "judyle": {
+    "vote": "abstain",
+    "comment": "Abstain"
+  },
+  "kateacuff": {
+    "vote": "yes",
+    "comment": "Yes"
+  },
+  "ellenosborne": {
+    "vote": "abstain",
+    "comment": "Abstain"
+  },
+  "grahampaige": {
+    "vote": "yes",
+    "comment": "Yes"
+  }
+}
