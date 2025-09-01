@@ -25,10 +25,10 @@ AGENTS=(
   judyle
 )
 
-FACTORS=(16 8 32 16 8 16 8)
+FACTORS=(16 8 16 16 8 16 8)
 DROPOUTS=(0.125 0.125 0.125 0.125 0.125 0.125 0.125)
-LRS=(1e-4 1e-4 1e-4 1e-4 1e-4 1e-4 1e-4)
-EPOCHS=(3 2 3 3 2 3 2)
+LRS=(1e-5 1e-5 1e-5 1e-5 1e-5 1e-5 1e-5)
+EPOCHS=(5 5 5 5 5 5 5)
 
 SCRIPT_PATH="/playpen-ssd/smerrill/llm_decisions/train_agent_llm.py"
 MERGE_PATH="/playpen-ssd/smerrill/llm_decisions/tools/merge_lora_adapters.py"
@@ -50,8 +50,12 @@ for IDX in "${!AGENTS[@]}"; do
   LR="${LRS[$IDX]}"
   EPOCH="${EPOCHS[$IDX]}"
 
-  for SYS_MESSAGE in 0 1; do
+  for SYS_MESSAGE in 0; do
       OUTPUT_DIR="/playpen-ssd/smerrill/trained_models/meta-llama/Meta-Llama-3-70B-Instruct/${AGENT}_${FACTOR}_${DROPOUT}_${LR}_${EPOCH}_sys${SYS_MESSAGE}"
+      if [ -d "$OUTPUT_DIR" ]; then
+          echo "Skipping training for SYS_MESSAGE=$SYS_MESSAGE because $OUTPUT_DIR already exists."
+          continue
+      fi
 
       echo "---------------------------------------------"
       echo "Training agent: $AGENT"
@@ -79,7 +83,7 @@ for IDX in "${!AGENTS[@]}"; do
       fi
 
       echo "Attempting to merge directory"
-      python "$MERGE_PATH" --output_dir "$OUTPUT_DIR"
+      #python "$MERGE_PATH" --output_dir "$OUTPUT_DIR"
 
       if [ $? -ne 0 ]; then
         echo "Merging failed for agent: $AGENT with sys_message=$SYS_MESSAGE. Exiting..."
