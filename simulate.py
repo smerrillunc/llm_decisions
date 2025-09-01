@@ -1,9 +1,3 @@
-# === schoolboard_simulation.py ===
-
-# =========================
-# IMPORTS AND CONSTANTS
-# =========================
-
 import argparse
 from html import parser
 import json
@@ -14,6 +8,7 @@ import string
 import time
 from copy import deepcopy
 from collections import deque
+from typing import List, Dict
 
 import torch
 from transformers import (
@@ -21,6 +16,7 @@ from transformers import (
     AutoModelForCausalLM
 )
 from peft import PeftModel
+from transformers import AutoTokenizer
 
 # -- Debug Logging Flag --
 DEBUG = True
@@ -37,7 +33,9 @@ with open("/playpen-ssd/smerrill/llm_decisions/configs/personas.json") as f:
 with open('/playpen-ssd/smerrill/llm_decisions/configs/agenda.json') as f:
     agenda = json.load(f)
 
-
+with open( '/playpen-ssd/smerrill/llm_decisions/configs/micro_profiles.json', "r", encoding="utf-8") as f:
+    micro_profiles_data = json.load(f)
+    
 ALIASES = {
     "ellenosborne": ["ellen osborne", "ms. osborne", "ellen", "osborne", "ms osborne"],
     "davidoberg": ["david oberg", "mr. oberg", "david", "oberg", "mr oberg"],
@@ -53,41 +51,43 @@ ALIASES = {
 # UTILITY FUNCTIONS
 # =========================
 
+
 def create_context_card_simulation(speaker, persona_info, topics_list, people_list):
     """
     Generate a structured, LLM-friendly context card for fine-tuning.
-    
-    Inputs:
-        transcript_file: key/filename for transcript in topics_data
-        speaker: the persona name
-        
+    Each persona attribute is split into individual bullet points for clarity.
+    Includes reinforced brevity instructions and response format examples.
+
+    Parameters:
+    - speaker (str): Name of the persona to emulate.
+    - persona_info (str): Description of the persona, traits, style, etc.
+    - topics_list (list): Key topics likely to be discussed.
+    - people_list (list): Names of participants in the conversation.
+
     Returns:
-        context_card_text (str): formatted context card
-    """   
-    topics_str = "\n        ".join(topics_list)
-    
-    # Format people
+    - str: Formatted context card suitable for LLM input.
+    """
+
+    # Format topics and people
+    topics_str = ", ".join(topics_list)
     people_str = ", ".join(people_list)
-    
-    # Build the final context card string
-    context_card = """
-PROFILE:
-Persona Name: {speaker}
-Persona: {persona_info}
 
-CONVERSATION CONTEXT:
-Topics Discussed:
-        {topics_str}
-People in Conversation: {people_str}
-""".format(
-        speaker=speaker,
-        persona_info=persona_info,
-        topics_str=topics_str,
-        people_str=people_str
-    )
-        
+    # Split persona_info into individual bullet points
+    persona_info_lines = []
+    for segment in re.split(r'\.\s+(?=[A-Z]|Tone|Style|Values|Leadership)', persona_info):
+        segment = segment.strip()
+        if segment:
+            persona_info_lines.append(f"- {segment.rstrip('.')}")
+    # Add strong brevity instructions
+    formatted_persona_info = "\n".join(persona_info_lines)
+
+    # Construct the final context card
+    context_card = f"""Persona: {speaker} - {persona_info}
+    Conversation Participants: {people_str}
+    Topics: {topics_str}
+    Instruction: Continue the conversation in this persona. Respond appropriately to the latest turn. Answer in 2-3 Sentences or less.""".strip()
+
     return context_card.strip()
-
 
 def normalize_text(text: str) -> str:
     text = text.lower()
@@ -127,8 +127,8 @@ class Agent:
         temperature: float = 0.7,
         top_k: int = 50,
         top_p: float = 0.9,
-        repetition_penalty: float = 1.0,
-        max_new_tokens: int = 150,
+        repetition_penalty: float = 1.2,  # Increased penalty
+        max_new_tokens: int = 80,         # Lowered default
     ):
         self.name = name
         self.model = model
@@ -170,6 +170,7 @@ class Agent:
         candidates = self.generate_candidates(
             prompt, num_candidates, agent_names or [], **gen_kwargs
         )
+
         return candidates[0]
 
     def generate_candidates(
@@ -213,7 +214,8 @@ class Agent:
         for _ in range(num_candidates):
             attempt = 0
             while attempt < max_attempts:
-                output = self.model.generate(**inputs, **gen_kwargs)
+                output = self.model.generate(**inputs, **gen_kwargs, eos_token_id=self.tokenizer.eos_token_id,
+                                             )
                 new_tokens = output[0][prompt_len:]
                 reply = self.tokenizer.decode(new_tokens, skip_special_tokens=True).strip()
 
@@ -606,6 +608,88 @@ def build_system_prompt(speaker, personas, all_agent_names):
 # MAIN FUNCTION
 # =========================
 
+def truncate_conversation(conv, speaker, max_tokens=500, model_name="meta-llama/Meta-Llama-3-70B-Instruct"):
+    """
+    Truncate a conversation to approximately max_tokens, preserving whole messages.
+    The earliest message is truncated with ellipses if needed.
+    
+    Args:
+        conv (list): List of dicts, each with 'role' and 'content' keys.
+        speaker (str): Name of the assistant speaker in the logs.
+        max_tokens (int): Max number of tokens to keep.
+        model_name (str): Model tokenizer to use.
+        
+    Returns:
+        truncated_conv (list): List of dicts in the same format as conv.
+    """
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    
+    # Reverse iterate to accumulate tokens
+    tokenized_msgs = []
+    total_tokens = 0
+    for msg in reversed(conv):
+        tokens = tokenizer.encode(msg["content"], add_special_tokens=False)
+        tokenized_msgs.append((tokens, msg))
+        total_tokens += len(tokens)
+        if total_tokens >= max_tokens:
+            break
+    
+    # Reverse back to chronological order
+    tokenized_msgs = list(reversed(tokenized_msgs))
+    
+    # Truncate first message if necessary
+    if total_tokens > max_tokens:
+        tokens, first_msg = tokenized_msgs[0]
+        # Keep only the last part that fits
+        keep_tokens = max_tokens - (total_tokens - len(tokens))
+        truncated_text = tokenizer.decode(tokens[-keep_tokens:], skip_special_tokens=True)
+        first_msg = first_msg.copy()
+        speaker=first_msg["content"].split(":")[0]
+        first_msg["content"] = f"{speaker}:..." + truncated_text
+        tokenized_msgs[0] = (tokens, first_msg)
+    
+    # Build final conversation format
+    truncated_conv = []
+    for _, msg in tokenized_msgs:
+        truncated_conv.append(msg)
+    
+    return truncated_conv
+
+
+def merge_consecutive_messages(messages: List[Dict[str, str]]) -> List[Dict[str, str]]:
+    """
+    Merge consecutive messages in a conversation that have the same role.
+    
+    Args:
+        messages: A list of dicts, each with 'role' and 'content' keys.
+        
+    Returns:
+        A new list of messages where consecutive messages of the same role are merged.
+    """
+    if not messages:
+        return []
+    
+    merged = []
+    prev_role = messages[0]['role']
+    prev_content = messages[0]['content'].strip()
+    
+    for msg in messages[1:]:
+        role = msg['role']
+        content = msg['content'].strip()
+        if role == prev_role:
+            # Merge content with newline
+            prev_content += "\n" + content
+        else:
+            # Push the previous message and start new one
+            merged.append({'role': prev_role, 'content': prev_content})
+            prev_role = role
+            prev_content = content
+    
+    # Append the last accumulated message
+    merged.append({'role': prev_role, 'content': prev_content})
+    return merged
+
+
 def main():
 
     # PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True CUDA_VISIBLE_DEVICES=5,6,7 accelerate launch --num_processes=1 simulate.py --base_model meta-llama/Meta-Llama-3-8B-Instruct --config /playpen-ssd/smerrill/llm_decisions/configs/models.json  --agenda_item "Agenda Item No. 3.1: COVID Mask Policy.  Here we will debate weather we should require students to wear masks in the classrooms? We will then vote on the matter at the end." --vote_prompt "Agenda Item No. 3.1: Should we require students to wear masks in classrooms?"
@@ -620,8 +704,8 @@ def main():
     parser.add_argument("--temperature", type=float, default=0.7, help="Sampling temperature")
     parser.add_argument("--top_k", type=int, default=50, help="Top-k sampling cutoff")
     parser.add_argument("--top_p", type=float, default=0.9, help="Top-p nucleus sampling cutoff")
-    parser.add_argument("--repetition_penalty", type=float, default=1.0, help="Penalty for token repetition")
-    parser.add_argument("--max_new_tokens", type=int, default=150, help="Maximum new tokens to generate")
+    parser.add_argument("--repetition_penalty", type=float, default=1.2, help="Penalty for token repetition")
+    parser.add_argument("--max_new_tokens", type=int, default=500, help="Maximum new tokens to generate")
 
     args = parser.parse_args()
     with open(args.config) as f:
@@ -650,7 +734,7 @@ def main():
     
     log = [{
         "speaker": CHAIR_NAME,
-        "content": f"Welcome everyone. Let's begin discussion on: {args.agenda_item}. Who would like to start?"
+        "content": f"Welcome everyone. Let's begin discussion on: {seed_message}. Who would like to start?"
     }]
     agent_names = list(model_paths.keys())
     turn_order = deque(agent_names)
@@ -681,7 +765,8 @@ def main():
         print("Round Index: {}, Speaker: {}, Forced: {}".format(round_idx, speaker, forced))
 
         agent = agents[speaker]
-        conv = [{"role": "user" if msg['speaker'] != speaker else "assistant", "content": f"{msg['speaker']}: {msg['content']}"} for msg in log[-10:]]
+        conv = [{"role": "user" if msg['speaker'] != speaker else "assistant", "content": f"{msg['speaker']}: {msg['content']}"} for msg in log]
+        conv = truncate_conversation(merge_consecutive_messages(conv), 'assistant', max_tokens=1000, model_name=args.base_model)
         #system_prompt = (
         #    "You are roleplaying as a school board member named {speaker}. "
         #    "Always speak in the voice of {speaker}, and respond only as that character. "
@@ -693,13 +778,11 @@ def main():
         
         # system prompt was first in training set
         conv.insert(0, {"role": "system", "content": system_prompt})
-
         prompt = tokenizer.apply_chat_template(conv, tokenize=False, add_generation_prompt=True) + f'{speaker}: '
         print(prompt)
         
-        candidates = agent.generate_candidates(
+        response = agent.generate_response(
             prompt,
-            num_candidates=args.num_candidates,
             agent_names=agent_names,       # list of other agents
             temperature=args.temperature,
             top_p=args.top_p,
@@ -707,11 +790,11 @@ def main():
             repetition_penalty=args.repetition_penalty,
             max_new_tokens=args.max_new_tokens
         )
+        print('---'*20)
+        print(response)
+        print('---'*20)
         
-        print(f"[{speaker}] Candidates: {len(candidates)}")
-        context = format_conversation(log)
-        chosen = rank_candidates(peft_model, tokenizer, context, candidates)
-        log.append({"speaker": speaker, "content": chosen.strip()})
+        log.append({"speaker": speaker, "content": response.strip()})
 
         if not forced:
             turn_order.append(speaker)
