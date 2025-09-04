@@ -13,7 +13,6 @@ from transformers import (
 
 )
 
-from trl import setup_chat_format
 from peft import LoraConfig
 import numpy as np
 import pandas as pd
@@ -21,10 +20,11 @@ from trl import (
    SFTTrainer)
 
 import wandb
-from utils import get_dataset, preprocess_test_data, compute_perplexity_metrics
+from utils import get_dataset, preprocess_test_data, compute_perplexity_metrics, train_on_responses_only
 
 import evaluate
 from accelerate import Accelerator
+import re
 
 # Comment in if you want to use the Llama 3 instruct template but make sure to add modules_to_save
 # LLAMA_3_CHAT_TEMPLATE="{% set loop_messages = messages %}{% for message in loop_messages %}{% set content = '<|start_header_id|>' + message['role'] + '<|end_header_id|>\n\n'+ message['content'] | trim + '<|eot_id|>' %}{% if loop.index0 == 0 %}{% set content = bos_token + content %}{% endif %}{{ content }}{% endfor %}{% if add_generation_prompt %}{{ '<|start_header_id|>assistant<|end_header_id|>\n\n' }}{% endif %}"
@@ -44,6 +44,20 @@ from accelerate import Accelerator
 #    "{{ '\n\nAssistant: ' }}"
 #    "{% endif %}"
 #)
+filters = {'meta-llama/Meta-Llama-3-70B-Instruct':["<|start_header_id|>user<|end_header_id|>\n\n", "<|start_header_id|>assistant<|end_header_id|>\n\n"],
+        'Qwen/Qwen3-235B-A22B-Instruct-2507':['<|im_start|>\n', '<|im_end|>\n'],
+        'openai/gpt-oss-120b ':['<|start|>user<|message|>', '<|start|>assistant<|message|>']
+        }
+
+# REMOVES THINKING BLOCK FOR QWWEN
+def clean_text(text: str) -> str:
+    # remove the whole <think>...</think> block
+    text = re.sub(r'<think>.*?</think>', '', text, flags=re.S)
+    # collapse multiple newlines into one
+    text = re.sub(r'\n{2,}', '\n', text)
+    # strip spaces at line ends
+    return "\n".join(line.rstrip() for line in text.splitlines()).strip()
+
 
 @dataclass
 class ScriptArguments:
@@ -60,7 +74,7 @@ class ScriptArguments:
     )
 
     max_seq_length: int = field(
-        default=850, metadata={"help": "The maximum sequence length for SFT Trainer"}
+        default=2048, metadata={"help": "The maximum sequence length for SFT Trainer"}
     )
 
     factors: int = field(
@@ -120,7 +134,7 @@ def training_function(script_args, training_args, accelerator):
 
     train_examples, _ = get_dataset(train_path, test_path, script_args.agent_name, script_args.sys_message)
     train_examples = [tokenizer.apply_chat_template(x, tokenize=False) for x in train_examples]
-    train_data = Dataset.from_list([{"text": text} for text in train_examples])
+    train_data = Dataset.from_list([{"text": clean_text(text)} for text in train_examples])
 
     # Model    
     #torch_dtype = torch.bfloat16
@@ -165,7 +179,27 @@ def training_function(script_args, training_args, accelerator):
     ################
 
     # LoRA config based on QLoRA paper & Sebastian Raschka experiment
-    peft_config = LoraConfig(
+    if script_args.model_name == '/openai/gpt-oss-120b':
+        peft_config = LoraConfig(
+        lora_alpha=2*script_args.factors,
+        lora_dropout=script_args.dropout,
+        r=script_args.factors,
+        bias="none",
+        target_modules="all-linear",
+        target_parameters=[
+            "7.mlp.experts.gate_up_proj",
+            "7.mlp.experts.down_proj",
+            "15.mlp.experts.gate_up_proj",
+            "15.mlp.experts.down_proj",
+            "23.mlp.experts.gate_up_proj",
+            "23.mlp.experts.down_proj",
+        ],
+        task_type="CAUSAL_LM",
+        # modules_to_save = ["lm_head", "embed_tokens"] # add if you want to use the Llama 3 instruct template
+    )
+
+    else:
+       peft_config = LoraConfig(
         lora_alpha=2*script_args.factors,
         lora_dropout=script_args.dropout,
         r=script_args.factors,
@@ -196,11 +230,12 @@ def training_function(script_args, training_args, accelerator):
     )
     
     # Now done in SFTConfig Directly
-    # trainer = train_on_responses_only(
-    #    trainer,
-    #    instruction_part="<|start_header_id|>user<|end_header_id|>\n\n",
-    #    response_part="<|start_header_id|>assistant<|end_header_id|>\n\n",
-    #)
+    
+    trainer = train_on_responses_only(
+        trainer,
+        instruction_part=filters[script_args.model_name][0],
+        response_part=filters[script_args.model_name][1]
+    )
 
     if accelerator.is_main_process:
         trainer.model.print_trainable_parameters()
