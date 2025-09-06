@@ -143,8 +143,13 @@ def training_function(script_args, accelerator):
     ################
     # Dataset and tokenizer
     ################
-    tokenizer = AutoTokenizer.from_pretrained(script_args.model_name, use_fast=False)
-    tokenizer.pad_token = tokenizer.eos_token
+    tokenizer = AutoTokenizer.from_pretrained(script_args.model_name, use_fast=True)
+
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
+    if tokenizer.bos_token is None:
+        tokenizer.bos_token = tokenizer.eos_token
+
 
     train_path = '/playpen-ssd/smerrill/dataset/train_dataset.json'
     test_path = '/playpen-ssd/smerrill/dataset/test_dataset.json'
@@ -183,31 +188,46 @@ def training_function(script_args, accelerator):
     )
 
     model = get_peft_model(model, peft_config)
-
-    training_arguments = TrainingArguments(
-        output_dir="output",
+    tokenizer.model_max_length = 2048
+    training_args = TrainingArguments(
         per_device_train_batch_size=1,
-        per_device_eval_batch_size=1,
-        gradient_accumulation_steps=2,
-        optim="paged_adamw_32bit",
-        num_train_epochs=1,
-        logging_steps=0.2,
-        warmup_steps=10,
-        logging_strategy="steps",
-        learning_rate=2e-4,
-        fp16=True,
-        bf16=False,
-        group_by_length=True,
-        report_to="none"
+        gradient_accumulation_steps=4,
+        warmup_steps=5,
+        max_steps=300,
+        learning_rate=1e-4,
+        logging_steps=1,
+        optim="adamw_8bit",
+        weight_decay=0.1,
+        lr_scheduler_type="linear",
+        seed=3407,
+        output_dir="outputs",
+        report_to="none",
+        # FSDP and distributed configs:
+        fsdp="full_shard",
+        fsdp_min_num_params=0,
+        fsdp_config={
+            "fsdp_sharding_strategy": "FULL_SHARD",
+            "fsdp_offload_params": True,
+            "fsdp_backward_prefetch": "BACKWARD_PRE",
+            "fsdp_use_orig_params": True,
+            "fsdp_auto_wrap_policy": "TRANSFORMER_BASED_WRAP",
+            "activation_checkpointing": True,
+        },
+        fsdp_transformer_layer_cls_to_wrap=None,  # Only needed for CLASS_BASED_WRAP
+        accelerator_config=None,
+        parallelism_config=None,
     )
-    
-    #model, train_data = accelerator.prepare(model, train_data)
 
-    # Initialize the Trainer
+
     trainer = SFTTrainer(
-        model=model,
-        args=training_arguments,
-        train_dataset=train_data,
+        model = model,
+        #tokenizer = tokenizer,
+        train_dataset = train_data,
+        #dataset_text_field = "text",
+        #max_seq_length = max_seq_length,
+        #dataset_num_proc = 2,
+        #packing = False, # Can make training 5x faster for short sequences.
+        args = training_args,
     )
 
 
@@ -245,17 +265,9 @@ if __name__ == "__main__":
     # CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6 ACCELERATE_USE_FSDP=1 FSDP_CPU_RAM_EFFICIENT_LOADING=1 accelerate launch --num_processes 4 train_agent_llm.py --agent_name judyle --config "/playpen-ssd/smerrill/llm_decisions/configs/llamma_3_70b.yaml"
     #parser = TrlParser((ScriptArguments, TrainingArguments))
     #script_args, training_args = parser.parse_args_and_config()
-    import torch.distributed as dist
-
     #local_rank = int(os.environ["LOCAL_RANK"])
-    #os.environ["CUDA_VISIBLE_DEVICES"] = str(local_rank)
-    #print(local_rank)
-    
-        # 2. Initialize distributed process group
-    #dist.init_process_group(backend="nccl")
-    #dist.barrier(device_ids=int(os.environ["LOCAL_RANK"]))
-    dist.init_process_group(device_id=int(os.environ["LOCAL_RANK"]))
-    script_args, training_args = None, None
+    #torch.cuda.set_device(local_rank)
+
     script_args = get_args()
 
     #accelerator = Accelerator()
