@@ -1,0 +1,152 @@
+[
+  {
+    "speaker": "grahampaige",
+    "content": "Welcome everyone. Let's begin discussion on: Agenda Item No. 3.1: COVID Mask Policy - The board will discuss the district\u2019s COVID-19 health protocols, specifically whether students should be required to wear masks while in classrooms. This policy would apply during the regular school day, with exceptions for lunch and designated mask-break periods. The goal is to balance student safety with comfort and learning effectiveness.. Who would like to start?"
+  },
+  {
+    "speaker": "davidoberg",
+    "content": "Thanks, Graham. Maybe we could start by hearing from Ellen about current case rates.  \nEllen, how are things looking right now in terms of transmission?  \nI know it\u2019s been fluctuating, but just wondering if there\u2019s anything new since last week."
+  },
+  {
+    "speaker": "kateacuff",
+    "content": "Thank you, David. Ellen, maybe we could hear what our case rate has been over the past two weeks? I'm trying to get my arms around where we stand today."
+  },
+  {
+    "speaker": "judyle",
+    "content": "Thanks, Kate. Ellen, I'd love to hear what our current case rate looks like\u2014especially compared to earlier in the year.  \n\nDo we have any data showing trends in cases among vaccinated vs. unvaccinated students?  \n\nAnd David, when you say \"fluctuating,\" are we seeing spikes related to specific activities or settings?  \n\nI think knowing those details helps us assess risk better."
+  },
+  {
+    "speaker": "ellenosborne",
+    "content": "Thanks, everyone. Right now, case rates are holding steady\u2014slightly up from last week, but nothing alarming yet.  \n\nKate, we\u2019ve seen about 12 new cases over the past two weeks, mostly mild.  \n\nJudie, good question\u2014unvaccinated kids are still catching it more than vaccinated ones, but breakthroughs happen.  \n\nDavid, yes, we\u2019re seeing small upticks after events like field trips, especially indoors.  \n\nBut here\u2019s what worries me most\u2014is anyone else noticing more absences due to illness lately?"
+  },
+  {
+    "speaker": "jonnoalcaro",
+    "content": "Thank you, Ellen. So we've got a slight uptick, which makes sense given the holidays. But we're not seeing anything that really jumps out at us. Is that correct?"
+  },
+  {
+    "speaker": "katrinacallsen",
+    "content": "Jonny, I wonder if we can dig deeper into why these absences are happening\u2014are they primarily due to respiratory illnesses, or are we seeing something different?"
+  },
+  {
+    "speaker": "davidoberg",
+    "content": "Thanks, Katrinia. \nJonny, do you think we might be undercounting asymptomatic cases because families aren\u2019t testing unless symptoms appear?\nJudie, could we get a breakdown of how many of those absences were actually confirmed positives versus suspected?"
+  },
+  {
+    "speaker": "kateacuff",
+    "content": "Judi, I think we need an update on our positive test numbers and how they compare to previous years."
+  },
+  {
+    "speaker": "judyle",
+    "content": "Thanks, Kate. Ellen, could you clarify how many of those recent cases were linked to known outbreaks in schools?  \nJudie, I\u2019m curious\u2014how many of those positives involved symptomatic students who had close contact with others?  \nI wonder if we\u2019re missing milder cases because they\u2019re not getting tested.  \nCould we look at testing positivity rates across grade levels too?  \nMaybe we should check in with nurses about what they\u2019re observing daily."
+  },
+  {
+    "speaker": "ellenosborne",
+    "content": "Jonny, yes\u2014holiday gatherings likely played a role, but no major outbreaks so far.\nKatrina, almost all absences seem respiratory-related, nothing unusual beyond sniffles and fevers.\nDavid, possibly\u2014we don\u2019t track asymptomatic cases closely unless someone reports feeling sick.\nJudie, none of the recent cases came from known school clusters, but I\u2019d want to double-check with Health Services.\nPlease let me know if you\u2019ve heard anything from the nurses about early signs of spread\u2014like more sore throats or coughs in younger grades?"
+  },
+  {
+    "speaker": "jonnoalcaro",
+    "content": "Yes, thank you, Ellen. And Dr. C., did you hear back from Mr. Sikes about his plans for tomorrow?"
+  },
+  {
+    "speaker": "katrinacallsen",
+    "content": "I'll give him a call later tonight and see what he says. I'm going to try to reach out to him."
+  },
+  {
+    "speaker": "davidoberg",
+    "content": "Good idea, Katrina.\nJonny, does the superintendent have any guidance on whether we should expect similar patterns next week?\nJudie, could we get clarity on whether any of those recent positives were from extracurricular activities or sports teams?\nAlso, Ellen, are we tracking the delta variant specifically?"
+  },
+  {
+    "speaker": "kateacuff",
+    "content": "Are we doing surveillance sampling of the virus?"
+  },
+  {
+    "speaker": "judyle",
+    "content": "Thanks, Kate. Ellen, could you confirm whether we\u2019re doing any surveillance sampling right now?\nJudie, I\u2019d appreciate knowing if we\u2019re detecting variants like Delta in our community cases.\nI wonder if we could pull data on positivity rates from before and after winter break.\nJudie, do we have any information on how many of those recent cases were linked to indoor recess or other shared spaces?\nAnd David, could you please follow up with the superintendent on expectations for next week?"
+  },
+  {
+    "speaker": "ellenosborne",
+    "content": "Jonny, I\u2019ll check with Dr. Sikes and let you know by morning.\nKatrina, I\u2019ll call him tonight\u2014don\u2019t worry.\nDavid, Superintendent hasn\u2019t said much\u2014he\u2019s waiting on state updates.\nJudie, no, we\u2019re not doing active surveillance sampling, but PCR results come back with variant info if flagged.\nKate, we\u2019re not actively sampling, but labs do report variants when possible.\nJudie, no data yet on indoor recess links\u2014but I\u2019ll ask Health Services to watch for patterns.\nPlease send me any notes from the nurses if you notice odd symptom clusters\u2014especially in elementary grades."
+  },
+  {
+    "speaker": "jonnoalcaro",
+    "content": "OK, great. Thank you, Ellen. And just one final thing\u2014I hope there's no confusion out there about the mask requirement. Do we have any indication that folks understand it clearly?"
+  },
+  {
+    "speaker": "katrinacallsen",
+    "content": "I mean, I would assume most parents do understand it clearly. I guess maybe I'd like to see a survey or something asking them."
+  },
+  {
+    "speaker": "davidoberg",
+    "content": "That\u2019s a good point, Katrina.\nJonny, do you think we should consider sending a reminder letter home to reinforce the policy?\nJudie, could we get feedback from principals on whether families seem confused?\nAnd Ellen, do we have any anecdotal evidence from schools about compliance challenges?"
+  },
+  {
+    "speaker": "kateacuff",
+    "content": "Has anyone talked to the parents about how they feel about the mask policy?"
+  },
+  {
+    "speaker": "judyle",
+    "content": "Thanks, Kate. Ellen, could you check in with principals about parent feedback on masks?\nJudie, I\u2019d like to know if staff are reporting resistance or confusion around the policy.\nJudie, do we have any data on how well masks are being worn in classrooms?\nJudie, could we get a quick pulse from schools on compliance, especially in middle and high schools?\nPlease make sure to pass along any troubling anecdotes from staff to the Board."
+  },
+  {
+    "speaker": "ellenosborne",
+    "content": "Jonny, I haven\u2019t seen any confusion reported\u2014principals say it\u2019s been clear.\nKatrina, a survey sounds useful\u2014could we draft one quickly?\nJonny, yes, a reminder letter might help\u2014let\u2019s assign someone to write it by Friday.\nJudie, no complaints from staff yet\u2014most kids wear them fine.\nEllen, yes, I\u2019ll check with principals today\u2014do you want a summary by Thursday?\nJudie, I\u2019ll ask the nurse coordinators to flag any spots with low compliance.\nPlease keep me posted if anyone sees kids refusing masks during lunch or PE\u2014those moments matter."
+  },
+  {
+    "speaker": "jonnoalcaro",
+    "content": "Thank you very much, Ellen. And thank you, everyone."
+  },
+  {
+    "speaker": "katrinacallsen",
+    "content": "Thanks, Jonny."
+  },
+  {
+    "speaker": "davidoberg",
+    "content": "Appreciate the updates, Ellen.\nJudie, do you think we should pilot a quick anonymous parent survey on masking?\nKatrina, would you mind drafting a few sample questions for that?\nAnd Judie, if we do survey, can we get both parent and student perspectives?\nLet\u2019s aim to roll it out within the next two weeks\u2014can we assign someone to own that?"
+  },
+  {
+    "speaker": "grahampaige",
+    "content": "Ok, that's enough, we will now vote privately.  We are voting on Agenda Item No. 3.1: Should the district require students to wear masks in classrooms during the school day?.  If each of you could please record your vote in the chat, I will tally them up and announce the results."
+  },
+  {
+    "speaker": "davidoberg",
+    "content": "yes",
+    "vote": "yes",
+    "private": true
+  },
+  {
+    "speaker": "kateacuff",
+    "content": "yes",
+    "vote": "yes",
+    "private": true
+  },
+  {
+    "speaker": "judyle",
+    "content": "yes",
+    "vote": "yes",
+    "private": true
+  },
+  {
+    "speaker": "ellenosborne",
+    "content": "yes",
+    "vote": "yes",
+    "private": true
+  },
+  {
+    "speaker": "jonnoalcaro",
+    "content": "The motion was made by Mr. Paige and seconded by Ms. Callisen.",
+    "vote": "abstain",
+    "private": true
+  },
+  {
+    "speaker": "katrinacallsen",
+    "content": "yes",
+    "vote": "yes",
+    "private": true
+  },
+  {
+    "speaker": "grahampaige",
+    "content": "Yes",
+    "vote": "yes",
+    "private": true
+  }
+]

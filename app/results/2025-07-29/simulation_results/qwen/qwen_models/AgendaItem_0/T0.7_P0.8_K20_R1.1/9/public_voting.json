@@ -1,0 +1,186 @@
+[
+  {
+    "speaker": "grahampaige",
+    "content": "Welcome everyone. Let's begin discussion on: Agenda Item No. 3.1: COVID Mask Policy - The board will discuss the district\u2019s COVID-19 health protocols, specifically whether students should be required to wear masks while in classrooms. This policy would apply during the regular school day, with exceptions for lunch and designated mask-break periods. The goal is to balance student safety with comfort and learning effectiveness.. Who would like to start?"
+  },
+  {
+    "speaker": "davidoberg",
+    "content": "Thanks, Graham. I know there\u2019s been some concern about how consistent our messaging has been. Maybe it\u2019d help to hear what families are saying\u2014has anyone reached out lately?"
+  },
+  {
+    "speaker": "kateacuff",
+    "content": "David, I agree we need better messaging. I'd like to hear from Dr. Gipson about current case rates and risk assessment. Should we adjust our policy based on those numbers?"
+  },
+  {
+    "speaker": "davidoberg",
+    "content": "Kate, I think Dr. Gipson could definitely weigh in, but maybe we should check\u2014have we updated our data dashboard recently?"
+  },
+  {
+    "speaker": "kateacuff",
+    "content": "That's a good point, David. I'm not sure if we've had an update since last week. Is that something we can get today or next week?"
+  },
+  {
+    "speaker": "judyle",
+    "content": "Thank you, Kate. I appreciate your question. Could someone confirm when we last refreshed the dashboard? I\u2019m wondering if we\u2019re using real-time data or lagged information.  \n\nAlso, does anyone have feedback from parents who\u2019ve expressed discomfort with the new protocol? I want to understand how widespread those concerns are.\n\nAnd just so we\u2019re clear\u2014I think we should all feel comfortable asking for clarification when needed. Does anyone else have thoughts on the timing of updates?"
+  },
+  {
+    "speaker": "ellenosborne",
+    "content": "Thanks, Julie. I appreciate your questions.  \n\nI wonder\u2014do we know how many families actually contacted us directly about this?  \n\nCould someone please pull up the latest parent feedback logs?  \n\nJust to clarify, are we still relying on state-level case counts, or did we switch to local testing data?  \n\nIf we're using older data, shouldn\u2019t we refresh it before deciding?  \n\nWould anyone mind checking the dashboard now to see if it\u2019s current?"
+  },
+  {
+    "speaker": "jonnoalcaro",
+    "content": "Good morning, everybody. I appreciate everyone\u2019s input. I hope everyone feels safe and healthy. And I really appreciate the way we\u2019re being respectful of each other.\n\nDr. Gipson, I was wondering, could you give us a quick status report on where things stand right now?\n\nDo you think we should continue with the masking requirement? Or do you think it might be time to reevaluate it?"
+  },
+  {
+    "speaker": "katrinacallsen",
+    "content": "Thank you, Graham. Hi, everyone. Sorry I was late getting here. So I guess my first question would be, has the guidance changed since we met two weeks ago?"
+  },
+  {
+    "speaker": "davidoberg",
+    "content": "Katrina, I don\u2019t think there\u2019s been a change at the state level, but I think we ought to double-check. Do we know if anything\u2019s shifted since then?"
+  },
+  {
+    "speaker": "katrinacallsen",
+    "content": "Yeah, because I guess I was going to say, I don't remember seeing anything different. So I don't know. I mean, I don't know what the answer is. But I'm assuming it hasn't changed. It seems like we were told that the CDC said that the delta variant wasn't particularly dangerous for kids, which I thought was kind of interesting."
+  },
+  {
+    "speaker": "kateacuff",
+    "content": "Katrinacallsen, I don't know if that's accurate, but I certainly haven't seen any changes. I do believe that we've been looking at our own data more closely. I wonder if Dr. Gipson might comment on that."
+  },
+  {
+    "speaker": "katrinacallsen",
+    "content": "Sure."
+  },
+  {
+    "speaker": "judyle",
+    "content": "Thanks, Ellen. I appreciate the clarity.  \nCan someone verify the timeline for the most recent parent contact log update?  \nAnd Dr. Gipson, could you walk us through what the current local case rate trends show?  \nMaybe we could look at hospitalization data too\u2014is that available yet?  \nIt\u2019s probably worth checking if those metrics are driving any decisions.  \nCould someone please send over the latest county-level data for review?"
+  },
+  {
+    "speaker": "ellenosborne",
+    "content": "Julie, thanks for the follow-up.\nCould someone please confirm when the parent contacts log was last updated?\nI\u2019d love to see the actual number of complaints\u2014just to gauge urgency.\nDr. Gipson, can you tell us what percentage of cases are currently among unvaccinated children?\nPlease check if hospitalizations are rising locally again.\nAnd could we get the full breakdown by grade level, especially K\u20135?"
+  },
+  {
+    "speaker": "jonnoalcaro",
+    "content": "Thank you, Ellen. I appreciate that. I'm sorry I missed part of the exchange earlier."
+  },
+  {
+    "speaker": "katrinacallsen",
+    "content": "Yeah, no problem."
+  },
+  {
+    "speaker": "davidoberg",
+    "content": "Jon, I\u2019ll let you speak after I ask\u2014Julie, do we even have a full count of how many families have actually raised concerns?"
+  },
+  {
+    "speaker": "kateacuff",
+    "content": "I don't think we do, David. I wonder if someone on staff might have that. Judi, could you possibly check that?"
+  },
+  {
+    "speaker": "judyle",
+    "content": "Thank you, Kate. I\u2019d appreciate that. Judi, could you please pull the total count of family concerns reported since Monday?\nAnd while you\u2019re at it, could you flag any recurring themes in those messages?\nAlso, Dr. Gipson, do we have age-specific positivity rates for elementary students?\nIs there any sign that symptoms are worsening in younger children?\nCould we get a snapshot of that data within the next ten minutes?"
+  },
+  {
+    "speaker": "ellenosborne",
+    "content": "Julie, thanks for pushing on that.\nJudi, could you please pull the exact number of distinct concerns logged since Monday?\nAnd if possible, sort them by severity\u2014especially any mentioning health risks?\nDr. Gipson, do we know if breakthrough infections are increasing in vaccinated adults?\nCould we get a side-by-side comparison between symptomatic and asymptomatic cases in kids under 10?\nPlease share that with us ASAP."
+  },
+  {
+    "speaker": "jonnoalcaro",
+    "content": "Thank you, Ellen. And I apologize, but I didn\u2019t catch whether or not we got the numbers. Judi, could you please provide the totals?"
+  },
+  {
+    "speaker": "katrinacallsen",
+    "content": "I'm sorry, I didn't hear that either."
+  },
+  {
+    "speaker": "davidoberg",
+    "content": "Judi, could you please read out the raw number of reports you pulled?"
+  },
+  {
+    "speaker": "kateacuff",
+    "content": "Judi, could you please read out the raw number of reports you pulled?"
+  },
+  {
+    "speaker": "judyle",
+    "content": "Judi, could you please repeat the raw number of reports for the group?\nJudie, I think I heard \u201cthirty-six\u201d\u2014is that correct?\nAnd Dr. Gipson, maybe we could compare that to prior weeks\u2014does that trend seem concerning?\nCould someone pull the week-over-week comparison real quick?"
+  },
+  {
+    "speaker": "grahampaige",
+    "content": "Ok, that's enough, we will now vote publicly.  We are voting on Agenda Item No. 3.1: Should the district require students to wear masks in classrooms during the school day?.  Mr. Oberg, can you please start us off?"
+  },
+  {
+    "speaker": "davidoberg",
+    "content": "yes"
+  },
+  {
+    "speaker": "grahampaige",
+    "content": "Mr. Oberg votes yes.  Thank you, Mr. Oberg."
+  },
+  {
+    "speaker": "grahampaige",
+    "content": "Ms. Acuff, your turn."
+  },
+  {
+    "speaker": "kateacuff",
+    "content": "no"
+  },
+  {
+    "speaker": "grahampaige",
+    "content": "Ms. Acuff votes no.  Thank you, Ms. Acuff."
+  },
+  {
+    "speaker": "grahampaige",
+    "content": "Ms. Le, your turn."
+  },
+  {
+    "speaker": "judyle",
+    "content": "yes"
+  },
+  {
+    "speaker": "grahampaige",
+    "content": "Ms. Le votes yes.  Thank you, Ms. Le."
+  },
+  {
+    "speaker": "grahampaige",
+    "content": "Ms. Osborne, your turn."
+  },
+  {
+    "speaker": "ellenosborne",
+    "content": "no"
+  },
+  {
+    "speaker": "grahampaige",
+    "content": "Ms. Osborne votes no.  Thank you, Ms. Osborne."
+  },
+  {
+    "speaker": "grahampaige",
+    "content": "Jonnoalcaro, your turn."
+  },
+  {
+    "speaker": "jonnoalcaro",
+    "content": "no"
+  },
+  {
+    "speaker": "grahampaige",
+    "content": "Jonnoalcaro votes no.  Thank you, Jonnoalcaro."
+  },
+  {
+    "speaker": "grahampaige",
+    "content": "Ms. Callsen, your turn."
+  },
+  {
+    "speaker": "katrinacallsen",
+    "content": "I don't feel like we've had enough information presented about this particular motion to make an informed decision. So I'm going to abstain from voting at this time."
+  },
+  {
+    "speaker": "grahampaige",
+    "content": "Ms. Callsen votes abstain.  Thank you, Ms. Callsen."
+  },
+  {
+    "speaker": "grahampaige",
+    "content": "Now it's my turn to vote."
+  },
+  {
+    "speaker": "grahampaige",
+    "content": "No"
+  }
+]

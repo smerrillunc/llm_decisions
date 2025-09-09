@@ -1,0 +1,152 @@
+[
+  {
+    "speaker": "grahampaige",
+    "content": "Welcome everyone. Let's begin discussion on: Agenda Item No. 3.1: COVID Mask Policy - The board will discuss the district\u2019s COVID-19 health protocols, specifically whether students should be required to wear masks while in classrooms. This policy would apply during the regular school day, with exceptions for lunch and designated mask-break periods. The goal is to balance student safety with comfort and learning effectiveness.. Who would like to start?"
+  },
+  {
+    "speaker": "davidoberg",
+    "content": "Thanks, Graham. I\u2019d like to hear from Ellen\u2014how are case rates trending now? Maybe it\u2019ll help us frame the conversation."
+  },
+  {
+    "speaker": "kateacuff",
+    "content": "Thank you, David. I'm hoping we'll get an update on what's happening right now with cases."
+  },
+  {
+    "speaker": "judyle",
+    "content": "Thanks, Kate. Could you please share where the current data shows we're at with case rates right now?"
+  },
+  {
+    "speaker": "kateacuff",
+    "content": "I'd love to see those numbers too, Judi."
+  },
+  {
+    "speaker": "ellenosborne",
+    "content": "Thanks, Dave, Kate, and Judy. I\u2019ve been checking daily\u2014I\u2019ll pull up the latest county rate for us. Do we know how many cases have been reported among staff recently? That could give us a clearer picture of transmission patterns."
+  },
+  {
+    "speaker": "jonnoalcaro",
+    "content": "Thank you, Ellen. And good morning, everybody.  I wonder, maybe we could take a moment just to talk about the difference between infection rates and hospitalization rates.  I mean, I think most of us understand that these things are different.  But when we look at our kids and we think about sending them back into school, I don't think any of us want to send them back unless they\u2019re safe.  So, I\u2019m wondering if anybody has thoughts or concerns about the differences between those two metrics."
+  },
+  {
+    "speaker": "katrinacallsen",
+    "content": "Good morning, Jonno. I am glad you brought that up because I was going to say that I've been looking at both. There are definitely more infections than there were last year, but we haven't seen a spike in hospitalizations."
+  },
+  {
+    "speaker": "davidoberg",
+    "content": "Katrin, thanks. Might we check in with Dr. Pickett on the clinical implications of rising case counts versus low hospitalization levels?"
+  },
+  {
+    "speaker": "katrinacallsen",
+    "content": "Yeah, I agree with that. I hope he can weigh in. I'm curious, though, about why we're doing this study. It seems to me that if we're going to make a recommendation, we should be asking ourselves what kind of risk level we're comfortable with."
+  },
+  {
+    "speaker": "kateacuff",
+    "content": "I'm interested in hearing what Dr. Pickett says, Katrina. I guess my thought is we need to keep trying to reduce risks as much as possible."
+  },
+  {
+    "speaker": "judyle",
+    "content": "I appreciate that perspective, Kate. Would anyone mind sharing what they believe constitutes an acceptable level of risk for students returning to in-person classes?"
+  },
+  {
+    "speaker": "ellenosborne",
+    "content": "Thanks, Jonno, Kate, and Judy. I appreciate the nuance here. Dr. Pickett, could you clarify the clinical significance of rising case counts despite stable hospitalizations? Also, I wonder\u2014are we seeing breakthroughs in vaccinated adults, and how might that affect household exposure?"
+  },
+  {
+    "speaker": "jonnoalcaro",
+    "content": "Dr. Pickett, I wonder if you could speak to the efficacy of masking in preventing asymptomatic spread.  Because I think that\u2019s really key.  I mean, if someone doesn\u2019t even know they\u2019re infected, then it becomes all the more critical that the mask stops it before it gets passed around.  I\u2019d love to hear your comments on that."
+  },
+  {
+    "speaker": "katrinacallsen",
+    "content": "Thank you, Jonno. I'm actually pretty confident that the vaccine works well, especially against severe illness. I think we saw that over the summer. I'm worried, though, that some families who aren't vaccinated won't come back to school."
+  },
+  {
+    "speaker": "davidoberg",
+    "content": "Katrin, I think that's important. Could you ask Dr. Pickett about potential impacts on attendance if unvaccinated families feel unsafe coming back?"
+  },
+  {
+    "speaker": "katrinacallsen",
+    "content": "Sure, David. Dr. Pickett, do you think that if we require masks, we'll see improved attendance from families that are hesitant to return?"
+  },
+  {
+    "speaker": "davidoberg",
+    "content": "I think it\u2019s worth exploring, Katrin. Maybe we could ask Dr. Pickett directly whether requiring masks increases parental confidence in school reentry."
+  },
+  {
+    "speaker": "katrinacallsen",
+    "content": "Yes, David. I think that's something we should explore. I'm just thinking about the fact that we still have a lot of unvaccinated children out there, so I worry that without masks, we're putting those kids at risk."
+  },
+  {
+    "speaker": "davidoberg",
+    "content": "I hear that concern, Katrin. I think it's fair to ask Dr. Pickett whether not wearing masks increases the likelihood of outbreaks in unvaccinated populations."
+  },
+  {
+    "speaker": "katrinacallsen",
+    "content": "Okay, David. Dr. Pickett, do you think that if we don't require masks, we're increasing the likelihood of outbreaks in unvaccinated populations?"
+  },
+  {
+    "speaker": "davidoberg",
+    "content": "Dr. Pickett, I think Katrin\u2019s question deserves attention\u2014isn\u2019t it possible that removing mask requirements could increase transmission risk among vulnerable students?"
+  },
+  {
+    "speaker": "katrinacallsen",
+    "content": "Yeah, I guess I'm just curious about how we're measuring success. Are we saying that having 2% of our population get sick is okay? Or 3%? Or 5%? I don't know what our threshold is."
+  },
+  {
+    "speaker": "kateacuff",
+    "content": "You raise a great point, Katrina. I would love to hear what Dr. Pickett thinks about our target number."
+  },
+  {
+    "speaker": "katrinacallsen",
+    "content": "Yeah, I would too. I'm curious, Dr. Pickett, what number do you think we should aim for?"
+  },
+  {
+    "speaker": "judyle",
+    "content": "I appreciate that question, Katrin. Dr. Pickett, could you help us understand what baseline we should use when assessing risk in our schools right now?"
+  },
+  {
+    "speaker": "grahampaige",
+    "content": "Ok, that's enough, we will now vote privately.  We are voting on Agenda Item No. 3.1: Should the district require students to wear masks in classrooms during the school day?.  If each of you could please record your vote in the chat, I will tally them up and announce the results."
+  },
+  {
+    "speaker": "davidoberg",
+    "content": "yes",
+    "vote": "yes",
+    "private": true
+  },
+  {
+    "speaker": "kateacuff",
+    "content": "yes",
+    "vote": "yes",
+    "private": true
+  },
+  {
+    "speaker": "judyle",
+    "content": "yes",
+    "vote": "yes",
+    "private": true
+  },
+  {
+    "speaker": "ellenosborne",
+    "content": "yes",
+    "vote": "yes",
+    "private": true
+  },
+  {
+    "speaker": "jonnoalcaro",
+    "content": "yes",
+    "vote": "yes",
+    "private": true
+  },
+  {
+    "speaker": "katrinacallsen",
+    "content": "no",
+    "vote": "no",
+    "private": true
+  },
+  {
+    "speaker": "grahampaige",
+    "content": "Thank you, Dr. Pickett. I think you've made some very good points. I think all of us who voted yes had the same concerns. But again, thank you for bringing these numbers into focus because they really do make an impact. So thank you for doing that.",
+    "vote": "abstain",
+    "private": true
+  }
+]

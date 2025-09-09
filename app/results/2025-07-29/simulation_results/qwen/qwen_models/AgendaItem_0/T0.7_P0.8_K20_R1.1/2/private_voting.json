@@ -1,0 +1,152 @@
+[
+  {
+    "speaker": "grahampaige",
+    "content": "Welcome everyone. Let's begin discussion on: Agenda Item No. 3.1: COVID Mask Policy - The board will discuss the district\u2019s COVID-19 health protocols, specifically whether students should be required to wear masks while in classrooms. This policy would apply during the regular school day, with exceptions for lunch and designated mask-break periods. The goal is to balance student safety with comfort and learning effectiveness.. Who would like to start?"
+  },
+  {
+    "speaker": "davidoberg",
+    "content": "Thanks, Graham. I'm concerned about how the current case rates affect our ability to keep kids safe.  \n\nI wonder if anyone has data on what percentage of students who test positive were actually symptomatic or had severe outcomes.  \n\nMaybe it's worth asking our medical director again\u2014how much does masking really reduce transmission at school versus other settings?  \n\nKate, could you confirm that we've still got consistent testing availability across all buildings?  \n\nI think we should consider whether there's evidence that unmasked classrooms are leading to higher absenteeism due to illness.  \n\nIf so, maybe we need stronger guidance\u2014even if it feels uncomfortable right now."
+  },
+  {
+    "speaker": "kateacuff",
+    "content": "Thank you David. I agree with you, and I guess my question is what kind of metrics do we want to look at? Because certainly we know cases are up. And yes, we're seeing more than twice the number of cases compared to last year. But the impact on schools, I mean, I suspect most of them are asymptomatic."
+  },
+  {
+    "speaker": "judyle",
+    "content": "Thanks, Kate. I appreciate your perspective.  \n\nDavid, I\u2019d love to hear your thoughts on how we\u2019re measuring those impacts beyond just case counts\u2014do we have any data on symptom severity among students who tested positive?\n\nAnd Kate, could you please check if we\u2019ve updated our risk assessment model since March?  \n\nI\u2019m wondering too\u2014if we haven\u2019t seen widespread absences tied to infections, does that suggest our mitigation strategies are working?  \n\nWould someone mind sharing the latest numbers on staff or student absences linked directly to illness?"
+  },
+  {
+    "speaker": "ellenosborne",
+    "content": "Thanks, Judi. That\u2019s a good point\u2014I wonder if we\u2019ve looked at absenteeism trends specifically tied to confirmed cases versus general cold/flu patterns.\n\nKate, could you pull together the recent absence data broken down by cause?  \n\nAlso, David, when you mentioned symptom severity earlier\u2014did we get anything back from the medical director on that?\n\nJudie, was there something specific about the risk assessment model you wanted clarified?"
+  },
+  {
+    "speaker": "jonnoalcaro",
+    "content": "Thank you, Ellen. I wonder if Dr. Pfeiffer has done any modeling around the risks associated with indoor activities in schools. Maybe we should ask her to join us next week."
+  },
+  {
+    "speaker": "katrinacallsen",
+    "content": "Thank you, Jonno. I appreciate you bringing that up. It seems like a great idea. Do you think we can schedule that?"
+  },
+  {
+    "speaker": "davidoberg",
+    "content": "Thanks, Ellen. I appreciate your focus on symptoms\u2014it\u2019s easy to miss that even mild cases can disrupt learning.\nJudie, I think we should definitely revisit the risk model. Could you assign someone to check its validity against current data?\nEllen, I\u2019ll bet we don\u2019t track absences by *cause* very well. Is that something we can fix quickly?\nJonno, I agree\u2014we should bring Dr. Pfeiffer in. Katrina, why don't you reach out to her office today and see if she\u2019s available next week?\nKatrina, can you also ask if she\u2019s comfortable presenting virtually, in case others can\u2019t attend in person?"
+  },
+  {
+    "speaker": "kateacuff",
+    "content": "David, I'd like to know what the guidelines are for quarantining after exposure. Are they different for vaccinated versus unvaccinated individuals?"
+  },
+  {
+    "speaker": "judyle",
+    "content": "Thanks, Kate.  \nDavid, could you clarify\u2014when did we last update those quarantine guidelines?  \nKatrina, would you please check if Dr. Pfeiffer is available for next Wednesday at 6 PM?  \nAnd David, could you confirm whether we\u2019re currently tracking exposures by vaccine status?  \nI\u2019d also like to understand better how we\u2019re defining \u201cclose contact\u201d under the new rules."
+  },
+  {
+    "speaker": "ellenosborne",
+    "content": "Thanks, Judi. That\u2019s helpful\u2014could we double-check how close contacts are defined right now?\nKatrina, would you please confirm if we\u2019re tracking exposures by vaccination status?  \nDavid, can you help us find out when those quarantine guidelines were last revised?  \nJudie, I\u2019d appreciate knowing how strict the definition of \u201cclose contact\u201d is\u2014is it based on duration, proximity, or both?"
+  },
+  {
+    "speaker": "jonnoalcaro",
+    "content": "Judith, could you please remind me which criteria define a close contact? I seem to remember there being several factors involved."
+  },
+  {
+    "speaker": "judyle",
+    "content": "Thanks, Ellen and Jonno.\nI think we should verify whether \"close contact\" includes shared air space without direct face-to-face interaction\u2014does that count?\nCould someone please confirm if we\u2019re using CDC definitions or updating them locally?\nAnd Ellen, would you mind checking if we have real-time data on exposure logs per building?\nJudie, can you assign someone to review the current exposure thresholds and report back by Friday?"
+  },
+  {
+    "speaker": "katrinacallsen",
+    "content": "Sure, Judi. I will assign that task to someone."
+  },
+  {
+    "speaker": "judyle",
+    "content": "Thanks, Katrina. Please make sure it\u2019s someone familiar with the protocol\u2014would you please confirm that?"
+  },
+  {
+    "speaker": "katrinacallsen",
+    "content": "Yes, I'll make sure that happens."
+  },
+  {
+    "speaker": "davidoberg",
+    "content": "Judi, I appreciate your diligence here\u2014this is exactly the level of detail we need.\nKatrina, I think we should flag this issue with the health department\u2014can you please draft a note to them asking if we\u2019re aligned on exposure definitions?\nJudie, I\u2019m not sure we\u2019re capturing exposure logs consistently. Could you confirm whether each building submits reports weekly?\nEllen, I wonder if we\u2019re missing data because some families aren\u2019t reporting exposures. Should we send a reminder to parents?\nJonno, I\u2019d hate to assume we\u2019re doing everything right\u2014let\u2019s make sure we\u2019re not overlooking gaps."
+  },
+  {
+    "speaker": "kateacuff",
+    "content": "David, I'm concerned that our guidance says that children exposed to a case outside of school can return to class after five days\u2014but we require isolation for ten days if infected. I wonder if we need to reconsider that difference in timing."
+  },
+  {
+    "speaker": "judyle",
+    "content": "Thanks, Kate.\nThat\u2019s a fair concern\u2014David, could you look into whether the ten-day rule applies uniformly across all cases?\nI wonder if we\u2019re sending mixed messages to families by having different timelines for exposure vs. infection.\nCan someone check if the health department supports that distinction?\nJudie, would you please assign someone to compare the two timelines side-by-side and explain the reasoning behind them?"
+  },
+  {
+    "speaker": "ellenosborne",
+    "content": "Thanks, Kate. That\u2019s a solid point\u2014do we actually know why the timelines differ?\nJudie, could you please check if the health department explains that variation somewhere?\nDavid, can you help us find out whether the ten-day rule applies the same way for everyone?\nJudie, let\u2019s make sure we\u2019re not confusing families with inconsistent messaging.\nIs there anyone else who thinks this timeline mismatch might be worth revisiting?"
+  },
+  {
+    "speaker": "jonnoalcaro",
+    "content": "Judy, I really want to hear what the health department's thinking is on these differences. Would you please check with them?"
+  },
+  {
+    "speaker": "judyle",
+    "content": "Thanks, Jonno.\nI agree\u2014David, can you please get clarity from the health department on the rationale for differing isolation periods?\nJudie, could you follow up with them and report back by Monday?\nAnd Ellen, would you please confirm whether the guidance document explicitly states the logic behind the timeline split?\nWe should make sure families understand the reasoning\u2014not just the rules."
+  },
+  {
+    "speaker": "katrinacallsen",
+    "content": "Okay, I can check on that."
+  },
+  {
+    "speaker": "davidoberg",
+    "content": "Judi, I think we should pause before finalizing anything\u2014if the rationale isn\u2019t clear, we shouldn\u2019t expect families to accept it.  \nKate, I agree\u2014this inconsistency could confuse parents. Could you assign someone to dig into the source of those timelines?  \nEllen, maybe we should rephrase the guidance so it doesn\u2019t sound arbitrary. Would you please suggest edits?  \nJudie, since you\u2019ve been leading this, can you confirm we\u2019re all on the same page about the purpose of isolation?  \nI worry we\u2019re making assumptions without evidence. Let\u2019s keep digging until we\u2019re confident."
+  },
+  {
+    "speaker": "kateacuff",
+    "content": "I am wondering if we're ready to consider relaxing any mask mandates, given the drop in case rates."
+  },
+  {
+    "speaker": "judyle",
+    "content": "Thanks, Kate.\nI think we should wait until we see sustained low transmission over multiple weeks.\nDavid, could you monitor case trends by school and report back monthly?\nJudie, would you please check if staff and students feel safe wearing masks indoors?\nAnd Ellen, could you survey families about comfort levels with masking?\nLet\u2019s not rush\u2014our goal is safety, not speed."
+  },
+  {
+    "speaker": "grahampaige",
+    "content": "Ok, that's enough, we will now vote privately.  We are voting on Agenda Item No. 3.1: Should the district require students to wear masks in classrooms during the school day?.  If each of you could please record your vote in the chat, I will tally them up and announce the results."
+  },
+  {
+    "speaker": "davidoberg",
+    "content": "abstain",
+    "vote": "abstain",
+    "private": true
+  },
+  {
+    "speaker": "kateacuff",
+    "content": "My initial instinct was to say yes\u2014we've had good success with virtual learning. But looking at student outcomes data, some kids still struggle when they're remote. And many teachers don't like teaching online. So I'd rather keep our focus on reopening safely.",
+    "vote": "abstain",
+    "private": true
+  },
+  {
+    "speaker": "judyle",
+    "content": "no",
+    "vote": "no",
+    "private": true
+  },
+  {
+    "speaker": "ellenosborne",
+    "content": "no",
+    "vote": "no",
+    "private": true
+  },
+  {
+    "speaker": "jonnoalcaro",
+    "content": "no",
+    "vote": "no",
+    "private": true
+  },
+  {
+    "speaker": "katrinacallsen",
+    "content": "abstain",
+    "vote": "abstain",
+    "private": true
+  },
+  {
+    "speaker": "grahampaige",
+    "content": "OK, thank you very much. All right, so we had three votes. And Dr. Albright, could you tell me how many people voted for each item?",
+    "vote": "abstain",
+    "private": true
+  }
+]

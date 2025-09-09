@@ -1,0 +1,186 @@
+[
+  {
+    "speaker": "grahampaige",
+    "content": "Welcome everyone. Let's begin discussion on: Agenda Item No. 3.1: COVID Mask Policy - The board will discuss the district\u2019s COVID-19 health protocols, specifically whether students should be required to wear masks while in classrooms. This policy would apply during the regular school day, with exceptions for lunch and designated mask-break periods. The goal is to balance student safety with comfort and learning effectiveness.. Who would like to start?"
+  },
+  {
+    "speaker": "davidoberg",
+    "content": "Thanks, Graham. I\u2019d love to hear from Ellen\u2014how are case rates trending now compared to earlier in the year?"
+  },
+  {
+    "speaker": "kateacuff",
+    "content": "Thank you, David. I wonder how we could possibly get an accurate count of cases right now. There are so many at-home tests being used, but it does seem that there has been a pretty sharp drop since mid-January."
+  },
+  {
+    "speaker": "judyle",
+    "content": "Thanks, Kate. I'm wondering what data sources we're using to assess case trends currently? And maybe someone could clarify how those at-home test results factor into our risk assessment models?"
+  },
+  {
+    "speaker": "ellenosborne",
+    "content": "Thanks, David. I\u2019ve seen local case rates dropping steadily over the past few weeks\u2014about 40% lower than peak levels last month.  \n\nKate, great point\u2014home test reporting is definitely inconsistent. Do we have any way to estimate unreported cases?  \n\nJudyle, good question\u2014I\u2019m relying mostly on county health department dashboards and PCR testing volume from our clinics. But honestly, I don\u2019t know how much weight we give home test results anymore.  \n\nCould we pause and check with Health Services\u2014do they still track asymptomatic positives through random screening?  \n\nI\u2019ll admit, I\u2019m not fully confident in our current data sources either.  \n\nWould anyone else feel comfortable saying we\u2019re getting close to \u201cbusiness as usual\u201d again?"
+  },
+  {
+    "speaker": "jonnoalcaro",
+    "content": "Thanks, Ellen. That's really helpful. You know, I've got to echo that. I mean, when I look at the numbers, things certainly look better. But I just wonder where we go next. Maybe we ought to take a moment and talk a little bit about what we want to see happen before we make a move here. I'm thinking about the number of days off kids are missing because of illness. Does anybody have a sense of that?"
+  },
+  {
+    "speaker": "katrinacallsen",
+    "content": "Hi, Jonny. Thank you for raising that. It seems like we've come a long way from the beginning of the pandemic, but I can't help but wonder if we'll ever reach a place where we're not having these conversations. As we discussed previously, my son was out sick recently with something he caught at his preschool. He wasn't tested, but he was sick enough to miss two full days of school. So, I guess my question is: Are we tracking absences related to illnesses outside of COVID, or is it primarily focused on COVID-related absences?"
+  },
+  {
+    "speaker": "jonnoalcaro",
+    "content": "Good question, Katina. Would somebody from Health Services please comment on that? I think that's going to be key."
+  },
+  {
+    "speaker": "katrinacallsen",
+    "content": "Yes, I'd like to second that. I think it would be helpful to understand how we're measuring absenteeism beyond just the presence of symptoms. I know we've talked about different metrics in the past, but I'm curious to hear more about what we're doing right now."
+  },
+  {
+    "speaker": "davidoberg",
+    "content": "Judyl, I think we *should* keep asking that. Could you loop back to Dr. Hodge on that?"
+  },
+  {
+    "speaker": "judyle",
+    "content": "Thanks, David. I do agree\u2014we should clarify exactly how we\u2019re counting non-COVID absences. Dr. Hodge, could you confirm if we\u2019re including those in our overall absence tracking? And maybe we could explore whether we\u2019re seeing patterns in longer-term illness-related absences across grade levels?"
+  },
+  {
+    "speaker": "kateacuff",
+    "content": "I would like to join that effort. I wonder whether our nurse staff could assist us in determining how many of our absences are due to colds and flu versus the common cold, which I suspect are quite numerous right now."
+  },
+  {
+    "speaker": "judyle",
+    "content": "Kate, that\u2019s a thoughtful idea\u2014could we ask Nurse Myles to compile a quick snapshot of those types of absences by building? And maybe we could also ask her to flag any recurring patterns she sees in symptom reports?"
+  },
+  {
+    "speaker": "kateacuff",
+    "content": "I think that would be very useful information."
+  },
+  {
+    "speaker": "ellenosborne",
+    "content": "Thanks, Jonny, for bringing up attendance\u2014it\u2019s always top of mind for me too.  \nKatina, I agree, we really need clarity on how we\u2019re tracking non-COVID absences.  \nDavid, Judith, could we please ask Health Services to break down those numbers by school and age group?  \nJudyl, yes, Nurse Myles\u2014can you pull together a report showing illness-based absences by building, especially those lasting more than two days?  \nAnd Kate, could we also ask if nurses have noticed anything unusual lately\u2014like clusters of respiratory symptoms?  \nI\u2019m worried we\u2019re focusing so much on one virus we\u2019re missing other patterns.  \nDo we even know how many kids are out with strep or RSV right now?  \nMaybe we should schedule a brief check-in with the clinic team later this week."
+  },
+  {
+    "speaker": "jonnoalcaro",
+    "content": "That sounds like a great idea, Ellen. One thing I'd add to that list is that I think we also need to be sure we're looking at all of the possible reasons why children aren't attending school."
+  },
+  {
+    "speaker": "katrinacallsen",
+    "content": "I completely agree, Jonny. It's important that we consider factors like mental health and chronic conditions that might contribute to absenteeism."
+  },
+  {
+    "speaker": "davidoberg",
+    "content": "Katina, I think we need to bring Mental Health Services in on this too\u2014could you please coordinate with them on that?"
+  },
+  {
+    "speaker": "katrinacallsen",
+    "content": "Absolutely, David. I will reach out to Mental Health Services to get their perspective and gather whatever data they might have on student attendance linked to mental health concerns."
+  },
+  {
+    "speaker": "kateacuff",
+    "content": "I\u2019d like to suggest we hold an informal discussion with our principals and possibly with our nurses and mental health providers."
+  },
+  {
+    "speaker": "judyle",
+    "content": "Kate, I agree\u2014that could be valuable. Could you please organize a small roundtable with principals, nurses, and MH staff for next week? Let\u2019s focus on trends they\u2019ve observed and any emerging concerns."
+  },
+  {
+    "speaker": "kateacuff",
+    "content": "I will set that up."
+  },
+  {
+    "speaker": "ellenosborne",
+    "content": "Thank you, Kate\u2014yes, let\u2019s do that.\nJonny, I think we should also ask the principals if they\u2019ve seen spikes in anxiety or withdrawal lately\u2014especially around transitions between grades.\nKate, did you notice any increase in behavior referrals after remote learning ended?\nJudyl, could you ask each principal to note any recent changes in student mood or engagement during morning meetings?\nAnd Katina, since you brought it up\u2014I\u2019d love to know if parents seem more concerned about social-emotional health than academic gaps right now.\nCould someone please send a quick survey to parents about stressors affecting attendance?"
+  },
+  {
+    "speaker": "jonnoalcaro",
+    "content": "Yeah, I think that's a good idea, Ellen. Is there anyone else who wants to weigh in on that?"
+  },
+  {
+    "speaker": "katrinacallsen",
+    "content": "I don't have a lot to add, but I am interested in hearing what feedback we receive from parents when we do send out a survey."
+  },
+  {
+    "speaker": "davidoberg",
+    "content": "Katina, I think we should also ask parents directly\u2014are they feeling safe sending kids back?"
+  },
+  {
+    "speaker": "grahampaige",
+    "content": "Ok, that's enough, we will now vote publicly.  We are voting on Agenda Item No. 3.1: Should the district require students to wear masks in classrooms during the school day?.  Mr. Oberg, can you please start us off?"
+  },
+  {
+    "speaker": "davidoberg",
+    "content": "abstain"
+  },
+  {
+    "speaker": "grahampaige",
+    "content": "Mr. Oberg votes abstain.  Thank you, Mr. Oberg."
+  },
+  {
+    "speaker": "grahampaige",
+    "content": "Ms. Acuff, your turn."
+  },
+  {
+    "speaker": "kateacuff",
+    "content": "abstain"
+  },
+  {
+    "speaker": "grahampaige",
+    "content": "Ms. Acuff votes abstain.  Thank you, Ms. Acuff."
+  },
+  {
+    "speaker": "grahampaige",
+    "content": "Ms. Le, your turn."
+  },
+  {
+    "speaker": "judyle",
+    "content": "abstain"
+  },
+  {
+    "speaker": "grahampaige",
+    "content": "Ms. Le votes abstain.  Thank you, Ms. Le."
+  },
+  {
+    "speaker": "grahampaige",
+    "content": "Ms. Osborne, your turn."
+  },
+  {
+    "speaker": "ellenosborne",
+    "content": "abstain"
+  },
+  {
+    "speaker": "grahampaige",
+    "content": "Ms. Osborne votes abstain.  Thank you, Ms. Osborne."
+  },
+  {
+    "speaker": "grahampaige",
+    "content": "Jonnoalcaro, your turn."
+  },
+  {
+    "speaker": "jonnoalcaro",
+    "content": "abstain"
+  },
+  {
+    "speaker": "grahampaige",
+    "content": "Jonnoalcaro votes abstain.  Thank you, Jonnoalcaro."
+  },
+  {
+    "speaker": "grahampaige",
+    "content": "Ms. Callsen, your turn."
+  },
+  {
+    "speaker": "katrinacallsen",
+    "content": "yes"
+  },
+  {
+    "speaker": "grahampaige",
+    "content": "Ms. Callsen votes yes.  Thank you, Ms. Callsen."
+  },
+  {
+    "speaker": "grahampaige",
+    "content": "Now it's my turn to vote."
+  },
+  {
+    "speaker": "grahampaige",
+    "content": "The question now being asked by Mr. Alcaro is whether we would approve this resolution with those amendments. And so I will move that we do approve this resolution."
+  }
+]

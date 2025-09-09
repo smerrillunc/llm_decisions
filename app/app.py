@@ -611,29 +611,30 @@ for tab, category in zip(tabs, categories):
             st.subheader("School Board Simulation Review")
 
             # --- dropdowns for selecting transcript file ---
-            base_path = os.path.join(BASE_DIR, selected_experiment, "simulation_results")
+            base_path = os.path.join(BASE_DIR, "simulation_results")
 
-            # System prompt
-            sys_prompts = sorted([d for d in os.listdir(base_path) if os.path.isdir(os.path.join(base_path, d))])
-            selected_sys_prompt = st.selectbox("Select System Prompt", sys_prompts, key="sys_prompt")
+            # --- dropdowns for selecting transcript file ---
+            # Model (qwen, llama, etc.)
+            models = sorted([d for d in os.listdir(base_path) if os.path.isdir(os.path.join(base_path, d))])
+            selected_model = st.selectbox("Select Model", models, key="model")
 
-            # Agenda item number
-            sys_path = os.path.join(base_path, selected_sys_prompt)
-            agenda_items = sorted([d for d in os.listdir(sys_path) if os.path.isdir(os.path.join(sys_path, d))])
+            # Agenda item
+            model_path = os.path.join(base_path, selected_model, f"{selected_model}_models")
+            agenda_items = sorted([d for d in os.listdir(model_path) if os.path.isdir(os.path.join(model_path, d))])
             selected_agenda = st.selectbox("Select Agenda Item", agenda_items, key="agenda_item")
 
-            # Run number
-            agenda_path = os.path.join(sys_path, selected_agenda)
-            run_numbers = sorted([d for d in os.listdir(agenda_path) if os.path.isdir(os.path.join(agenda_path, d))])
-            selected_run = st.selectbox("Select Run Number", run_numbers, key="run_number")
-
             # Param set
-            run_path = os.path.join(agenda_path, selected_run)
-            param_sets = sorted([d for d in os.listdir(run_path) if os.path.isdir(os.path.join(run_path, d))])
+            agenda_path = os.path.join(model_path, selected_agenda)
+            param_sets = sorted([d for d in os.listdir(agenda_path) if os.path.isdir(os.path.join(agenda_path, d))])
             selected_param_set = st.selectbox("Select Param Set", param_sets, key="param_set")
 
+            # Run
+            param_path = os.path.join(agenda_path, selected_param_set)
+            runs = sorted([d for d in os.listdir(param_path) if os.path.isdir(os.path.join(param_path, d))])
+            selected_run = st.selectbox("Select Run", runs, key="run")
+
             # Full path to JSON
-            simulation_path = os.path.join(run_path, selected_param_set, "full_conversation.json")
+            simulation_path = os.path.join(param_path, selected_run, "full_conversation.json")
             st.write(f"Loading transcript from: {simulation_path}")
 
             # --- render transcript if available ---
