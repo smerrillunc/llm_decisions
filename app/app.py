@@ -611,7 +611,7 @@ for tab, category in zip(tabs, categories):
             st.subheader("School Board Simulation Review")
 
             # --- dropdowns for selecting transcript file ---
-            base_path = os.path.join(BASE_DIR, "simulation_results")
+            base_path = os.path.join(BASE_DIR, selected_experiment, "simulation_results")
 
             # --- dropdowns for selecting transcript file ---
             # Model (qwen, llama, etc.)
