@@ -17,6 +17,7 @@ from transformers import (
 )
 from peft import PeftModel
 from transformers import AutoTokenizer
+from unsloth.chat_templates import get_chat_template
 
 # -- Debug Logging Flag --
 DEBUG = True
@@ -52,51 +53,93 @@ ALIASES = {
 # =========================
 
 
-def create_context_card_simulation(speaker, persona_info, topics_list, people_list):
+def create_context_card_simulation(speaker, persona_info, topics_list, people_list, scenario="full"):
     """
-    Generate a structured, LLM-friendly context card for fine-tuning.
-    Each persona attribute is split into individual bullet points for clarity.
-    Includes reinforced brevity instructions and response format examples.
+    Generate a structured, LLM-friendly context card for fine-tuning with ablation options.
 
-    Parameters:
-    - speaker (str): Name of the persona to emulate.
-    - persona_info (str): Description of the persona, traits, style, etc.
-    - topics_list (list): Key topics likely to be discussed.
-    - people_list (list): Names of participants in the conversation.
+    Inputs:
+        transcript_file: key/filename for transcript in topics_data
+        speaker: the persona name
+        scenario: one of ["full", "no_micro", "no_examples", "no_profile"]
 
     Returns:
-    - str: Formatted context card suitable for LLM input.
+        context_card_text (str): formatted context card
     """
+    
+    # Extract data
+    persona_info = persona_info[speaker]["description"]
+    persona_examples = persona_info[speaker]["examples"]
+    micro_profile = micro_profiles_data[speaker]
 
-    # Format topics and people
-    topics_str = ", ".join(topics_list)
+    # Helper for "one in every X sentences"
+    def one_in_every(value):
+        return max(1, int(round(1 / value))) if value and value > 0 else 10
+
+    # Build micro profile lines
+    micro_lines = [
+        f"- Avg response length: {micro_profile.get('avg_words_per_turn',0):.2f}. "
+        f"Respond in ~{int(round(micro_profile.get('avg_words_per_turn',0)))} words on average.",
+
+        f"- Question Frequency: {micro_profile.get('question_freq',0)*100:.1f}%. "
+        f"Respond with a question roughly one in every {one_in_every(micro_profile.get('question_freq',0))} sentences.",
+
+        f"- Hedging Rate: {micro_profile.get('hedging_rate',0)*100:.1f}%. "
+        f"Use hedging words (maybe, might, probably, I think, etc.) about one in every {one_in_every(micro_profile.get('hedging_rate',0))} sentences.",
+
+        f"- Directive Rate: {micro_profile.get('directive_rate',0)*100:.1f}%. "
+        f"Use directive words (please, do, assign, create, etc.) about one in every {one_in_every(micro_profile.get('directive_rate',0))} sentences.",
+
+        f"- Politeness Rate: {micro_profile.get('politeness_rate',0)*100:.1f}%. "
+        f"Be polite (please, thanks, sorry, thank you, etc.) about one in every {one_in_every(micro_profile.get('politeness_rate',0))} sentences.",
+    ]
+    if 'sentiment_mean' in micro_profile:
+        micro_lines.append(
+            f"- Sentiment: Average sentiment {micro_profile.get('sentiment_mean',0):.3f}, "
+            f"ranging from {micro_profile.get('sentiment_min',0):.3f} to {micro_profile.get('sentiment_max',0):.3f} "
+            f"with variability {micro_profile.get('sentiment_variance',0):.3f}. "
+            f"Match this tone in your responses."
+        )
+    micro_str = "\n        ".join(micro_lines)
+
+    # Topics + people
+    topics_str = "\n        ".join(topics_list)
     people_str = ", ".join(people_list)
 
-    # Split persona_info into individual bullet points
-    persona_info_lines = []
-    for segment in re.split(r'\.\s+(?=[A-Z]|Tone|Style|Values|Leadership)', persona_info):
-        segment = segment.strip()
-        if segment:
-            persona_info_lines.append(f"- {segment.rstrip('.')}")
-    # Add strong brevity instructions
-    formatted_persona_info = "\n".join(persona_info_lines)
+    # Build conditional blocks
+    if scenario == "no_profile":
+        persona_block = ""
+        examples_block = ""
+        micro_block = ""
+    else:
+        persona_block = f"Persona: {persona_info}\n\n" if scenario not in ["no_profile"] else ""
+        examples_block = (
+            f"Examples of {speaker}'s speech style:\n{(chr(10)*2).join(persona_examples)}\n\n"
+            if scenario not in ["no_examples", "no_profile"] else ""
+        )
+        micro_block = (
+            f"Micro Profile:\n        {micro_str}\n\n"
+            if scenario not in ["no_micro", "no_profile"] else ""
+        )
 
-    # Construct the final context card
-    context_card = f"""Persona: {speaker} - {persona_info}
-    Conversation Participants: {people_str}
-    Topics: {topics_str}
-    Instruction: Continue the conversation in this persona. Respond appropriately to the latest turn. Answer in 2-3 Sentences or less.""".strip()
+    # Build context card
+    context_card = f"""
+PROFILE:
+Persona Name: {speaker}
 
+{persona_block}{examples_block}{micro_block}CONVERSATION CONTEXT:
+Topics Discussed:
+        {topics_str}
+
+People in Conversation: {people_str}
+
+Instructions:
+You are {speaker} in a school board meeting. Use the persona and micro profile above. 
+Respond naturally as if speaking in a live meeting with short sentences, everyday language, occasional hesitations, and natural pauses. 
+You may only ask questions to the people listed in this conversation and should follow the frequencies and directives provided.
+"""
     return context_card.strip()
 
-def normalize_text(text: str) -> str:
-    text = text.lower()
-    text = text.translate(str.maketrans("", "", string.punctuation))
-    text = re.sub(r"\s+", " ", text).strip()
-    return text
 
-def format_conversation(log: list[dict]) -> str:
-    return "\n".join(f"{turn['speaker']}: {turn['content']}" for turn in log if turn['content'].strip())
 
 def print_voting_log(title: str, voting_log: list[dict]):
     print(f"\n{'=' * 55}\n{title} VOTING LOG\n{'=' * 55}")
@@ -561,13 +604,35 @@ def rank_candidates(evaluator, tokenizer, context: str, candidates: list[str]) -
     return candidates[int(match.group(1)) - 1] if match else random.choice(candidates)
 
 def load_adapters(model_paths, base_model_path):
-    base = AutoModelForCausalLM.from_pretrained(
-            base_model_path,
-            torch_dtype=torch.bfloat16,
-            device_map="auto"
+    if "qwen" in base_model_path.lower():
+        os.environ["UNSLOTH_COMPILE_DISABLE"] = "1"
+        os.environ["UNSLOTH_DISABLE_CACHE"] = "1"
+        os.environ["UNSLOTH_DISABLE_RL_PATCH"] = "1"
+
+        from unsloth import FastLanguageModel
+        base, tokenizer = FastLanguageModel.from_pretrained(
+            model_name = base_model_path, 
+            dtype = torch.float16,
+            load_in_4bit = True,
+             device_map="balanced"
+
         )
-    tokenizer = AutoTokenizer.from_pretrained(base_model_path, use_fast=True)
-    tokenizer.pad_token = tokenizer.eos_token
+        tokenizer = get_chat_template(tokenizer, chat_template = "qwen3-instruct")
+        tokenizer.pad_token = tokenizer.eos_token
+        
+    elif "llama" in base_model_path.lower():
+        base = AutoModelForCausalLM.from_pretrained(
+                base_model_path,
+                torch_dtype=torch.bfloat16,
+                device_map="auto"
+            )
+        tokenizer = AutoTokenizer.from_pretrained(base_model_path, use_fast=True)
+        tokenizer.pad_token = tokenizer.eos_token
+        
+        tokenizer = get_chat_template(tokenizer, chat_template = "llama-3.3")
+        
+    else:
+        raise ValueError(f"Unsupported base model: {base_model_path}")
 
 
 
@@ -584,31 +649,11 @@ def load_adapters(model_paths, base_model_path):
     return peft_model, tokenizer
 
 
-def build_system_prompt(speaker, personas, all_agent_names):
-    persona = personas.get(speaker.lower(), "")
-    allowed_names = ", ".join(all_agent_names)
-    
-    system_prompt = (
-        f"You are roleplaying as a school board member named {speaker}. "
-        f"Your persona is as follows: {persona} "
-        "Always speak as this character, maintaining their distinct tone, style, values, leadership approach, and commonly used phrases. "
-        "Speak naturally and realistically, as if participating in a live board meeting. "
-        "Use fillers ('uh', 'um', 'you know', 'I mean'), hesitations, false starts, self-corrections, repeated words, partial thoughts, and trailing sentences. "
-        "Occasionally interject or interrupt briefly to clarify points, ask questions, or push back, but never speak for anyone else. "
-        "You may only reference people in this meeting: {allowed_names}. "
-        "Do not reference anyone else, external events, or previous meetings not part of this conversation. "
-        "Do NOT include any parenthetical stage directions like (pause), (turning), or (pauses to collect thoughts). "
-        "Do not announce your own name or identify yourself; speak as if everyone already knows who you are. "
-        "Avoid perfectly polished or overly formal sentences; let your speech feel imperfect, conversational, and human. "
-        f"Respond only as {speaker} and do not add commentary or speak as any other participant."
-    )
-    return system_prompt
-
 # =========================
 # MAIN FUNCTION
 # =========================
 
-def truncate_conversation(conv, speaker, max_tokens=500, model_name="meta-llama/Meta-Llama-3-70B-Instruct"):
+def truncate_conversation(conv, speaker, max_tokens=1000, model_name="meta-llama/Meta-Llama-3-70B-Instruct"):
     """
     Truncate a conversation to approximately max_tokens, preserving whole messages.
     The earliest message is truncated with ellipses if needed.
@@ -706,6 +751,8 @@ def main():
     parser.add_argument("--top_p", type=float, default=0.9, help="Top-p nucleus sampling cutoff")
     parser.add_argument("--repetition_penalty", type=float, default=1.2, help="Penalty for token repetition")
     parser.add_argument("--max_new_tokens", type=int, default=500, help="Maximum new tokens to generate")
+    parser.add_argument("--num_repeats", type=int, default=10, help="number of times to repeat experiment")
+    parser.add_argument("--system_prompt", type=str, default='full', help="System Prompt Option")
 
     args = parser.parse_args()
     with open(args.config) as f:
@@ -726,105 +773,112 @@ def main():
             repetition_penalty=args.repetition_penalty,
             max_new_tokens=args.max_new_tokens
         )
-
-    seed_message = agenda[args.agenda_item]['agenda_item']
-    vote_prompt = agenda[args.agenda_item]['vote_prompt']
-    topics_list = agenda[args.agenda_item]['topics']
-    people_list = ['ellenosborne', 'davidoberg', 'grahampage', 'jonnoalcaro', 'katrinacallsen', 'kateacuff', 'judyle']
-    
-    log = [{
-        "speaker": CHAIR_NAME,
-        "content": f"Welcome everyone. Let's begin discussion on: {seed_message}. Who would like to start?"
-    }]
-    agent_names = list(model_paths.keys())
-    turn_order = deque(agent_names)
-    turn_order.remove(CHAIR_NAME)
-
-    last_speaker = CHAIR_NAME  # initialize with chair
-
-    for round_idx in range(args.max_turns):
-        recent = log[-1:] if len(log) >= 1 else log
-        forced = detect_forced_next_speaker(peft_model, tokenizer, recent, agent_names)
-
-        if forced and forced == last_speaker:
-            # If forced speaker is same as last, pick next in turn_order
-            speaker = turn_order.popleft()
+        
+    # repeat experiment this number of times
+    for repeat in range(args.num_repeats):
+                
+        save_dir = os.path.join(args.save_dir, str(repeat))
+        if os.path.exists(save_dir):
+            print(f"Skipping {repeat}, file already exists")
+            print('-'*20)
+            continue
         else:
-            speaker = forced or turn_order.popleft()
-            
-        # Ensure speaker is not the same as last_speaker
-        if speaker == last_speaker:
-            # Rotate turn_order until we find someone else
-            for _ in range(len(turn_order)):
-                turn_order.append(speaker)
+            # Create the directory (including parents if needed)
+            print(f"Running Repeat Num: {repeat}")
+            print('-'*20)
+            os.makedirs(save_dir, exist_ok=True)
+
+        seed_message = agenda[args.agenda_item]['agenda_item']
+        vote_prompt = agenda[args.agenda_item]['vote_prompt']
+        topics_list = agenda[args.agenda_item]['topics']
+        people_list = ['ellenosborne', 'davidoberg', 'grahampage', 'jonnoalcaro', 'katrinacallsen', 'kateacuff', 'judyle']
+        
+        log = [{
+            "speaker": CHAIR_NAME,
+            "content": f"Welcome everyone. Let's begin discussion on: {seed_message}. Who would like to start?"
+        }]
+        
+        agent_names = list(model_paths.keys())
+        turn_order = deque(agent_names)
+        turn_order.remove(CHAIR_NAME)
+
+        last_speaker = CHAIR_NAME  # initialize with chair
+
+        for round_idx in range(args.max_turns):
+            recent = log[-1:] if len(log) >= 1 else log
+            forced = detect_forced_next_speaker(peft_model, tokenizer, recent, agent_names)
+
+            if forced and forced == last_speaker:
+                # If forced speaker is same as last, pick next in turn_order
                 speaker = turn_order.popleft()
-                if speaker != last_speaker:
-                    break
-        
-        print('-'*20)
-        print("Round Index: {}, Speaker: {}, Forced: {}".format(round_idx, speaker, forced))
-
-        agent = agents[speaker]
-        conv = [{"role": "user" if msg['speaker'] != speaker else "assistant", "content": f"{msg['speaker']}: {msg['content']}"} for msg in log]
-        conv = truncate_conversation(merge_consecutive_messages(conv), 'assistant', max_tokens=1000, model_name=args.base_model)
-        #system_prompt = (
-        #    "You are roleplaying as a school board member named {speaker}. "
-        #    "Always speak in the voice of {speaker}, and respond only as that character. "
-        #    "Do not break character, add commentary, or speak for anyone else."
-        #)
-        # This was the old system prompt, we will now use the context card
-        #system_prompt = build_system_prompt(speaker, PERSONAS, ALL_AGENT_NAMES)
-        system_prompt = create_context_card_simulation(speaker, PERSONAS.get(speaker, ""), topics_list, people_list)
-        
-        # system prompt was first in training set
-        conv.insert(0, {"role": "system", "content": system_prompt})
-        prompt = tokenizer.apply_chat_template(conv, tokenize=False, add_generation_prompt=True) + f'{speaker}: '
-        print(prompt)
-        
-        response = agent.generate_response(
-            prompt,
-            agent_names=agent_names,       # list of other agents
-            temperature=args.temperature,
-            top_p=args.top_p,
-            top_k=args.top_k,
-            repetition_penalty=args.repetition_penalty,
-            max_new_tokens=args.max_new_tokens
-        )
-        print('---'*20)
-        print(response)
-        print('---'*20)
-        
-        log.append({"speaker": speaker, "content": response.strip()})
-
-        if not forced:
-            turn_order.append(speaker)
+            else:
+                speaker = forced or turn_order.popleft()
+                
+            # Ensure speaker is not the same as last_speaker
+            if speaker == last_speaker:
+                # Rotate turn_order until we find someone else
+                for _ in range(len(turn_order)):
+                    turn_order.append(speaker)
+                    speaker = turn_order.popleft()
+                    if speaker != last_speaker:
+                        break
             
-        print(last_speaker, "->", speaker)
-        last_speaker = speaker  # update last speaker
+            print('-'*20)
+            print("Round Index: {}, Speaker: {}, Forced: {}".format(round_idx, speaker, forced))
 
-        # we want to detect if a member called for a vote
-        if detect_vote(peft_model, tokenizer, log[-1:]):
-            print(f"[{speaker}] Detected vote call!")
-            break
-        
-    public_votes, public_log = run_voting(vote_prompt, "public", agents, log, agent_names, tokenizer)
-    private_votes, private_log = run_voting(vote_prompt, "private", agents, log, agent_names, tokenizer)
-    vote_summary = tally_and_log_votes(public_votes, private_votes, log, CHAIR_NAME)
+            agent = agents[speaker]
+            conv = [{"role": "user" if msg['speaker'] != speaker else "assistant", "content": f"{msg['speaker']}: {msg['content']}"} for msg in log]
+            conv = truncate_conversation(merge_consecutive_messages(conv), 'assistant', max_tokens=1000, model_name=args.base_model)
+            system_prompt = create_context_card_simulation(speaker, PERSONAS.get(speaker, ""), topics_list, people_list, scenario=args.system_prompt)
+            
+            # system prompt was first in training set
+            conv.insert(0, {"role": "system", "content": system_prompt})
+            prompt = tokenizer.apply_chat_template(conv, tokenize=False, add_generation_prompt=True) + f'{speaker}: '
+            
+            response = agent.generate_response(
+                prompt,
+                agent_names=agent_names,
+                temperature=args.temperature,
+                top_p=args.top_p,
+                top_k=args.top_k,
+                repetition_penalty=args.repetition_penalty,
+                max_new_tokens=args.max_new_tokens
+            )
+            print('---'*20)
+            print(response)
+            print('---'*20)
+            
+            log.append({"speaker": speaker, "content": response.strip()})
+
+            if not forced:
+                turn_order.append(speaker)
+                
+            print(last_speaker, "->", speaker)
+            last_speaker = speaker  # update last speaker
+
+            # we want to detect if a member called for a vote
+            if detect_vote(peft_model, tokenizer, log[-1:]):
+                print(f"[{speaker}] Detected vote call!")
+                break
+            
+        public_votes, public_log = run_voting(vote_prompt, "public", agents, log, agent_names, tokenizer)
+        private_votes, private_log = run_voting(vote_prompt, "private", agents, log, agent_names, tokenizer)
+        vote_summary = tally_and_log_votes(public_votes, private_votes, log, CHAIR_NAME)
+
+        save_dir = os.path.join(args.save_dir, str(repeat))
+        os.makedirs(save_dir, exist_ok=True)
+        json.dump(public_log, open(f"{save_dir}/public_voting.json", "w"), indent=2)
+
+        json.dump(private_log, open(f"{save_dir}/private_voting.json", "w"), indent=2)
+        json.dump(log, open(f"{save_dir}/full_conversation.json", "w"), indent=2)
+
+        # Save votes for analysis
+        json.dump(public_votes, open(f"{save_dir}/public_votes.json", "w"), indent=2)
+        json.dump(private_votes, open(f"{save_dir}/private_votes.json", "w"), indent=2)
 
 
-    os.makedirs(args.save_dir, exist_ok=True)
-    json.dump(public_log, open(f"{args.save_dir}/public_voting.json", "w"), indent=2)
-
-    json.dump(private_log, open(f"{args.save_dir}/private_voting.json", "w"), indent=2)
-    json.dump(log, open(f"{args.save_dir}/full_conversation.json", "w"), indent=2)
-
-    # Save votes for analysis
-    json.dump(public_votes, open(f"{args.save_dir}/public_votes.json", "w"), indent=2)
-    json.dump(private_votes, open(f"{args.save_dir}/private_votes.json", "w"), indent=2)
-
-
-    print_voting_log("PUBLIC", public_log)
-    print_voting_log("PRIVATE", private_log)
+        print_voting_log("PUBLIC", public_log)
+        print_voting_log("PRIVATE", private_log)
 
 if __name__ == "__main__":
     main()
